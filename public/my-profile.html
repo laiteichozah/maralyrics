@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Artist Court — Claim Your Profile | MaraLyrics</title>
+  <title>For Artists &amp; Composers — Manage Your Profile | MaraLyrics</title>
 
   <!-- SEO Meta (dynamically updated by JS) -->
   <meta name="description" content="Claim your artist or composer profile on MaraLyrics to keep your bio, photo and links up to date. Sign in to manage your profile." />
@@ -25,14 +25,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Styles -->
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/royal.css?v=4" />
+  <link rel="stylesheet" href="/account.css?v=1" />
 
   <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
-<body class="royal-page">
+<body class="acct-page">
 
   <!-- ═══ Header ═══ -->
   <header class="header">
@@ -187,318 +186,318 @@
 
 
   <!-- ═══ Artist & composer accounts ═══ -->
-  <main class="royal" id="accountPage">
-    <p class="royal-message" id="pageNotice" role="status" hidden></p>
+  <main class="acct" id="accountPage">
+    <p class="acct-message" id="pageNotice" role="status" hidden></p>
 
-    <!-- ═══ Signed out: the royal welcome ═══ -->
-    <div id="accountAuth" class="fade-in">
-      <section class="royal-hero">
-        <div class="royal-crown"><svg viewBox="0 0 64 48" width="72" height="54" aria-hidden="true"><defs><linearGradient id="crownGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b3"/><stop offset=".5" stop-color="#e2b93b"/><stop offset="1" stop-color="#a8791a"/></linearGradient></defs><path d="M6 40 2 12l15 12L32 4l15 20L62 12l-4 28z" fill="url(#crownGold)"/><rect x="6" y="42" width="52" height="5" rx="2.5" fill="url(#crownGold)"/><circle cx="2" cy="12" r="3" fill="#fff2b3"/><circle cx="32" cy="4" r="3.4" fill="#fff2b3"/><circle cx="62" cy="12" r="3" fill="#fff2b3"/></svg></div>
-        <p class="royal-eyebrow" data-i18n="account.court_eyebrow">MaraLyrics</p>
-        <h1 class="royal-title" data-i18n="account.court_title">Artist Court</h1>
-        <p class="royal-lead" data-i18n="account.court_lead">A royal welcome for Mara artists and composers. Claim your profile, keep it shining, and wear the Green mark.</p>
-        <div class="royal-divider" aria-hidden="true"><span></span><i></i><span></span></div>
-      </section>
-
-      <section class="royal-perks">
-        <article class="royal-perk"><span class="royal-perk__icon" aria-hidden="true">👑</span><h2 data-i18n="account.perk_claim_t">Claim your name</h2><p data-i18n="account.perk_claim_d">Prove it's you and take charge of your profile.</p></article>
-        <article class="royal-perk"><span class="royal-perk__icon" aria-hidden="true">✒️</span><h2 data-i18n="account.perk_edit_t">Shape your profile</h2><p data-i18n="account.perk_edit_d">Your bio, photo and links, updated by you and live straight away.</p></article>
-        <article class="royal-perk"><span class="royal-perk__icon royal-perk__icon--green" aria-hidden="true">✔</span><h2 data-i18n="account.perk_green_t">Wear the Green mark</h2><p data-i18n="account.perk_green_d">A green tick of distinction beside your name across MaraLyrics.</p></article>
-      </section>
-
-      <section class="royal-gate royal-card">
-        <p class="royal-claiming" id="authClaimNote" hidden></p>
-        <h2 class="royal-gate__title" data-i18n="account.gate_title">Enter the Court</h2>
-
-        <div class="royal-google" id="googleBlock" hidden>
-          <div id="googleBtn" class="royal-google__btn"></div>
-          <div class="royal-or" aria-hidden="true"><span data-i18n="account.or_email">or use your email</span></div>
-        </div>
+    <!-- ═══ Signed out ═══ -->
+    <div id="accountAuth">
+      <div class="acct-auth">
+        <p class="acct-claiming" id="authClaimNote" hidden></p>
 
         <div id="authTabsBox">
-          <div class="royal-tabs royal-tabs--center" role="tablist">
-            <button type="button" class="royal-tab active" id="tabSignin" role="tab" data-i18n="account.tab_signin">Sign in</button>
-            <button type="button" class="royal-tab" id="tabRegister" role="tab" data-i18n="account.tab_register">Create account</button>
+          <h1 class="acct-auth__title" id="authTitle" data-i18n="account.auth_signin_title">Sign in</h1>
+          <p class="acct-auth__lead" id="authLead" data-i18n="account.auth_lead">For artists and composers who want to manage their page on MaraLyrics.</p>
+
+          <div class="acct-google" id="googleBlock" hidden>
+            <div id="googleBtn" class="acct-google__btn"></div>
+            <div class="acct-or" aria-hidden="true"><span data-i18n="account.or_email">or use your email</span></div>
           </div>
 
-          <form id="signinForm" class="royal-form" autocomplete="on">
-            <div class="royal-field">
+          <form id="signinForm" class="acct-form" autocomplete="on">
+            <div class="acct-field">
               <label for="signinUser" data-i18n="account.email_or_username">Email or username</label>
               <input type="text" id="signinUser" autocomplete="username" required />
             </div>
-            <div class="royal-field">
-              <label for="signinPass" data-i18n="account.password">Password</label>
+            <div class="acct-field">
+              <div class="acct-field__row">
+                <label for="signinPass" data-i18n="account.password">Password</label>
+                <button type="button" class="acct-linkbtn" id="forgotLink" data-i18n="account.forgot" hidden>Forgot your password?</button>
+              </div>
               <input type="password" id="signinPass" autocomplete="current-password" required />
             </div>
-            <p class="royal-message" id="signinMsg" role="alert" hidden></p>
-            <button type="submit" class="royal-btn" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
-            <button type="button" class="royal-linkbtn" id="forgotLink" data-i18n="account.forgot" hidden>Forgot your password?</button>
+            <p class="acct-message" id="signinMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn acct-btn--block" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
           </form>
 
-          <form id="registerForm" class="royal-form" autocomplete="on" hidden>
-            <div class="royal-field">
+          <form id="registerForm" class="acct-form" autocomplete="on" hidden>
+            <div class="acct-field">
               <label for="regEmail" data-i18n="account.email">Email</label>
               <input type="email" id="regEmail" autocomplete="email" required />
               <small data-i18n="account.email_signup_hint">You will sign in with this address.</small>
             </div>
-            <div class="royal-field">
+            <div class="acct-field">
               <label for="regPass" data-i18n="account.password">Password</label>
               <input type="password" id="regPass" autocomplete="new-password" minlength="8" required />
               <small data-i18n="account.password_hint">At least 8 characters.</small>
             </div>
-            <div class="royal-field">
+            <div class="acct-field">
               <label for="regPhone" data-i18n="account.phone">Phone number</label>
               <input type="tel" id="regPhone" autocomplete="tel" inputmode="tel" placeholder="+91 98765 43210" required />
               <small data-i18n="account.phone_hint">With your country code, for example +91 98765 43210. Only our review team sees it.</small>
             </div>
             <div id="regTurnstile"></div>
-            <p class="royal-message" id="regMsg" role="alert" hidden></p>
-            <button type="submit" class="royal-btn" id="regBtn" data-i18n="account.register_btn">Create account</button>
+            <p class="acct-message" id="regMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn acct-btn--block" id="regBtn" data-i18n="account.register_btn">Create account</button>
           </form>
+
+          <p class="acct-switch">
+            <span id="switchToRegister"><span data-i18n="account.switch_new">New here?</span> <button type="button" class="acct-linkbtn" id="tabRegister" data-i18n="account.tab_register">Create account</button></span>
+            <span id="switchToSignin" hidden><span data-i18n="account.switch_have">Already have an account?</span> <button type="button" class="acct-linkbtn" id="tabSignin" data-i18n="account.tab_signin">Sign in</button></span>
+          </p>
         </div>
 
-        <form id="forgotForm" class="royal-form" hidden>
-          <p class="royal-note" data-i18n="account.forgot_intro">Enter the email address of your account and we will send you a link to choose a new password.</p>
-          <div class="royal-field">
+        <form id="forgotForm" class="acct-form" hidden>
+          <h2 class="acct-auth__title acct-auth__title--sub" data-i18n="account.forgot_title">Reset your password</h2>
+          <p class="acct-auth__lead" data-i18n="account.forgot_intro">Enter the email address of your account and we will send you a link to choose a new password.</p>
+          <div class="acct-field">
             <label for="forgotEmail" data-i18n="account.email">Email</label>
             <input type="email" id="forgotEmail" autocomplete="email" required />
           </div>
           <div id="forgotTurnstile"></div>
-          <p class="royal-message" id="forgotMsg" role="alert" hidden></p>
-          <button type="submit" class="royal-btn" id="forgotBtn" data-i18n="account.forgot_send">Send reset link</button>
-          <button type="button" class="royal-linkbtn" id="forgotBack" data-i18n="account.back_to_signin">Back to sign in</button>
+          <p class="acct-message" id="forgotMsg" role="alert" hidden></p>
+          <button type="submit" class="acct-btn acct-btn--block" id="forgotBtn" data-i18n="account.forgot_send">Send reset link</button>
+          <p class="acct-switch"><button type="button" class="acct-linkbtn" id="forgotBack" data-i18n="account.back_to_signin">Back to sign in</button></p>
         </form>
 
-        <form id="resetForm" class="royal-form" hidden>
-          <p class="royal-note" data-i18n="account.reset_intro">Choose a new password for your account.</p>
-          <div class="royal-field">
+        <form id="resetForm" class="acct-form" hidden>
+          <h2 class="acct-auth__title acct-auth__title--sub" data-i18n="account.reset_title">Choose a new password</h2>
+          <div class="acct-field">
             <label for="resetPass" data-i18n="account.new_password">New password</label>
             <input type="password" id="resetPass" autocomplete="new-password" minlength="8" required />
             <small data-i18n="account.password_hint">At least 8 characters.</small>
           </div>
-          <p class="royal-message" id="resetMsg" role="alert" hidden></p>
-          <button type="submit" class="royal-btn" id="resetBtn" data-i18n="account.reset_save">Save new password</button>
+          <p class="acct-message" id="resetMsg" role="alert" hidden></p>
+          <button type="submit" class="acct-btn acct-btn--block" id="resetBtn" data-i18n="account.reset_save">Save new password</button>
         </form>
-      </section>
+
+        <section class="acct-about" aria-labelledby="aboutTitle">
+          <h2 id="aboutTitle" data-i18n="account.perks_title">With an account you can</h2>
+          <ul>
+            <li><strong data-i18n="account.perk_claim_t">Claim your name</strong> <span data-i18n="account.perk_claim_d">Prove it's you and take charge of your profile.</span></li>
+            <li><strong data-i18n="account.perk_edit_t">Shape your profile</strong> <span data-i18n="account.perk_edit_d">Your bio, photo and links, updated by you and live straight away.</span></li>
+            <li><strong data-i18n="account.perk_green_t">Wear the Green mark</strong> <span data-i18n="account.perk_green_d">A green tick of distinction beside your name across MaraLyrics.</span></li>
+          </ul>
+        </section>
+      </div>
     </div>
 
-    <!-- ═══ Signed in: the court ═══ -->
+    <!-- ═══ Signed in ═══ -->
     <div id="accountHome" hidden>
-      <header class="royal-banner">
-        <span class="royal-avatar" id="bannerAvatar"></span>
-        <div class="royal-banner__text">
-          <h2 class="royal-banner__name" id="bannerName"></h2>
-          <p class="royal-banner__meta" id="bannerMeta"></p>
+      <header class="acct-banner">
+        <span class="acct-avatar" id="bannerAvatar"></span>
+        <div class="acct-banner__text">
+          <h2 class="acct-banner__name" id="bannerName"></h2>
+          <p class="acct-banner__meta" id="bannerMeta"></p>
         </div>
-        <div class="royal-banner__actions">
-          <a class="royal-btn royal-btn--ghost royal-btn--sm" id="bannerView" href="#" hidden data-i18n="account.view_public">View public page</a>
-          <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" id="btnSignout" data-i18n="account.signout">Sign out</button>
+        <div class="acct-banner__actions">
+          <a class="acct-btn acct-btn--quiet acct-btn--sm" id="bannerView" href="#" hidden data-i18n="account.view_public">View public page</a>
+          <button type="button" class="acct-btn acct-btn--quiet acct-btn--sm" id="btnSignout" data-i18n="account.signout">Sign out</button>
         </div>
       </header>
 
-      <div class="royal-notice" id="verifyBar" role="status" hidden>
+      <div class="acct-notice" id="verifyBar" role="status" hidden>
         <span id="verifyText"></span>
-        <button type="button" class="royal-btn royal-btn--sm" id="verifySend" data-i18n="account.verify_send">Send confirmation email</button>
+        <button type="button" class="acct-btn acct-btn--sm" id="verifySend" data-i18n="account.verify_send">Send confirmation email</button>
       </div>
 
-      <nav class="royal-tabs royal-tabs--scroll" role="tablist" id="courtTabs">
-        <button type="button" class="royal-tab" role="tab" data-tab="profile" data-i18n="account.tab_profile">Profile</button>
-        <button type="button" class="royal-tab" role="tab" data-tab="green" data-i18n="account.tab_green">Green Mark</button>
-        <button type="button" class="royal-tab" role="tab" data-tab="claims" data-i18n="account.tab_claims">Claims</button>
-        <button type="button" class="royal-tab" role="tab" data-tab="account" data-i18n="account.tab_account">Account</button>
+      <nav class="acct-tabs" role="tablist" id="courtTabs">
+        <button type="button" class="acct-tab" role="tab" data-tab="profile" data-i18n="account.tab_profile">Profile</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="green" data-i18n="account.tab_green">Green Mark</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="claims" data-i18n="account.tab_claims">Claims</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="account" data-i18n="account.tab_account">Account</button>
       </nav>
 
       <!-- Profile -->
-      <section class="royal-panel" id="panelProfile" role="tabpanel" hidden>
-        <div class="royal-locked royal-card" data-locked hidden>
+      <section class="acct-panel" id="panelProfile" role="tabpanel" hidden>
+        <div class="acct-locked acct-card" data-locked hidden>
           <h2 data-i18n="account.locked_title">Claim your profile first</h2>
           <p data-i18n="account.locked_text">Once our team approves your claim you can edit your profile and apply for the Green mark.</p>
-          <button type="button" class="royal-btn" data-goto="claims" data-i18n="account.locked_cta">Go to Claims</button>
+          <button type="button" class="acct-btn" data-goto="claims" data-i18n="account.locked_cta">Go to Claims</button>
         </div>
         <div data-body hidden>
-          <div class="royal-chips" id="profileSwitch" hidden></div>
-          <div class="royal-split">
-            <form id="editorForm" class="royal-form royal-card">
-              <p class="royal-note" data-i18n="account.editor_note">Your name and page address are managed by our team. Changes you save here go live straight away.</p>
-              <div class="royal-field">
-                <span class="royal-label" data-i18n="account.photo">Photo</span>
-                <div class="royal-photo">
-                  <span class="royal-avatar royal-avatar--lg" id="editorPhoto"></span>
-                  <div class="royal-photo__actions">
-                    <label class="royal-btn royal-btn--ghost royal-btn--sm"><span data-i18n="account.photo_choose">Choose photo</span><input type="file" id="editorPhotoFile" accept="image/*" hidden /></label>
-                    <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" id="editorPhotoRemove" data-i18n="account.photo_remove">Remove photo</button>
+          <div class="acct-chips" id="profileSwitch" hidden></div>
+          <div class="acct-split">
+            <form id="editorForm" class="acct-form acct-card">
+              <p class="acct-note" data-i18n="account.editor_note">Your name and page address are managed by our team. Changes you save here go live straight away.</p>
+              <div class="acct-field">
+                <span class="acct-label" data-i18n="account.photo">Photo</span>
+                <div class="acct-photo">
+                  <span class="acct-avatar acct-avatar--lg" id="editorPhoto"></span>
+                  <div class="acct-photo__actions">
+                    <label class="acct-btn acct-btn--ghost acct-btn--sm"><span data-i18n="account.photo_choose">Choose photo</span><input type="file" id="editorPhotoFile" accept="image/*" hidden /></label>
+                    <button type="button" class="acct-btn acct-btn--ghost acct-btn--sm" id="editorPhotoRemove" data-i18n="account.photo_remove">Remove photo</button>
                   </div>
                 </div>
               </div>
-              <div class="royal-field">
-                <span class="royal-label" id="editorBioLabel" data-i18n="account.bio">Bio</span>
+              <div class="acct-field">
+                <span class="acct-label" id="editorBioLabel" data-i18n="account.bio">Bio</span>
                 <div id="editorBio" role="group" aria-labelledby="editorBioLabel"></div>
                 <small id="editorBioCount"></small>
               </div>
-              <div class="royal-field">
-                <span class="royal-label" data-i18n="account.social">Social links</span>
-                <div id="editorLinks" class="royal-links"></div>
-                <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" id="editorAddLink" data-i18n="account.social_add">Add link</button>
+              <div class="acct-field">
+                <span class="acct-label" data-i18n="account.social">Social links</span>
+                <div id="editorLinks" class="acct-links"></div>
+                <button type="button" class="acct-btn acct-btn--ghost acct-btn--sm" id="editorAddLink" data-i18n="account.social_add">Add link</button>
               </div>
-              <p class="royal-message" id="editorMsg" role="alert" hidden></p>
-              <div class="royal-actions">
-                <button type="submit" class="royal-btn" id="editorSave" data-i18n="account.save">Save changes</button>
+              <p class="acct-message" id="editorMsg" role="alert" hidden></p>
+              <div class="acct-actions">
+                <button type="submit" class="acct-btn" id="editorSave" data-i18n="account.save">Save changes</button>
               </div>
             </form>
-            <aside class="royal-preview royal-card" aria-label="Preview">
-              <h2 class="royal-preview__title" data-i18n="account.preview_title">Live preview</h2>
-              <div id="previewCard" class="royal-preview__card"></div>
+            <aside class="acct-preview acct-card" aria-label="Preview">
+              <h2 class="acct-preview__title" data-i18n="account.preview_title">Live preview</h2>
+              <div id="previewCard" class="acct-preview__card"></div>
             </aside>
           </div>
         </div>
       </section>
 
       <!-- Green mark -->
-      <section class="royal-panel" id="panelGreen" role="tabpanel" hidden>
-        <div class="royal-locked royal-card" data-locked hidden>
+      <section class="acct-panel" id="panelGreen" role="tabpanel" hidden>
+        <div class="acct-locked acct-card" data-locked hidden>
           <h2 data-i18n="account.locked_title">Claim your profile first</h2>
           <p data-i18n="account.locked_text">Once our team approves your claim you can edit your profile and apply for the Green mark.</p>
-          <button type="button" class="royal-btn" data-goto="claims" data-i18n="account.locked_cta">Go to Claims</button>
+          <button type="button" class="acct-btn" data-goto="claims" data-i18n="account.locked_cta">Go to Claims</button>
         </div>
         <div data-body hidden>
-          <section class="royal-card royal-green">
-            <h2 class="royal-section-title"><span class="royal-seal" aria-hidden="true">✔</span><span data-i18n="green.title">Green mark</span></h2>
-            <p class="royal-lead royal-lead--left" data-i18n="green.intro">Get a green tick next to your name across MaraLyrics. Pick a plan, pay, and our team will check your payment and switch it on.</p>
-            <div id="greenProfiles" class="royal-statuses"></div>
-            <p class="royal-note" id="greenNoPlans" data-i18n="green.no_plans" hidden>Green mark plans aren't available yet. Please check back soon.</p>
-            <p class="royal-message" id="greenNeedContact" hidden></p>
-            <form id="greenForm" class="royal-form" hidden>
-              <div class="royal-field" id="greenProfileRow">
+          <section class="acct-card acct-green">
+            <h2 class="acct-section-title"><span class="acct-seal" aria-hidden="true">✔</span><span data-i18n="green.title">Green mark</span></h2>
+            <p class="acct-lead acct-lead--left" data-i18n="green.intro">Get a green tick next to your name across MaraLyrics. Pick a plan, pay, and our team will check your payment and switch it on.</p>
+            <div id="greenProfiles" class="acct-statuses"></div>
+            <p class="acct-note" id="greenNoPlans" data-i18n="green.no_plans" hidden>Green mark plans aren't available yet. Please check back soon.</p>
+            <p class="acct-message" id="greenNeedContact" hidden></p>
+            <form id="greenForm" class="acct-form" hidden>
+              <div class="acct-field" id="greenProfileRow">
                 <label for="greenProfile" data-i18n="green.choose_profile">Profile</label>
                 <select id="greenProfile"></select>
               </div>
-              <div class="royal-field">
-                <span class="royal-label" data-i18n="green.choose_plan">Plan</span>
-                <div id="greenPlans" class="royal-plans" role="radiogroup"></div>
+              <div class="acct-field">
+                <span class="acct-label" data-i18n="green.choose_plan">Plan</span>
+                <div id="greenPlans" class="acct-plans" role="radiogroup"></div>
               </div>
-              <div class="royal-field">
-                <span class="royal-label" data-i18n="green.how_to_pay">How to pay</span>
-                <p class="royal-howto" id="greenHowTo"></p>
+              <div class="acct-field">
+                <span class="acct-label" data-i18n="green.how_to_pay">How to pay</span>
+                <p class="acct-howto" id="greenHowTo"></p>
               </div>
-              <div class="royal-field">
+              <div class="acct-field">
                 <label for="greenReference" data-i18n="green.reference">Payment reference</label>
                 <input type="text" id="greenReference" maxlength="120" required />
                 <small data-i18n="green.reference_hint">The transaction ID, or the name on the transfer, so we can find your payment.</small>
               </div>
-              <div class="royal-field">
+              <div class="acct-field">
                 <label for="greenNote" data-i18n="green.note">Note (optional)</label>
                 <textarea id="greenNote" rows="2" maxlength="500"></textarea>
               </div>
-              <div class="royal-field">
-                <span class="royal-label" data-i18n="green.receipt">Receipt (optional)</span>
-                <div class="royal-photo">
-                  <span class="royal-receipt" id="greenReceiptPreview" hidden></span>
-                  <div class="royal-photo__actions">
-                    <label class="royal-btn royal-btn--ghost royal-btn--sm"><span data-i18n="green.receipt_choose">Choose receipt</span><input type="file" id="greenReceiptFile" accept="image/*" hidden /></label>
-                    <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" id="greenReceiptRemove" data-i18n="green.receipt_remove" hidden>Remove receipt</button>
+              <div class="acct-field">
+                <span class="acct-label" data-i18n="green.receipt">Receipt (optional)</span>
+                <div class="acct-photo">
+                  <span class="acct-receipt" id="greenReceiptPreview" hidden></span>
+                  <div class="acct-photo__actions">
+                    <label class="acct-btn acct-btn--ghost acct-btn--sm"><span data-i18n="green.receipt_choose">Choose receipt</span><input type="file" id="greenReceiptFile" accept="image/*" hidden /></label>
+                    <button type="button" class="acct-btn acct-btn--ghost acct-btn--sm" id="greenReceiptRemove" data-i18n="green.receipt_remove" hidden>Remove receipt</button>
                   </div>
                 </div>
                 <small data-i18n="green.receipt_hint">A photo or screenshot of your payment helps us confirm it faster.</small>
               </div>
-              <p class="royal-message" id="greenMsg" role="alert" hidden></p>
-              <button type="submit" class="royal-btn royal-btn--green" id="greenSubmit" data-i18n="green.submit">I've paid — send for review</button>
+              <p class="acct-message" id="greenMsg" role="alert" hidden></p>
+              <button type="submit" class="acct-btn acct-btn--green" id="greenSubmit" data-i18n="green.submit">I've paid — send for review</button>
             </form>
           </section>
-          <section class="royal-card">
-            <h2 class="royal-section-title" data-i18n="green.orders_title">Your orders</h2>
-            <div id="greenOrders" class="royal-statuses"></div>
-            <p class="royal-note" id="greenNoOrders" data-i18n="green.no_orders" hidden>No orders yet.</p>
+          <section class="acct-card">
+            <h2 class="acct-section-title" data-i18n="green.orders_title">Your orders</h2>
+            <div id="greenOrders" class="acct-statuses"></div>
+            <p class="acct-note" id="greenNoOrders" data-i18n="green.no_orders" hidden>No orders yet.</p>
           </section>
         </div>
       </section>
 
       <!-- Claims -->
-      <section class="royal-panel" id="panelClaims" role="tabpanel" hidden>
-        <section class="royal-card">
-          <h2 class="royal-section-title" data-i18n="account.your_profiles">Your profiles</h2>
-          <div id="claimList" class="royal-statuses"></div>
-          <p class="royal-note" id="claimEmpty" data-i18n="account.no_claims" hidden>You haven't claimed a profile yet.</p>
+      <section class="acct-panel" id="panelClaims" role="tabpanel" hidden>
+        <section class="acct-card">
+          <h2 class="acct-section-title" data-i18n="account.your_profiles">Your profiles</h2>
+          <div id="claimList" class="acct-statuses"></div>
+          <p class="acct-note" id="claimEmpty" data-i18n="account.no_claims" hidden>You haven't claimed a profile yet.</p>
         </section>
-        <section class="royal-card" id="claimCard">
-          <h2 class="royal-section-title" data-i18n="account.claim_title">Claim a profile</h2>
-          <p class="royal-note" data-i18n="account.claims_intro">Ask to take charge of your artist or composer profile. Our team checks every claim before you get access.</p>
-          <p class="royal-claiming" id="claimTarget" hidden></p>
-          <p class="royal-message" id="claimNeedVerify" hidden></p>
-          <form id="claimForm" class="royal-form">
-            <div id="claimPicker" class="royal-form">
-              <div class="royal-field">
+        <section class="acct-card" id="claimCard">
+          <h2 class="acct-section-title" data-i18n="account.claim_title">Claim a profile</h2>
+          <p class="acct-note" data-i18n="account.claims_intro">Ask to take charge of your artist or composer profile. Our team checks every claim before you get access.</p>
+          <p class="acct-claiming" id="claimTarget" hidden></p>
+          <p class="acct-message" id="claimNeedVerify" hidden></p>
+          <form id="claimForm" class="acct-form">
+            <div id="claimPicker" class="acct-form">
+              <div class="acct-field">
                 <label for="claimType" data-i18n="account.claim_type">I am a…</label>
                 <select id="claimType">
                   <option value="artist" data-i18n="account.type_artist">Artist</option>
                   <option value="composer" data-i18n="account.type_composer">Composer</option>
                 </select>
               </div>
-              <div class="royal-field">
+              <div class="acct-field">
                 <label for="claimSearch" data-i18n="account.claim_search">Find your profile</label>
                 <input type="text" id="claimSearch" list="claimNames" autocomplete="off" placeholder="Start typing your name…" data-i18n-placeholder="account.claim_search_ph" />
                 <datalist id="claimNames"></datalist>
               </div>
             </div>
-            <div class="royal-field">
+            <div class="acct-field">
               <label for="claimEvidence" data-i18n="account.claim_evidence">How can we verify it's you?</label>
               <textarea id="claimEvidence" rows="4" maxlength="1000" required></textarea>
               <small data-i18n="account.claim_evidence_hint">For example a link to your official YouTube, Facebook or website where you mention your MaraLyrics username.</small>
             </div>
-            <div class="royal-two">
-              <div class="royal-field">
+            <div class="acct-two">
+              <div class="acct-field">
                 <label for="claimEmail" data-i18n="account.email">Email</label>
                 <input type="email" id="claimEmail" autocomplete="email" required readonly />
               </div>
-              <div class="royal-field">
+              <div class="acct-field">
                 <label for="claimPhone" data-i18n="account.phone">Phone number</label>
                 <input type="tel" id="claimPhone" autocomplete="tel" inputmode="tel" placeholder="+91 98765 43210" required />
               </div>
             </div>
-            <small class="royal-hint" data-i18n="account.phone_hint">With your country code, for example +91 98765 43210. Only our review team sees it.</small>
+            <small class="acct-hint" data-i18n="account.phone_hint">With your country code, for example +91 98765 43210. Only our review team sees it.</small>
             <div id="claimTurnstile"></div>
-            <p class="royal-message" id="claimMsg" role="alert" hidden></p>
-            <button type="submit" class="royal-btn" id="claimBtn" data-i18n="account.claim_submit">Submit claim</button>
+            <p class="acct-message" id="claimMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn" id="claimBtn" data-i18n="account.claim_submit">Submit claim</button>
           </form>
         </section>
       </section>
 
       <!-- Account -->
-      <section class="royal-panel" id="panelAccount" role="tabpanel" hidden>
-        <section class="royal-card">
-          <h2 class="royal-section-title" data-i18n="account.contact_title">Contact details</h2>
-          <p class="royal-note" data-i18n="account.contact_note">Our review team uses these to reach you about claims and payments. They are never shown publicly.</p>
-          <p class="royal-status-line" id="contactVerified" hidden></p>
-          <form id="contactForm" class="royal-form">
-            <div class="royal-two">
-              <div class="royal-field">
+      <section class="acct-panel" id="panelAccount" role="tabpanel" hidden>
+        <section class="acct-card">
+          <h2 class="acct-section-title" data-i18n="account.contact_title">Contact details</h2>
+          <p class="acct-note" data-i18n="account.contact_note">Our review team uses these to reach you about claims and payments. They are never shown publicly.</p>
+          <p class="acct-status-line" id="contactVerified" hidden></p>
+          <form id="contactForm" class="acct-form">
+            <div class="acct-two">
+              <div class="acct-field">
                 <label for="contactEmail" data-i18n="account.email">Email</label>
                 <input type="email" id="contactEmail" autocomplete="email" required />
               </div>
-              <div class="royal-field">
+              <div class="acct-field">
                 <label for="contactPhone" data-i18n="account.phone">Phone number</label>
                 <input type="tel" id="contactPhone" autocomplete="tel" inputmode="tel" placeholder="+91 98765 43210" required />
               </div>
             </div>
-            <p class="royal-message" id="contactMsg" role="alert" hidden></p>
-            <button type="submit" class="royal-btn" data-i18n="account.contact_save">Save contact details</button>
+            <p class="acct-message" id="contactMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn" data-i18n="account.contact_save">Save contact details</button>
           </form>
         </section>
-        <section class="royal-card">
-          <h2 class="royal-section-title" id="pwTitle" data-i18n="account.change_password">Change password</h2>
-          <p class="royal-note" id="pwGoogleNote" data-i18n="account.password_google_note" hidden>You signed in with Google, so you have no password yet. You can set one to also sign in with your email.</p>
-          <form id="passwordForm" class="royal-form">
-            <div class="royal-two">
-              <div class="royal-field" id="pwCurrentRow">
+        <section class="acct-card">
+          <h2 class="acct-section-title" id="pwTitle" data-i18n="account.change_password">Change password</h2>
+          <p class="acct-note" id="pwGoogleNote" data-i18n="account.password_google_note" hidden>You signed in with Google, so you have no password yet. You can set one to also sign in with your email.</p>
+          <form id="passwordForm" class="acct-form">
+            <div class="acct-two">
+              <div class="acct-field" id="pwCurrentRow">
                 <label for="pwCurrent" data-i18n="account.current_password">Current password</label>
                 <input type="password" id="pwCurrent" autocomplete="current-password" />
               </div>
-              <div class="royal-field">
+              <div class="acct-field">
                 <label for="pwNew" data-i18n="account.new_password">New password</label>
                 <input type="password" id="pwNew" autocomplete="new-password" minlength="8" required />
               </div>
             </div>
-            <p class="royal-message" id="pwMsg" role="alert" hidden></p>
-            <button type="submit" class="royal-btn" data-i18n="account.save_password">Update password</button>
+            <p class="acct-message" id="pwMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn" data-i18n="account.save_password">Update password</button>
           </form>
         </section>
       </section>
@@ -551,6 +550,6 @@
   <script src="/social-icons.js"></script>
   <script src="/rich-text.js"></script>
   <script src="/app.js"></script>
-  <script src="/my-profile.js?v=3"></script>
+  <script src="/my-profile.js?v=4"></script>
 </body>
 </html>
