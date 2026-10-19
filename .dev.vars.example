@@ -3,3 +3,8 @@
 
 JWT_SECRET=dev-only-change-me
 TURNSTILE_SECRET_KEY=
+
+# Email through Resend (confirmation + password reset). Leave empty to switch email off locally.
+RESEND_API_KEY=
+# Sign in with Google (OAuth client id from Google Cloud Console). Leave empty to hide the button.
+GOOGLE_CLIENT_ID=

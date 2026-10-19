@@ -4,12 +4,13 @@
  * link or image that is unsafe for one path is unsafe for both.
  */
 import { SAFE_HREF } from './sanitizeHtml.js';
+import { normalizeBio, BIO_TEXT_MAX } from './richText.js';
 
 // A data: URI is legitimate for an image (the crop/upload tools produce one), unlike an <a href> link,
 // which only ever needs to be a real web/mail address — so images get their own, wider allowlist.
 export const SAFE_IMAGE_SRC = /^(https?:|data:image\/)/i;
 
-export const BIO_MAX = 5000;
+export const BIO_MAX = BIO_TEXT_MAX; // visible characters; the bio itself is rich text (see richText.js)
 // An uploaded profile photo is stored in the row as a data: URL; cap it (a 400×400 JPEG is ~30–60 KB).
 export const IMAGE_MAX_CHARS = 400000;
 export const SOCIAL_LINKS_MAX = 10;
@@ -44,8 +45,8 @@ export function validateSocialLinks(raw) {
  * stay with the admins so links keep working). → { ok: true, values } | { ok: false, error }
  */
 export function validateOwnerEdit(data = {}) {
-  const bio = typeof data.bio === 'string' ? data.bio.trim() : '';
-  if (bio.length > BIO_MAX) return { ok: false, error: `bio is too long (max ${BIO_MAX} characters)` };
+  const bio = normalizeBio(data.bio);
+  if (!bio.ok) return { ok: false, error: bio.error };
 
   const image = typeof data.image_url === 'string' ? data.image_url.trim() : '';
   if (image && !isSafeImageUrl(image)) return { ok: false, error: 'photo must be an http(s) or data:image URL' };
@@ -55,7 +56,7 @@ export function validateOwnerEdit(data = {}) {
   if (!links.ok) return { ok: false, error: 'social links must be http(s) or mailto URLs' };
   if (links.value && JSON.parse(links.value).length > SOCIAL_LINKS_MAX) return { ok: false, error: `at most ${SOCIAL_LINKS_MAX} social links` };
 
-  return { ok: true, values: { bio: bio || null, image_url: image || null, social_links: links.value } };
+  return { ok: true, values: { bio: bio.value, image_url: image || null, social_links: links.value } };
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,5 +72,5 @@ export function validateContact(data = {}) {
   const raw = typeof data.contact_phone === 'string' ? data.contact_phone.trim() : '';
   const phone = raw.replace(/[\s().-]/g, '').replace(/^00/, '+');
   if (!/^\+?\d{8,15}$/.test(phone)) return { ok: false, error: 'Enter a valid phone number with your country code, for example +91 98765 43210' };
-  return { ok: true, email, phone };
+  return { ok: true, email: email.toLowerCase(), phone };
 }

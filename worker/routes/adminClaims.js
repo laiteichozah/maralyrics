@@ -21,7 +21,7 @@ app.get('/', async (c) => {
     `SELECT c.id, c.status, c.evidence, c.review_note, c.created_at, c.reviewed_at,
             CASE WHEN c.artist_id IS NOT NULL THEN 'artist' ELSE 'composer' END AS type,
             COALESCE(a.name, p.name) AS name, COALESCE(a.slug, p.slug) AS slug,
-            acc.username AS claimant, acc.contact_email AS claimant_email, acc.contact_phone AS claimant_phone, r.username AS reviewed_by_username,
+            acc.username AS claimant, acc.contact_email AS claimant_email, acc.contact_phone AS claimant_phone, (acc.email_verified_at IS NOT NULL) AS claimant_email_verified, r.username AS reviewed_by_username,
             (SELECT COUNT(*) FROM person_claims o WHERE o.status = 'approved'
                AND ((c.artist_id IS NOT NULL AND o.artist_id = c.artist_id) OR (c.composer_id IS NOT NULL AND o.composer_id = c.composer_id))) AS has_owner
      FROM person_claims c

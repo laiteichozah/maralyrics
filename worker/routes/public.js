@@ -4,6 +4,7 @@ import { verifyTurnstile } from '../lib/turnstile.js';
 import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 import { attachBadges } from '../lib/badges.js';
 import { attachGreen } from '../lib/green.js';
+import { shapeBio } from '../lib/richText.js';
 import idolRoutes from './publicIdol.js';
 
 const SONG_COLUMNS = `
@@ -183,8 +184,8 @@ app.get('/bootstrap', async (c) => {
     since,
     counts,
     songs: songs.results.map(parseSongPeople),
-    artists: artists.results,
-    composers: composers.results,
+    artists: artists.results.map((p) => shapeBio(p)),
+    composers: composers.results.map((p) => shapeBio(p)),
     copyright_owners: copyrightOwners.results,
   });
 });
@@ -388,7 +389,7 @@ async function listPeople(c, table) {
     .all();
   // Recognition badges (month / year / lifetime), most prestigious first. No ids or awarder.
   const type = table.replace(/s$/, '');
-  const people = await attachGreen(c.env.DB, await attachBadges(c.env.DB, rows.results, type), type);
+  const people = (await attachGreen(c.env.DB, await attachBadges(c.env.DB, rows.results, type), type)).map((p) => shapeBio(p));
   return c.json({ [table]: people, total: people.length });
 }
 
@@ -413,7 +414,7 @@ async function getPerson(c, table, junctionTable, junctionFk) {
   try {
     owner = await db.prepare(`SELECT 1 FROM person_claims WHERE ${junctionFk} = ? AND status = 'approved'`).bind(person.id).first();
   } catch { /* migration 0015 not applied yet */ }
-  return c.json({ ...withBadges, claimed: !!owner, songs: songs.results.map(parseSongPeople) });
+  return c.json({ ...shapeBio(withBadges, { withHtml: true }), claimed: !!owner, songs: songs.results.map(parseSongPeople) });
 }
 
 app.get('/artists', (c) => listPeople(c, 'artists'));

@@ -18,7 +18,9 @@
     "test:idol": "node --no-warnings scripts/check-idol.mjs",
     "test:claims": "node scripts/check-claims.mjs",
     "test:social": "node scripts/check-social-icons.mjs",
-    "test:green": "node --no-warnings scripts/check-green.mjs"
+    "test:green": "node --no-warnings scripts/check-green.mjs",
+    "test:richtext": "node --no-warnings scripts/check-richtext.mjs",
+    "test:auth": "node --no-warnings scripts/check-auth.mjs"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",

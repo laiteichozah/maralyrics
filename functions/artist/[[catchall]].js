@@ -2,6 +2,7 @@ import {
   injectSeoMeta, seoResponse, notFoundResponse, escapeHtml, setInner, revealDetail, unhide,
   songLinkList, breadcrumbSchema, schemaGraph, slugFromPath, isSafeUrl, badgeChips, badgeText, sortBadges, SITE_ORIGIN,
 } from '../_shared/seo.js';
+import { bioPlain, bioToHtml } from '../../worker/lib/richText.js';
 
 function parseSocialLinks(raw) {
   if (!raw) return undefined;
@@ -20,7 +21,8 @@ function buildArtistSeo(artist, songs, badges = []) {
   const songCount = songs.length;
   const title = `${artist.name} — Mara Artist Lyrics & Songs | MaraLyrics`;
   const countText = songCount === 1 ? '1 song' : `${songCount} songs`;
-  const bio = artist.bio ? ` ${artist.bio}` : '';
+  const plainBio = bioPlain(artist.bio).replace(/\s+/g, ' ');
+  const bio = plainBio ? ` ${plainBio}` : '';
   const description = `Explore ${countText} by ${artist.name} on MaraLyrics.${bio}`.trim().slice(0, 300);
   const url = `${SITE_ORIGIN}/artist/${encodeURIComponent(artist.slug)}`;
   const sameAs = parseSocialLinks(artist.social_links);
@@ -71,7 +73,7 @@ function renderArtistPage(html, artist, songs, badges = []) {
   out = setInner(out, 'profileName', escapeHtml(artist.name));
   out = setInner(out, 'breadcrumbName', escapeHtml(artist.name));
   out = setInner(out, 'avatarFallback', escapeHtml((artist.name || '?').charAt(0)));
-  if (artist.bio) out = setInner(out, 'profileBio', escapeHtml(artist.bio));
+  if (artist.bio) out = setInner(out, 'profileBio', bioToHtml(artist.bio));
   if (badges.length) {
     out = out.replace('id="profileBadges" hidden>', 'id="profileBadges">');
     out = setInner(out, 'profileBadges', badgeChips('artist', badges));

@@ -1436,8 +1436,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="personFormBio">Bio</label>
-          <textarea id="personFormBio" class="form-input form-textarea" rows="4" placeholder="Brief biography..."></textarea>
+          <label class="form-label" id="personFormBioLabel">Bio</label>
+          <div id="personFormBio" role="group" aria-labelledby="personFormBioLabel"></div>
+          <span class="form-hint" id="personFormBioCount"></span>
         </div>
 
         <div class="form-group">
@@ -1789,6 +1790,7 @@
   <script src="offline-db.js"></script>
   <script src="offline-sync.js"></script>
   <script src="/social-icons.js"></script>
+  <script src="/rich-text.js"></script>
   <script src="index.js"></script>
 </body>
 </html>

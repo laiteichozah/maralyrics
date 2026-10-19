@@ -1906,7 +1906,9 @@ const ProfilePage = {
     // Bio
     const bioEl = document.getElementById('profileBio');
     if (bioEl) {
-      bioEl.textContent = data.bio || '';
+      // `bio_html` is the rich version (sanitized by the server and cleaned again here); `bio` is plain text.
+      if (data.bio_html && window.RichText) bioEl.innerHTML = RichText.clean(data.bio_html);
+      else bioEl.textContent = data.bio || '';
       bioEl.style.display = data.bio ? 'block' : 'none';
     }
 
@@ -1958,7 +1960,8 @@ const ProfilePage = {
     // Deliberately English/SEO-fixed rather than i18n-driven, same as Song/Article's.
     const songCount = data.songs?.length || 0;
     const countText = songCount === 1 ? '1 song' : `${songCount} songs`;
-    const bio = data.bio ? ` ${data.bio}` : '';
+    const plainBio = (data.bio || '').replace(/\s+/g, ' ');
+    const bio = plainBio ? ` ${plainBio}` : '';
     const title = this.type === 'artist'
       ? `${data.name} — Mara Artist Lyrics & Songs | MaraLyrics`
       : `${data.name} — Mara Composer | MaraLyrics`;

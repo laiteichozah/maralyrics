@@ -9,7 +9,7 @@ import { signJWT, verifyJWT } from './auth.js';
 const personSecret = (env) => `${env.JWT_SECRET}:person-account`;
 
 export const signPersonToken = (account, env) =>
-  signJWT({ sub: account.id, typ: 'person', username: account.username }, personSecret(env));
+  signJWT({ sub: account.id, typ: 'person', username: account.username, ep: account.session_epoch || 0 }, personSecret(env));
 
 /** Requires `Authorization: Bearer <artist token>`; on success `c.get('person')` is `{ id, username }`. */
 export async function requirePerson(c, next) {
@@ -20,8 +20,9 @@ export async function requirePerson(c, next) {
   const payload = await verifyJWT(token, personSecret(c.env));
   if (!payload || payload.typ !== 'person') return c.json({ error: 'Unauthorized' }, 401);
 
-  const account = await c.env.DB.prepare('SELECT id, username FROM person_accounts WHERE id = ?').bind(payload.sub).first();
-  if (!account) return c.json({ error: 'Unauthorized' }, 401);
+  const account = await c.env.DB.prepare('SELECT id, username, session_epoch FROM person_accounts WHERE id = ?').bind(payload.sub).first();
+  // A password change / reset moves the epoch on, which ends every older session of the account.
+  if (!account || (payload.ep || 0) !== account.session_epoch) return c.json({ error: 'Unauthorized' }, 401);
   c.set('person', { id: account.id, username: account.username });
   await next();
 }

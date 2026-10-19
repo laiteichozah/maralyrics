@@ -280,9 +280,29 @@ CREATE TABLE IF NOT EXISTS person_accounts (
     password_hash TEXT NOT NULL,
     contact_email TEXT,   -- only the review team sees it (never returned by the public API)
     contact_phone TEXT,   -- ditto; digits with optional leading + (migration 0017)
+    email_verified_at DATETIME,                    -- NULL until the owner proves control of contact_email (migration 0018)
+    google_sub    TEXT,                            -- Google's account id, for "Sign in with Google" (migration 0018)
+    session_epoch INTEGER NOT NULL DEFAULT 0,      -- bumped on password change/reset → older session tokens stop working
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+CREATE UNIQUE INDEX IF NOT EXISTS idx_person_accounts_google_sub ON person_accounts(google_sub) WHERE google_sub IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_person_accounts_verified_email ON person_accounts(lower(contact_email)) WHERE email_verified_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_person_accounts_email ON person_accounts(lower(contact_email));
+
+-- One-time emailed links: 'verify' (confirm an address) / 'reset' (new password). Only a hash of the token is kept.
+CREATE TABLE IF NOT EXISTS person_email_tokens (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL REFERENCES person_accounts(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL CHECK (kind IN ('verify', 'reset')),
+    email      TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used_at    DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_person_email_tokens_account ON person_email_tokens(account_id, kind, created_at);
+CREATE INDEX IF NOT EXISTS idx_person_email_tokens_email ON person_email_tokens(lower(email), kind, created_at);
 
 CREATE TABLE IF NOT EXISTS person_claims (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

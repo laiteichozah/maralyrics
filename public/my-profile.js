@@ -35,6 +35,7 @@
   let photo = '';         // current photo (data: URL or https URL), '' = none
   let links = [];         // current social links
   let target = null;      // { type, slug, name } when arriving from a profile's "Claim" link
+  let cfg = { google_client_id: null, email_enabled: false }; // what the server has switched on (Google sign-in, email)
 
   const approved = () => claims.filter((c) => c.status === 'approved');
   const selectedClaim = () => approved().find((c) => c.id === selectedId) || approved()[0] || null;
@@ -80,10 +81,14 @@
   const typeLabel = (type) => t(type === 'artist' ? 'account.type_artist' : 'account.type_composer');
 
   // ── Signed out ──────────────────────────────────
-  function showAuth() {
+  let googleStarted = false;
+  function showAuth(view = 'tabs') {
     $('accountAuth').hidden = false;
     $('accountHome').hidden = true;
-    if (target) {
+    $('forgotLink').hidden = !cfg.email_enabled;
+    showAuthView(view);
+    if (!googleStarted && cfg.google_client_id) { googleStarted = true; loadGoogle(); }
+    if (target && view === 'tabs') {
       const note = $('authClaimNote');
       note.textContent = t('account.claim_prompt', { name: target.name });
       note.hidden = false;
@@ -100,6 +105,18 @@
     if (reg) renderTurnstile('regTurnstile');
   }
 
+  /** The signed-out box shows one of: sign in / create account ('tabs'), 'forgot' password, or 'reset' (arrived from the emailed link). */
+  function showAuthView(view) {
+    $('authTabsBox').hidden = view !== 'tabs';
+    $('forgotForm').hidden = view !== 'forgot';
+    $('resetForm').hidden = view !== 'reset';
+    $('googleBlock').hidden = view !== 'tabs' || !cfg.google_client_id;
+    if (view === 'forgot') renderTurnstile('forgotTurnstile');
+  }
+
+  /** Shown above everything, for results of things done in an email link and for sign-up news. */
+  const notice = (text, ok = true) => say('pageNotice', text, ok);
+
   async function enter(data) {
     token = data.token;
     store.set(token);
@@ -114,7 +131,7 @@
     say('signinMsg', '');
     await busy($('signinBtn'), async () => {
       try {
-        await enter(await api('POST', '/login', { username: $('signinUser').value, password: $('signinPass').value }));
+        await enter(await api('POST', '/login', { identifier: $('signinUser').value, password: $('signinPass').value }));
         $('signinPass').value = '';
       } catch (err) { say('signinMsg', err.message); }
     });
@@ -127,13 +144,75 @@
     if (!ts) { say('regMsg', t('feedback.err_turnstile')); return; }
     await busy($('regBtn'), async () => {
       try {
-        await enter(await api('POST', '/register', {
-          username: $('regUser').value, password: $('regPass').value, contact_email: $('regEmail').value, contact_phone: $('regPhone').value, turnstile_token: ts,
-        }));
+        const data = await api('POST', '/register', { email: $('regEmail').value, password: $('regPass').value, contact_phone: $('regPhone').value, turnstile_token: ts });
         $('regPass').value = '';
+        await enter(data);
+        if (data.verification === 'sent') notice(t('account.verify_sent', { email: data.account.contact_email }));
+        else if (data.verification === 'failed') notice(t('account.verify_failed'), false);
       } catch (err) { say('regMsg', err.message); turnstileReset('regTurnstile'); }
     });
   });
+
+  // ── Forgot / reset password (the emailed link brings people back with ?reset=…) ──
+  $('forgotLink').addEventListener('click', () => { say('forgotMsg', ''); $('forgotEmail').value = $('signinUser').value.includes('@') ? $('signinUser').value : ''; showAuthView('forgot'); });
+  $('forgotBack').addEventListener('click', () => showAuthView('tabs'));
+  $('forgotForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    say('forgotMsg', '');
+    const ts = turnstileToken('forgotTurnstile');
+    if (!ts) { say('forgotMsg', t('feedback.err_turnstile')); return; }
+    await busy($('forgotBtn'), async () => {
+      try {
+        await api('POST', '/forgot-password', { email: $('forgotEmail').value, turnstile_token: ts });
+        say('forgotMsg', t('account.forgot_done'), true);
+      } catch (err) { say('forgotMsg', err.message); }
+      turnstileReset('forgotTurnstile');
+    });
+  });
+  let resetToken = '';
+  $('resetForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    say('resetMsg', '');
+    await busy($('resetBtn'), async () => {
+      try {
+        await api('POST', '/reset-password', { token: resetToken, new_password: $('resetPass').value });
+        $('resetPass').value = '';
+        resetToken = '';
+        showAuthView('tabs');
+        selectAuthTab('signin');
+        notice(t('account.reset_done'));
+      } catch (err) { say('resetMsg', err.message); }
+    });
+  });
+
+  // ── Sign in with Google (Google Identity Services; only loaded when the server has a client id) ──
+  function loadGoogle(tries = 0) {
+    if (!cfg.google_client_id) return;
+    if (!window.google || !window.google.accounts) {
+      if (tries === 0) {
+        const tag = document.createElement('script');
+        tag.src = 'https://accounts.google.com/gsi/client';
+        tag.async = true;
+        document.head.appendChild(tag);
+      }
+      if (tries < 40) setTimeout(() => loadGoogle(tries + 1), 250);
+      return;
+    }
+    window.google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: onGoogle, use_fedcm_for_prompt: true });
+    window.google.accounts.id.renderButton($('googleBtn'), { type: 'standard', theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', width: 300 });
+  }
+  async function onGoogle(response) {
+    say('signinMsg', '');
+    say('regMsg', '');
+    try {
+      const data = await api('POST', '/google', { credential: response.credential });
+      await enter(data);
+      if (data.password_removed) notice(t('account.google_password_removed'), true);
+    } catch (err) {
+      const box = $('registerForm').hidden ? 'signinMsg' : 'regMsg';
+      say(box, err.message);
+    }
+  }
 
   // ── Signed in ───────────────────────────────────
   function signOut() {
@@ -144,6 +223,7 @@
     selectedId = null;
     greenState.offer = null;
     store.set('');
+    if (window.google && window.google.accounts) window.google.accounts.id.disableAutoSelect();
     showAuth();
   }
 
@@ -196,11 +276,12 @@
   function renderBanner() {
     if (!account) return;
     const claim = selectedClaim();
-    const name = claim ? claim.name : account.username;
+    const name = claim ? claim.name : (account.contact_email || account.username);
     const active = !!(greenState.offer && claim && (greenState.offer.profiles.find((p) => p.claim_id === claim.id) || {}).active);
     $('bannerName').innerHTML = `${esc(name)}${active ? GreenMark.html() : ''}`;
     $('bannerAvatar').innerHTML = avatarHtml(claim && editing && editing.claimId === claim.id ? photo : '', name);
-    $('bannerMeta').textContent = claim ? `${typeLabel(claim.type)} · ${t('account.signed_in_as', { name: account.username })}` : t('account.signed_in_as', { name: account.username });
+    const who = account.contact_email || account.username;
+    $('bannerMeta').textContent = claim ? `${typeLabel(claim.type)} · ${t('account.signed_in_as', { name: who })}` : t('account.signed_in_as', { name: who });
     const view = $('bannerView');
     view.hidden = !claim;
     if (claim) view.href = publicUrl(claim);
@@ -268,15 +349,49 @@
     $('contactPhone').value = account.contact_phone || '';
   }
 
-  /** Nudges an account that has no phone yet (older accounts) to add one before claiming or ordering. */
+  // Once the server can send email, an address has to be confirmed before claiming or ordering a Green mark.
+  const needsConfirm = () => !!account && cfg.email_enabled && !account.email_verified;
+
+  function renderVerify() {
+    if (!account) return;
+    const need = needsConfirm();
+    $('verifyBar').hidden = !need;
+    if (need) $('verifyText').textContent = t('account.verify_bar', { email: account.contact_email || '' });
+    $('claimNeedVerify').hidden = !need;
+    $('claimNeedVerify').textContent = need ? t('account.verify_needed') : '';
+    $('claimBtn').disabled = need;
+    $('claimEmail').readOnly = !!account.contact_email; // the account's own address; changed in the Account tab
+    const line = $('contactVerified');
+    line.hidden = !account.contact_email;
+    line.textContent = account.email_verified ? `✔ ${t('account.email_confirmed')}` : t('account.email_unconfirmed');
+    line.classList.toggle('royal-status-line--ok', !!account.email_verified);
+    $('pwCurrentRow').hidden = !account.has_password;
+    $('pwCurrent').required = !!account.has_password;
+    $('pwGoogleNote').hidden = !!account.has_password;
+    $('pwTitle').textContent = t(account.has_password ? 'account.change_password' : 'account.set_password');
+  }
+
+  /** Nudges an account that has no phone yet (older accounts, Google sign-ups) to add one before claiming or ordering. */
   function renderContactNeeds() {
+    renderVerify();
     const missing = !!account && !account.contact_complete;
+    const confirm = needsConfirm();
     const need = $('greenNeedContact');
-    need.textContent = missing ? t('account.contact_needed') : '';
-    need.hidden = !missing;
-    $('greenForm').hidden = missing || !greenCanOrder();
+    need.textContent = missing ? t('account.contact_needed') : confirm ? t('account.verify_needed') : '';
+    need.hidden = !(missing || confirm);
+    $('greenForm').hidden = missing || confirm || !greenCanOrder();
     if (missing) say('contactMsg', t('account.contact_needed'));
   }
+
+  $('verifySend').addEventListener('click', async () => {
+    await busy($('verifySend'), async () => {
+      try {
+        const res = await api('POST', '/verify-email/send');
+        if (res.already) { await refreshClaims(); return; }
+        notice(t('account.verify_sent', { email: account.contact_email }));
+      } catch (err) { notice(err.message, false); }
+    });
+  });
 
   $('contactForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -289,7 +404,7 @@
         $('claimEmail').value = account.contact_email || '';
         $('claimPhone').value = account.contact_phone || '';
         renderContactNeeds();
-        say('contactMsg', t('account.contact_saved'), true);
+        say('contactMsg', res.verification === 'sent' ? t('account.contact_saved_verify', { email: account.contact_email }) : t('account.contact_saved'), true);
       } catch (err) { say('contactMsg', err.message); }
     });
   });
@@ -298,9 +413,13 @@
     e.preventDefault();
     say('pwMsg', '');
     try {
-      await api('POST', '/change-password', { current_password: $('pwCurrent').value, new_password: $('pwNew').value });
+      const res = await api('POST', '/change-password', { current_password: $('pwCurrent').value, new_password: $('pwNew').value });
+      // Other sessions were signed out; this one carries on with a fresh token.
+      if (res.token) { token = res.token; store.set(token); }
+      account = { ...account, has_password: true };
       $('pwCurrent').value = '';
       $('pwNew').value = '';
+      renderVerify();
       say('pwMsg', t('account.password_changed'), true);
     } catch (err) { say('pwMsg', err.message); }
   });
@@ -538,7 +657,27 @@
     $('editorAddLink').hidden = links.length >= MAX_LINKS;
   }
 
-  const countBio = () => { $('editorBioCount').textContent = `${$('editorBio').value.length} / 5000`; };
+  // The bio is rich text (bold, italic, links, lists, new lines) — see /rich-text.js.
+  const BIO_MAX = 5000;
+  const rteLabels = () => ({
+    bold: t('account.rte_bold'), italic: t('account.rte_italic'), underline: t('account.rte_underline'), link: t('account.rte_link'),
+    unlink: t('account.rte_unlink'), ul: t('account.rte_ul'), ol: t('account.rte_ol'), quote: t('account.rte_quote'), clear: t('account.rte_clear'),
+    toolbar: t('account.rte_toolbar'), link_prompt: t('account.rte_link_prompt'), link_invalid: t('account.rte_link_invalid'), hint: t('account.rte_hint'),
+  });
+  let bioRte = null;
+  function mountBio() {
+    if (bioRte) return;
+    bioRte = RichText.mount($('editorBio'), {
+      labels: rteLabels(),
+      placeholder: t('account.bio_ph'),
+      onChange: ({ length }) => { countBio(length); renderPreview(); },
+    });
+  }
+  const countBio = (length = bioRte ? bioRte.getText().length : 0) => {
+    const el = $('editorBioCount');
+    el.textContent = `${length} / ${BIO_MAX}`;
+    el.style.color = length > BIO_MAX ? 'var(--r-danger)' : '';
+  };
 
   /** The "this is how your page will look" card, redrawn on every keystroke. */
   function renderPreview() {
@@ -551,7 +690,7 @@
       <span class="royal-avatar royal-avatar--lg">${avatarHtml(photo, editing.name)}</span>
       <h3 class="royal-preview__name">${esc(editing.name)}${active ? GreenMark.html() : ''}</h3>
       <p class="royal-preview__role">${esc(typeLabel(editing.type))}</p>
-      <p class="royal-preview__bio">${esc($('editorBio').value)}</p>
+      ${bioRte && !bioRte.isEmpty() ? `<div class="royal-preview__bio">${RichText.clean(bioRte.getHtml())}</div>` : ''}
       ${icons ? `<div class="royal-preview__links">${icons}</div>` : ''}`;
     $('bannerAvatar').innerHTML = avatarHtml(photo, editing.name);
   }
@@ -563,7 +702,8 @@
       editing = { claimId: claim.id, type: p.type, slug: p.slug, name: p.name };
       photo = p.image_url || '';
       links = p.social_links.slice();
-      $('editorBio').value = p.bio;
+      mountBio();
+      bioRte.setHtml(p.bio_html || p.bio);
       renderPhoto();
       renderLinks();
       countBio();
@@ -574,7 +714,6 @@
     }
   }
 
-  $('editorBio').addEventListener('input', () => { countBio(); renderPreview(); });
   $('editorAddLink').addEventListener('click', () => { links.push(''); renderLinks(); $('editorLinks').lastElementChild?.querySelector('input').focus(); });
   $('editorLinks').addEventListener('input', (e) => {
     if (e.target.dataset.i === undefined) return;
@@ -623,7 +762,7 @@
     await busy($('editorSave'), async () => {
       try {
         const saved = await api('PUT', `/claims/${editing.claimId}/profile`, {
-          bio: $('editorBio').value, image_url: photo, social_links: links.map((u) => u.trim()).filter(Boolean),
+          bio: bioRte ? bioRte.getHtml() : '', image_url: photo, social_links: links.map((u) => u.trim()).filter(Boolean),
         });
         links = saved.social_links.slice();
         renderLinks();
@@ -645,6 +784,7 @@
     tick();
   });
   function redraw() {
+    if (bioRte) { const html = bioRte.getHtml(); bioRte = null; mountBio(); bioRte.setHtml(html); } // new toolbar tooltips in the chosen language
     if (account) {
       renderBanner();
       renderClaims();
@@ -663,14 +803,30 @@
   // ── Start ───────────────────────────────────────
   async function init() {
     await i18nReady();
+    try { cfg = await api('GET', '/config'); } catch { /* the page still works without Google / email */ }
+
+    // Links from our emails: /my-profile?verify=… (confirm the address) and /my-profile?reset=… (choose a new password).
+    const params = new URLSearchParams(location.search);
+    const verifyTok = params.get('verify');
+    const resetTok = params.get('reset');
+    if (verifyTok || resetTok) {
+      params.delete('verify');
+      params.delete('reset');
+      history.replaceState(null, '', `${location.pathname}${params.toString() ? `?${params}` : ''}${location.hash}`); // keep the token out of the address bar
+    }
+    if (verifyTok) {
+      try { const r = await api('POST', '/verify-email', { token: verifyTok }); notice(t('account.verify_done', { email: r.email })); } catch (err) { notice(err.message, false); }
+    }
+
     // Arrived from a profile's "Claim this profile" link: /my-profile?claim=artist:ann-artist
-    const m = /^(artist|composer):([\w-]+)$/.exec(new URLSearchParams(location.search).get('claim') || '');
+    const m = /^(artist|composer):([\w-]+)$/.exec(params.get('claim') || '');
     if (m) {
       try {
         const res = await fetch(`${CONFIG.API_BASE}/${m[1]}s/${encodeURIComponent(m[2])}`);
         if (res.ok) { const p = await res.json(); if (!p.claimed) target = { type: m[1], slug: m[2], name: p.name }; }
       } catch { /* the picker still works */ }
     }
+    if (resetTok) { token = ''; store.set(''); resetToken = resetTok; showAuth('reset'); return; }
     if (token) await showHome(); else showAuth();
   }
   init();

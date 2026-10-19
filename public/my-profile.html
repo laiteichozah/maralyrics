@@ -27,7 +27,7 @@
   <!-- Styles -->
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/royal.css?v=2" />
+  <link rel="stylesheet" href="/royal.css?v=4" />
 
   <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
@@ -188,6 +188,7 @@
 
   <!-- ═══ Artist & composer accounts ═══ -->
   <main class="royal" id="accountPage">
+    <p class="royal-message" id="pageNotice" role="status" hidden></p>
 
     <!-- ═══ Signed out: the royal welcome ═══ -->
     <div id="accountAuth" class="fade-in">
@@ -208,47 +209,75 @@
       <section class="royal-gate royal-card">
         <p class="royal-claiming" id="authClaimNote" hidden></p>
         <h2 class="royal-gate__title" data-i18n="account.gate_title">Enter the Court</h2>
-        <div class="royal-tabs royal-tabs--center" role="tablist">
-          <button type="button" class="royal-tab active" id="tabSignin" role="tab" data-i18n="account.tab_signin">Sign in</button>
-          <button type="button" class="royal-tab" id="tabRegister" role="tab" data-i18n="account.tab_register">Create account</button>
+
+        <div class="royal-google" id="googleBlock" hidden>
+          <div id="googleBtn" class="royal-google__btn"></div>
+          <div class="royal-or" aria-hidden="true"><span data-i18n="account.or_email">or use your email</span></div>
         </div>
 
-        <form id="signinForm" class="royal-form" autocomplete="on">
-          <div class="royal-field">
-            <label for="signinUser" data-i18n="account.username">Username</label>
-            <input type="text" id="signinUser" autocomplete="username" required />
+        <div id="authTabsBox">
+          <div class="royal-tabs royal-tabs--center" role="tablist">
+            <button type="button" class="royal-tab active" id="tabSignin" role="tab" data-i18n="account.tab_signin">Sign in</button>
+            <button type="button" class="royal-tab" id="tabRegister" role="tab" data-i18n="account.tab_register">Create account</button>
           </div>
+
+          <form id="signinForm" class="royal-form" autocomplete="on">
+            <div class="royal-field">
+              <label for="signinUser" data-i18n="account.email_or_username">Email or username</label>
+              <input type="text" id="signinUser" autocomplete="username" required />
+            </div>
+            <div class="royal-field">
+              <label for="signinPass" data-i18n="account.password">Password</label>
+              <input type="password" id="signinPass" autocomplete="current-password" required />
+            </div>
+            <p class="royal-message" id="signinMsg" role="alert" hidden></p>
+            <button type="submit" class="royal-btn" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
+            <button type="button" class="royal-linkbtn" id="forgotLink" data-i18n="account.forgot" hidden>Forgot your password?</button>
+          </form>
+
+          <form id="registerForm" class="royal-form" autocomplete="on" hidden>
+            <div class="royal-field">
+              <label for="regEmail" data-i18n="account.email">Email</label>
+              <input type="email" id="regEmail" autocomplete="email" required />
+              <small data-i18n="account.email_signup_hint">You will sign in with this address.</small>
+            </div>
+            <div class="royal-field">
+              <label for="regPass" data-i18n="account.password">Password</label>
+              <input type="password" id="regPass" autocomplete="new-password" minlength="8" required />
+              <small data-i18n="account.password_hint">At least 8 characters.</small>
+            </div>
+            <div class="royal-field">
+              <label for="regPhone" data-i18n="account.phone">Phone number</label>
+              <input type="tel" id="regPhone" autocomplete="tel" inputmode="tel" placeholder="+91 98765 43210" required />
+              <small data-i18n="account.phone_hint">With your country code, for example +91 98765 43210. Only our review team sees it.</small>
+            </div>
+            <div id="regTurnstile"></div>
+            <p class="royal-message" id="regMsg" role="alert" hidden></p>
+            <button type="submit" class="royal-btn" id="regBtn" data-i18n="account.register_btn">Create account</button>
+          </form>
+        </div>
+
+        <form id="forgotForm" class="royal-form" hidden>
+          <p class="royal-note" data-i18n="account.forgot_intro">Enter the email address of your account and we will send you a link to choose a new password.</p>
           <div class="royal-field">
-            <label for="signinPass" data-i18n="account.password">Password</label>
-            <input type="password" id="signinPass" autocomplete="current-password" required />
+            <label for="forgotEmail" data-i18n="account.email">Email</label>
+            <input type="email" id="forgotEmail" autocomplete="email" required />
           </div>
-          <p class="royal-message" id="signinMsg" role="alert" hidden></p>
-          <button type="submit" class="royal-btn" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
+          <div id="forgotTurnstile"></div>
+          <p class="royal-message" id="forgotMsg" role="alert" hidden></p>
+          <button type="submit" class="royal-btn" id="forgotBtn" data-i18n="account.forgot_send">Send reset link</button>
+          <button type="button" class="royal-linkbtn" id="forgotBack" data-i18n="account.back_to_signin">Back to sign in</button>
         </form>
 
-        <form id="registerForm" class="royal-form" autocomplete="on" hidden>
+        <form id="resetForm" class="royal-form" hidden>
+          <p class="royal-note" data-i18n="account.reset_intro">Choose a new password for your account.</p>
           <div class="royal-field">
-            <label for="regUser" data-i18n="account.username">Username</label>
-            <input type="text" id="regUser" autocomplete="username" maxlength="30" required />
-            <small data-i18n="account.username_hint">3–30 characters: letters, numbers, dot, dash or underscore.</small>
-          </div>
-          <div class="royal-field">
-            <label for="regPass" data-i18n="account.password">Password</label>
-            <input type="password" id="regPass" autocomplete="new-password" minlength="8" required />
+            <label for="resetPass" data-i18n="account.new_password">New password</label>
+            <input type="password" id="resetPass" autocomplete="new-password" minlength="8" required />
             <small data-i18n="account.password_hint">At least 8 characters.</small>
           </div>
-          <div class="royal-field">
-            <label for="regEmail" data-i18n="account.email">Email</label>
-            <input type="email" id="regEmail" autocomplete="email" required />
-          </div>
-          <div class="royal-field">
-            <label for="regPhone" data-i18n="account.phone">Phone number</label>
-            <input type="tel" id="regPhone" autocomplete="tel" inputmode="tel" placeholder="+91 98765 43210" required />
-            <small data-i18n="account.phone_hint">With your country code, for example +91 98765 43210. Only our review team sees it.</small>
-          </div>
-          <div id="regTurnstile"></div>
-          <p class="royal-message" id="regMsg" role="alert" hidden></p>
-          <button type="submit" class="royal-btn" id="regBtn" data-i18n="account.register_btn">Create account</button>
+          <p class="royal-message" id="resetMsg" role="alert" hidden></p>
+          <button type="submit" class="royal-btn" id="resetBtn" data-i18n="account.reset_save">Save new password</button>
         </form>
       </section>
     </div>
@@ -266,6 +295,11 @@
           <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" id="btnSignout" data-i18n="account.signout">Sign out</button>
         </div>
       </header>
+
+      <div class="royal-notice" id="verifyBar" role="status" hidden>
+        <span id="verifyText"></span>
+        <button type="button" class="royal-btn royal-btn--sm" id="verifySend" data-i18n="account.verify_send">Send confirmation email</button>
+      </div>
 
       <nav class="royal-tabs royal-tabs--scroll" role="tablist" id="courtTabs">
         <button type="button" class="royal-tab" role="tab" data-tab="profile" data-i18n="account.tab_profile">Profile</button>
@@ -297,8 +331,8 @@
                 </div>
               </div>
               <div class="royal-field">
-                <label for="editorBio" data-i18n="account.bio">Bio</label>
-                <textarea id="editorBio" rows="7" maxlength="5000"></textarea>
+                <span class="royal-label" id="editorBioLabel" data-i18n="account.bio">Bio</span>
+                <div id="editorBio" role="group" aria-labelledby="editorBioLabel"></div>
                 <small id="editorBioCount"></small>
               </div>
               <div class="royal-field">
@@ -389,6 +423,7 @@
           <h2 class="royal-section-title" data-i18n="account.claim_title">Claim a profile</h2>
           <p class="royal-note" data-i18n="account.claims_intro">Ask to take charge of your artist or composer profile. Our team checks every claim before you get access.</p>
           <p class="royal-claiming" id="claimTarget" hidden></p>
+          <p class="royal-message" id="claimNeedVerify" hidden></p>
           <form id="claimForm" class="royal-form">
             <div id="claimPicker" class="royal-form">
               <div class="royal-field">
@@ -412,7 +447,7 @@
             <div class="royal-two">
               <div class="royal-field">
                 <label for="claimEmail" data-i18n="account.email">Email</label>
-                <input type="email" id="claimEmail" autocomplete="email" required />
+                <input type="email" id="claimEmail" autocomplete="email" required readonly />
               </div>
               <div class="royal-field">
                 <label for="claimPhone" data-i18n="account.phone">Phone number</label>
@@ -432,6 +467,7 @@
         <section class="royal-card">
           <h2 class="royal-section-title" data-i18n="account.contact_title">Contact details</h2>
           <p class="royal-note" data-i18n="account.contact_note">Our review team uses these to reach you about claims and payments. They are never shown publicly.</p>
+          <p class="royal-status-line" id="contactVerified" hidden></p>
           <form id="contactForm" class="royal-form">
             <div class="royal-two">
               <div class="royal-field">
@@ -448,12 +484,13 @@
           </form>
         </section>
         <section class="royal-card">
-          <h2 class="royal-section-title" data-i18n="account.change_password">Change password</h2>
+          <h2 class="royal-section-title" id="pwTitle" data-i18n="account.change_password">Change password</h2>
+          <p class="royal-note" id="pwGoogleNote" data-i18n="account.password_google_note" hidden>You signed in with Google, so you have no password yet. You can set one to also sign in with your email.</p>
           <form id="passwordForm" class="royal-form">
             <div class="royal-two">
-              <div class="royal-field">
+              <div class="royal-field" id="pwCurrentRow">
                 <label for="pwCurrent" data-i18n="account.current_password">Current password</label>
-                <input type="password" id="pwCurrent" autocomplete="current-password" required />
+                <input type="password" id="pwCurrent" autocomplete="current-password" />
               </div>
               <div class="royal-field">
                 <label for="pwNew" data-i18n="account.new_password">New password</label>
@@ -512,7 +549,8 @@
   <script src="/theme.js"></script>
   <!-- App Script -->
   <script src="/social-icons.js"></script>
+  <script src="/rich-text.js"></script>
   <script src="/app.js"></script>
-  <script src="/my-profile.js?v=1"></script>
+  <script src="/my-profile.js?v=3"></script>
 </body>
 </html>

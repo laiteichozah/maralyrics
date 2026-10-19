@@ -476,7 +476,7 @@ function autoSavePersonDraft() {
     const data = {
       name: document.getElementById('personFormName')?.value || '',
       slug: document.getElementById('personFormSlug')?.value || '',
-      bio: document.getElementById('personFormBio')?.value || '',
+      bio: personBioRte ? personBioRte.getHtml() : '',
     };
     if (data.name || data.bio) {
       saveDraft(type, id, data);
@@ -491,7 +491,7 @@ function restorePersonDraftData(draft) {
     document.getElementById('personFormSlug').value = draft.slug;
     if (draft.slug) document.getElementById('personFormSlug').dataset.manual = '1';
   }
-  if (draft.bio !== undefined) document.getElementById('personFormBio').value = draft.bio;
+  if (draft.bio !== undefined && personBioRte) personBioRte.setHtml(draft.bio);
 }
 
 // ─── Copyright Owner Draft ───────────────────────
@@ -1604,8 +1604,26 @@ function closePersonModal() {
   document.body.style.overflow = '';
   clearPersonForm();
 }
+// The artist / composer bio is rich text (bold, italic, links, lists, line breaks) — see /rich-text.js.
+let personBioRte = null;
+const BIO_TEXT_MAX = 5000;
+function mountPersonBioRte() {
+  const box = document.getElementById('personFormBio');
+  if (!box || personBioRte || !window.RichText) return;
+  personBioRte = RichText.mount(box, {
+    placeholder: 'Brief biography…',
+    editorClass: 'form-input form-textarea rte-editor--compact',
+    onChange: ({ length, user }) => {
+      const count = document.getElementById('personFormBioCount');
+      if (count) { count.textContent = `${length} / ${BIO_TEXT_MAX}`; count.style.color = length > BIO_TEXT_MAX ? 'var(--danger, #ef4444)' : ''; }
+      if (user) autoSavePersonDraft();
+    },
+  });
+}
+
 function clearPersonForm() {
   document.getElementById('personForm').reset();
+  if (personBioRte) personBioRte.setHtml('');
   document.getElementById('personFormId').value = '';
   document.getElementById('personFormMessage').style.display = 'none';
   // See clearSongForm() — .reset() never clears dataset, so the "manual" flag
@@ -1654,7 +1672,7 @@ async function _editPerson(type, id) {
     document.getElementById('personFormId').value = item.id;
     document.getElementById('personFormName').value = item.name || '';
     document.getElementById('personFormSlug').value = item.slug || '';
-    document.getElementById('personFormBio').value = item.bio || '';
+    if (personBioRte) personBioRte.setHtml(item.bio || '');
     setImageField('personFormImage', item.image_url || '');
     // Load social links
     loadSocialLinks(item.social_links || null);
@@ -1675,7 +1693,8 @@ async function savePerson(e) {
   const id = document.getElementById('personFormId').value;
   const name = document.getElementById('personFormName').value.trim();
   const slug = document.getElementById('personFormSlug').value.trim();
-  const bio = document.getElementById('personFormBio').value.trim();
+  const bio = personBioRte ? personBioRte.getHtml() : '';
+  if (personBioRte && personBioRte.getText().length > BIO_TEXT_MAX) { showPersonMessage(`Bio is too long (max ${BIO_TEXT_MAX} characters).`, true); return; }
   const image_url = document.getElementById('personFormImage').value.trim();
   const label = type === 'artist' ? 'Artist' : 'Composer';
 
@@ -2395,7 +2414,7 @@ function renderClaimsTable() {
       </td>
       <td>
         <div class="admin-table__title">${escapeHtml(c.claimant)}</div>
-        <div class="admin-table__slug">${c.claimant_email ? escapeHtml(c.claimant_email) : 'no email'}</div>
+        <div class="admin-table__slug">${c.claimant_email ? escapeHtml(c.claimant_email) : 'no email'}${c.claimant_email ? (c.claimant_email_verified ? ' <span title="The claimant confirmed this address" style="color:var(--success,#22c55e);">✔ confirmed</span>' : ' <span title="Not confirmed by the claimant yet" style="color:var(--text-muted);">· unconfirmed</span>') : ''}</div>
         <div class="admin-table__slug">${c.claimant_phone ? escapeHtml(c.claimant_phone) : 'no phone'}</div>
         <div class="admin-table__slug">${escapeHtml(formatDate(c.created_at))}</div>
       </td>
@@ -2568,7 +2587,7 @@ function renderGreenOrders() {
   tbody.innerHTML = greenOrders.map((o) => `
     <tr data-id="${o.id}">
       <td><div class="admin-table__title">${escapeHtml(o.name)}</div><div class="admin-table__slug">${escapeHtml(o.type)}</div></td>
-      <td><div class="admin-table__title">${escapeHtml(o.buyer)}</div><div class="admin-table__slug">${o.buyer_email ? escapeHtml(o.buyer_email) : 'no email'}</div><div class="admin-table__slug">${o.buyer_phone ? escapeHtml(o.buyer_phone) : 'no phone'}</div><div class="admin-table__slug">${escapeHtml(formatDate(o.created_at))}</div></td>
+      <td><div class="admin-table__title">${escapeHtml(o.buyer)}</div><div class="admin-table__slug">${o.buyer_email ? escapeHtml(o.buyer_email) : 'no email'}${o.buyer_email ? (o.buyer_email_verified ? ' <span title="The buyer confirmed this address" style="color:var(--success,#22c55e);">✔ confirmed</span>' : ' <span style="color:var(--text-muted);">· unconfirmed</span>') : ''}</div><div class="admin-table__slug">${o.buyer_phone ? escapeHtml(o.buyer_phone) : 'no phone'}</div><div class="admin-table__slug">${escapeHtml(formatDate(o.created_at))}</div></td>
       <td><div class="admin-table__title">${GREEN_PLAN_LABEL[o.months] || o.months + ' months'}</div><div class="admin-table__slug">${escapeHtml(greenMoney(o.amount_cents, o.currency))}</div></td>
       <td><div class="claim-evidence">${escapeHtml(o.reference)}</div>${o.note ? `<div class="admin-table__slug">${escapeHtml(o.note)}</div>` : ''}${o.has_receipt ? '<div class="admin-table__slug">📎 receipt attached</div>' : ''}</td>
       <td><span class="status-badge status-badge--${GREEN_STATUS_CLASS[o.status] || 'archived'}">${escapeHtml(GREEN_STATUS_LABEL[o.status] || o.status)}</span>${o.reviewed_by_username ? `<div class="admin-table__slug">by ${escapeHtml(o.reviewed_by_username)}</div>` : ''}${o.review_note ? `<div class="admin-table__slug">Note: ${escapeHtml(o.review_note)}</div>` : ''}</td>
@@ -3014,6 +3033,7 @@ function initDashboard() {
     this.dataset.manual = this.value ? '1' : '';
   });
   wireArticleRte();
+  mountPersonBioRte();
   document.getElementById('articleFilterStatus').addEventListener('change', () => loadArticles(1));
   let articleSearchTimer;
   document.getElementById('articleSearch').addEventListener('input', (e) => {
@@ -3090,7 +3110,7 @@ function initDashboard() {
   ['formArtist', 'formComposer', 'formCopyrightOwner'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', autoSaveSongDraft);
   });
-  ['personFormName', 'personFormBio', 'personFormSlug'].forEach(id => {
+  ['personFormName', 'personFormSlug'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', autoSavePersonDraft);
   });
   ['coFormName', 'coFormSlug', 'coFormFullLegalName', 'coFormOrganization', 'coFormTerritory', 'coFormNotes'].forEach(id => {

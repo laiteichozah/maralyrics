@@ -29,6 +29,7 @@ import claimsApp from './adminClaims.js';
 import greenApp from './adminGreen.js';
 import { AVATARS } from '../lib/avatars.js';
 import { isSafeLinkUrl, isSafeImageUrl, validateSocialLinks } from '../lib/profile.js';
+import { normalizeBio } from '../lib/richText.js';
 import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
@@ -438,8 +439,11 @@ function personCrud(table) {
 
   sub.post('/', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
     const data = await c.req.json().catch(() => ({}));
-    const { name, bio, image_url, social_links } = data;
+    const { name, image_url, social_links } = data;
     if (!name) return c.json({ error: 'name is required' }, 400);
+    const richBio = normalizeBio(data.bio);
+    if (!richBio.ok) return c.json({ error: richBio.error }, 400);
+    const bio = richBio.value;
     if (image_url && !isSafeImageUrl(image_url)) return c.json({ error: 'image_url must be an http(s) or data:image URL' }, 400);
     const links = validateSocialLinks(social_links);
     if (!links.ok) return c.json({ error: 'social_links must be http(s) or mailto URLs' }, 400);
@@ -461,8 +465,11 @@ function personCrud(table) {
   sub.put('/:id', requireRole(...CAN_MANAGE_REFERENCE_DATA), async (c) => {
     const id = c.req.param('id');
     const data = await c.req.json().catch(() => ({}));
-    const { name, bio, image_url, social_links } = data;
+    const { name, image_url, social_links } = data;
     if (!name) return c.json({ error: 'name is required' }, 400);
+    const richBio = normalizeBio(data.bio);
+    if (!richBio.ok) return c.json({ error: richBio.error }, 400);
+    const bio = richBio.value;
     if (image_url && !isSafeImageUrl(image_url)) return c.json({ error: 'image_url must be an http(s) or data:image URL' }, 400);
     const links = validateSocialLinks(social_links);
     if (!links.ok) return c.json({ error: 'social_links must be http(s) or mailto URLs' }, 400);

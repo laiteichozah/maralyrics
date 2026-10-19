@@ -110,6 +110,15 @@ Required secrets (never committed — see `.dev.vars.example` for local dev):
 - `ADMIN_TOKEN` — bearer token for the admin API. Set with `wrangler secret put ADMIN_TOKEN`. The admin panel (`/admin`) prompts for this token on first load and stores it in `localStorage`.
 - `TURNSTILE_SECRET_KEY` — verifies the Cloudflare Turnstile challenge on `/api/v1/reports` and `/api/v1/contacts`. Set with `wrangler secret put TURNSTILE_SECRET_KEY`. If unset, verification is skipped (logged as a warning) — safe for local dev, but should be set in production.
 
+#### Artist accounts: Google sign-in and email (Resend)
+
+Artists and composers sign in on `/my-profile` ("For Artists") with **Google** or with **email + password**. Email goes out through [Resend](https://resend.com): a confirmation link when someone signs up or changes their address, and "Forgot password" links. Both are optional and switch on by configuration:
+
+- **Resend** — create an API key, verify your sending domain in Resend (DNS records), then `wrangler secret put RESEND_API_KEY` and check `MAIL_FROM` / `SITE_ORIGIN` in `wrangler.toml`. With no key, no email is sent, nobody is asked to confirm an address and "Forgot password" is hidden.
+- **Google** — in Google Cloud Console create an OAuth client of type *Web application*, add `https://maralyrics.com` (and `https://www.maralyrics.com` if used) under *Authorised JavaScript origins*, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.toml`. No client secret is needed (the Worker checks Google's signed ID token). Empty = no Google button.
+- Run `npm run db:migrate` **before** `npm run deploy` (migration `0018` adds email confirmation, Google ids and the one-time-link table).
+- Tests: `npm run test:auth`.
+
 ---
 
 ## Scripts

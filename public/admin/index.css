@@ -602,6 +602,16 @@
   color: var(--text-muted);
   pointer-events: none;
 }
+/* Bio editor (rich-text.js): the editable area may hold an empty <p><br></p>, so :empty can't be used. */
+.rte-editor.is-empty { position: relative; }
+.rte-editor.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  pointer-events: none;
+  position: absolute;
+}
+.rte-editor--compact { min-height: 130px; max-height: 360px; }
+.rte-hint { display: block; margin-top: 4px; font-size: var(--text-xs); color: var(--text-muted); }
 
 .rte-editor p { margin: 0 0 1em; }
 .rte-editor p:last-child { margin-bottom: 0; }
