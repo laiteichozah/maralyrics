@@ -69,7 +69,7 @@
     const el = $(id);
     el.textContent = text || '';
     el.hidden = !text;
-    el.className = `royal-message${ok ? ' royal-message--ok' : ''}`;
+    el.className = `acct-message${ok ? ' acct-message--ok' : ''}`;
   }
   async function busy(btn, fn) {
     btn.disabled = true;
@@ -96,12 +96,15 @@
     }
   }
 
+  let authMode = 'signin';
   function selectAuthTab(which) {
     const reg = which === 'register';
-    $('tabSignin').classList.toggle('active', !reg);
-    $('tabRegister').classList.toggle('active', reg);
+    authMode = reg ? 'register' : 'signin';
     $('signinForm').hidden = reg;
     $('registerForm').hidden = !reg;
+    $('switchToRegister').hidden = reg;
+    $('switchToSignin').hidden = !reg;
+    $('authTitle').textContent = t(reg ? 'account.auth_register_title' : 'account.auth_signin_title');
     if (reg) renderTurnstile('regTurnstile');
   }
 
@@ -111,6 +114,7 @@
     $('forgotForm').hidden = view !== 'forgot';
     $('resetForm').hidden = view !== 'reset';
     $('googleBlock').hidden = view !== 'tabs' || !cfg.google_client_id;
+    document.querySelector('.acct-about').hidden = view !== 'tabs';
     if (view === 'forgot') renderTurnstile('forgotTurnstile');
   }
 
@@ -199,7 +203,7 @@
       return;
     }
     window.google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: onGoogle, use_fedcm_for_prompt: true });
-    window.google.accounts.id.renderButton($('googleBtn'), { type: 'standard', theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', width: 300 });
+    window.google.accounts.id.renderButton($('googleBtn'), { type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', logo_alignment: 'left', width: Math.min(400, $('googleBtn').parentElement.clientWidth || 320) });
   }
   async function onGoogle(response) {
     say('signinMsg', '');
@@ -327,7 +331,7 @@
     const box = $('profileSwitch');
     box.hidden = list.length < 2;
     box.setAttribute('aria-label', t('account.switch_profile'));
-    box.innerHTML = list.map((c) => `<button type="button" class="royal-chip${c.id === (selectedClaim() || {}).id ? ' active' : ''}" data-claim="${Number(c.id)}">${esc(c.name)}</button>`).join('');
+    box.innerHTML = list.map((c) => `<button type="button" class="acct-chip${c.id === (selectedClaim() || {}).id ? ' active' : ''}" data-claim="${Number(c.id)}">${esc(c.name)}</button>`).join('');
   }
   $('profileSwitch').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-claim]');
@@ -364,7 +368,7 @@
     const line = $('contactVerified');
     line.hidden = !account.contact_email;
     line.textContent = account.email_verified ? `✔ ${t('account.email_confirmed')}` : t('account.email_unconfirmed');
-    line.classList.toggle('royal-status-line--ok', !!account.email_verified);
+    line.classList.toggle('acct-status-line--ok', !!account.email_verified);
     $('pwCurrentRow').hidden = !account.has_password;
     $('pwCurrent').required = !!account.has_password;
     $('pwGoogleNote').hidden = !!account.has_password;
@@ -431,16 +435,16 @@
   function renderClaims() {
     $('claimEmpty').hidden = claims.length > 0;
     $('claimList').innerHTML = claims.map((c) => `
-      <article class="royal-status${c.status === 'approved' ? ' royal-status--active' : ''}" data-id="${Number(c.id)}">
-        <div class="royal-status__main">
-          <a class="royal-status__name" href="${publicUrl(c)}">${esc(c.name)}</a>
-          <span class="royal-status__type">${esc(typeLabel(c.type))}</span>
-          <span class="royal-pill royal-pill--${pillClass(c.status)}">${esc(t(STATUS_KEY[c.status] || c.status))}</span>
+      <article class="acct-status${c.status === 'approved' ? ' acct-status--active' : ''}" data-id="${Number(c.id)}">
+        <div class="acct-status__main">
+          <a class="acct-status__name" href="${publicUrl(c)}">${esc(c.name)}</a>
+          <span class="acct-status__type">${esc(typeLabel(c.type))}</span>
+          <span class="acct-pill acct-pill--${pillClass(c.status)}">${esc(t(STATUS_KEY[c.status] || c.status))}</span>
         </div>
-        ${c.review_note ? `<p class="royal-status__note">${esc(t('account.note_from_team', { note: c.review_note }))}</p>` : ''}
-        <div class="royal-status__actions">
-          ${c.status === 'approved' ? `<button type="button" class="royal-btn royal-btn--sm" data-action="edit">${esc(t('account.edit_profile'))}</button>` : ''}
-          ${c.status === 'pending' ? `<button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" data-action="withdraw">${esc(t('account.withdraw'))}</button>` : ''}
+        ${c.review_note ? `<p class="acct-status__note">${esc(t('account.note_from_team', { note: c.review_note }))}</p>` : ''}
+        <div class="acct-status__actions">
+          ${c.status === 'approved' ? `<button type="button" class="acct-btn acct-btn--sm" data-action="edit">${esc(t('account.edit_profile'))}</button>` : ''}
+          ${c.status === 'pending' ? `<button type="button" class="acct-btn acct-btn--ghost acct-btn--sm" data-action="withdraw">${esc(t('account.withdraw'))}</button>` : ''}
         </div>
       </article>`).join('');
   }
@@ -547,10 +551,10 @@
     const offer = greenState.offer;
     if (!offer) return;
     $('greenProfiles').innerHTML = offer.profiles.map((p) => `
-      <div class="royal-status${p.active ? ' royal-status--active' : ''}">
-        <div class="royal-status__main">
-          <span class="royal-status__name">${esc(p.name)}${p.active ? GreenMark.html() : ''}</span>
-          <span class="royal-status__state">${esc(p.has_pending ? t('green.pending_order') : p.active ? t('green.active_until', { date: fmtDate(p.expires_at) }) : t('green.not_active'))}</span>
+      <div class="acct-status${p.active ? ' acct-status--active' : ''}">
+        <div class="acct-status__main">
+          <span class="acct-status__name">${esc(p.name)}${p.active ? GreenMark.html() : ''}</span>
+          <span class="acct-status__state">${esc(p.has_pending ? t('green.pending_order') : p.active ? t('green.active_until', { date: fmtDate(p.expires_at) }) : t('green.not_active'))}</span>
         </div>
       </div>`).join('');
 
@@ -563,10 +567,10 @@
       $('greenProfileRow').hidden = offer.profiles.length < 2;
       const chosenPlan = (document.querySelector('input[name="greenPlan"]:checked') || {}).value;
       $('greenPlans').innerHTML = offer.plans.map((p, i) => `
-        <label class="royal-plan">
+        <label class="acct-plan">
           <input type="radio" name="greenPlan" value="${Number(p.months)}"${(chosenPlan ? String(p.months) === chosenPlan : i === 0) ? ' checked' : ''} />
-          <span class="royal-plan__name">${esc(planName(p.months))}</span>
-          <span class="royal-plan__price">${esc(money(p.price_cents, offer.currency))}</span>
+          <span class="acct-plan__name">${esc(planName(p.months))}</span>
+          <span class="acct-plan__price">${esc(money(p.price_cents, offer.currency))}</span>
         </label>`).join('');
       $('greenHowTo').innerHTML = offer.payment_instructions ? linkify(offer.payment_instructions) : esc(t('green.no_instructions'));
     }
@@ -574,14 +578,14 @@
 
     $('greenNoOrders').hidden = offer.orders.length > 0;
     $('greenOrders').innerHTML = offer.orders.map((o) => `
-      <article class="royal-status${o.status === 'approved' ? ' royal-status--active' : ''}" data-order="${Number(o.id)}">
-        <div class="royal-status__main">
-          <span class="royal-status__name">${esc(o.name)}</span>
-          <span class="royal-status__type">${esc(t('green.order_line', { plan: planName(o.months), amount: money(o.amount_cents, o.currency) }))}</span>
-          <span class="royal-pill royal-pill--${pillClass(o.status)}">${esc(t(ORDER_STATUS_KEY[o.status] || o.status))}</span>
+      <article class="acct-status${o.status === 'approved' ? ' acct-status--active' : ''}" data-order="${Number(o.id)}">
+        <div class="acct-status__main">
+          <span class="acct-status__name">${esc(o.name)}</span>
+          <span class="acct-status__type">${esc(t('green.order_line', { plan: planName(o.months), amount: money(o.amount_cents, o.currency) }))}</span>
+          <span class="acct-pill acct-pill--${pillClass(o.status)}">${esc(t(ORDER_STATUS_KEY[o.status] || o.status))}</span>
         </div>
-        ${o.review_note ? `<p class="royal-status__note">${esc(t('account.note_from_team', { note: o.review_note }))}</p>` : ''}
-        ${o.status === 'pending' ? `<div class="royal-status__actions"><button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" data-cancel-order="${Number(o.id)}">${esc(t('green.cancel_order'))}</button></div>` : ''}
+        ${o.review_note ? `<p class="acct-status__note">${esc(t('account.note_from_team', { note: o.review_note }))}</p>` : ''}
+        ${o.status === 'pending' ? `<div class="acct-status__actions"><button type="button" class="acct-btn acct-btn--ghost acct-btn--sm" data-cancel-order="${Number(o.id)}">${esc(t('green.cancel_order'))}</button></div>` : ''}
       </article>`).join('');
   }
 
@@ -649,10 +653,10 @@
 
   function renderLinks() {
     $('editorLinks').innerHTML = links.map((url, i) => `
-      <div class="royal-link-row">
-        <span class="royal-link-icon" title="${esc(SocialIcons.detect(url, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(url).icon}</span>
+      <div class="acct-link-row">
+        <span class="acct-link-icon" title="${esc(SocialIcons.detect(url, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(url).icon}</span>
         <input type="url" value="${esc(url)}" data-i="${i}" placeholder="${esc(t('account.social_ph'))}" maxlength="500" />
-        <button type="button" class="royal-btn royal-btn--ghost royal-btn--sm" data-remove="${i}" aria-label="${esc(t('account.social_remove'))}">✕</button>
+        <button type="button" class="acct-btn acct-btn--ghost acct-btn--sm" data-remove="${i}" aria-label="${esc(t('account.social_remove'))}">✕</button>
       </div>`).join('');
     $('editorAddLink').hidden = links.length >= MAX_LINKS;
   }
@@ -687,11 +691,11 @@
     const icons = links.map((u) => u.trim()).filter(Boolean).slice(0, MAX_LINKS)
       .map((u) => `<span title="${esc(SocialIcons.detect(u, { websiteLabel: t('common.website') }).name)}">${SocialIcons.detect(u).icon}</span>`).join('');
     box.innerHTML = `
-      <span class="royal-avatar royal-avatar--lg">${avatarHtml(photo, editing.name)}</span>
-      <h3 class="royal-preview__name">${esc(editing.name)}${active ? GreenMark.html() : ''}</h3>
-      <p class="royal-preview__role">${esc(typeLabel(editing.type))}</p>
-      ${bioRte && !bioRte.isEmpty() ? `<div class="royal-preview__bio">${RichText.clean(bioRte.getHtml())}</div>` : ''}
-      ${icons ? `<div class="royal-preview__links">${icons}</div>` : ''}`;
+      <span class="acct-avatar acct-avatar--lg">${avatarHtml(photo, editing.name)}</span>
+      <h3 class="acct-preview__name">${esc(editing.name)}${active ? GreenMark.html() : ''}</h3>
+      <p class="acct-preview__role">${esc(typeLabel(editing.type))}</p>
+      ${bioRte && !bioRte.isEmpty() ? `<div class="acct-preview__bio">${RichText.clean(bioRte.getHtml())}</div>` : ''}
+      ${icons ? `<div class="acct-preview__links">${icons}</div>` : ''}`;
     $('bannerAvatar').innerHTML = avatarHtml(photo, editing.name);
   }
 
@@ -780,7 +784,7 @@
   // drawing anything that calls t(); and redraw the script-built parts when the visitor switches language.
   const i18nReady = () => new Promise((resolve) => {
     let tries = 0;
-    const tick = () => (I18n.t('account.court_title') !== 'account.court_title' || tries++ > 40 ? resolve() : setTimeout(tick, 100));
+    const tick = () => (I18n.t('account.auth_signin_title') !== 'account.auth_signin_title' || tries++ > 40 ? resolve() : setTimeout(tick, 100));
     tick();
   });
   function redraw() {
@@ -794,8 +798,9 @@
       renderLinks();
       renderPreview();
       renderContactNeeds();
-    } else if (target) {
-      $('authClaimNote').textContent = t('account.claim_prompt', { name: target.name });
+    } else {
+      selectAuthTab(authMode);
+      if (target) $('authClaimNote').textContent = t('account.claim_prompt', { name: target.name });
     }
   }
   new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
