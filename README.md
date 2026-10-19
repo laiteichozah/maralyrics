@@ -117,6 +117,7 @@ Artists and composers sign in on `/my-profile` ("For Artists") with **Google** o
 - **Resend** — create an API key, verify your sending domain in Resend (DNS records), then `wrangler secret put RESEND_API_KEY` and check `MAIL_FROM` / `SITE_ORIGIN` in `wrangler.toml`. With no key, no email is sent, nobody is asked to confirm an address and "Forgot password" is hidden.
 - **Google** — in Google Cloud Console create an OAuth client of type *Web application*, add `https://maralyrics.com` (and `https://www.maralyrics.com` if used) under *Authorised JavaScript origins*, and put the client id in `GOOGLE_CLIENT_ID` in `wrangler.toml`. No client secret is needed (the Worker checks Google's signed ID token). Empty = no Google button.
 - Run `npm run db:migrate` **before** `npm run deploy` (migration `0018` adds email confirmation, Google ids and the one-time-link table).
+- When a Manager approves, rejects or revokes a claim, the claimant gets an email with the decision and the team's note (only to a confirmed address; rivals closed by an approval are told too). The admin toast says whether it was sent.
 - Tests: `npm run test:auth`.
 
 ---
