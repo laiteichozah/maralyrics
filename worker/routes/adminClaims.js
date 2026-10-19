@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { requireRole } from '../lib/auth.js';
 import { CAN_REVIEW_CLAIMS } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
+import { mailEnabled, sendMail, siteOrigin } from '../lib/mail.js';
+import { claimDecisionMessage } from '../lib/mailTemplates.js';
 
 // Admin review of profile claims, mounted at /api/v1/admin/claims (Manager + Super Admin).
 //   GET  /               ?status=pending|approved|rejected|revoked  (default: all, pending first)
@@ -38,7 +40,7 @@ app.get('/', async (c) => {
 
 const loadClaim = (db, id) => db
   .prepare(
-    `SELECT c.*, acc.username AS claimant, COALESCE(a.name, p.name) AS name,
+    `SELECT c.*, acc.username AS claimant, acc.contact_email AS claimant_email, acc.email_verified_at AS claimant_email_verified_at, COALESCE(a.name, p.name) AS name,
             CASE WHEN c.artist_id IS NOT NULL THEN 'artist' ELSE 'composer' END AS type
      FROM person_claims c JOIN person_accounts acc ON acc.id = c.account_id
      LEFT JOIN artists a ON a.id = c.artist_id LEFT JOIN composers p ON p.id = c.composer_id WHERE c.id = ?`
@@ -53,6 +55,22 @@ function note(data, required) {
   return { text: text || null };
 }
 
+/**
+ * Emails the claimant about the decision. → 'sent' | 'failed' | 'skipped' (no confirmed address — an address nobody has
+ * confirmed could belong to someone else, so nothing about the claim is sent to it) | 'off' (email not configured).
+ * Never throws: a mail problem must not undo or block a review.
+ */
+async function tellClaimant(env, { email, verifiedAt, name }, decision, note) {
+  if (!mailEnabled(env)) return 'off';
+  if (!email || !verifiedAt) return 'skipped';
+  try {
+    const msg = claimDecisionMessage({ decision, name, note, origin: siteOrigin(env) });
+    return (await sendMail(env, { to: email, ...msg })).ok ? 'sent' : 'failed';
+  } catch {
+    return 'failed';
+  }
+}
+
 async function review(c, { from, to, action, noteRequired }) {
   const id = Number(c.req.param('id'));
   if (!Number.isInteger(id) || id < 1) return c.json({ error: 'Not found' }, 404);
@@ -64,6 +82,14 @@ async function review(c, { from, to, action, noteRequired }) {
 
   const admin = c.get('admin');
   const db = c.env.DB;
+  // Other pending claims on the same profile are closed when one is approved; their owners get told too.
+  const fkCol = claim.artist_id ? 'artist_id' : 'composer_id';
+  const displaced = to === 'approved'
+    ? (await db
+        .prepare(`SELECT acc.contact_email AS email, acc.email_verified_at AS verifiedAt FROM person_claims o JOIN person_accounts acc ON acc.id = o.account_id WHERE o.${fkCol} = ? AND o.status = 'pending' AND o.id != ?`)
+        .bind(claim.artist_id ?? claim.composer_id, id)
+        .all()).results
+    : [];
   try {
     // The status guard in the WHERE makes this safe against two admins reviewing at once.
     const result = await db
@@ -84,7 +110,9 @@ async function review(c, { from, to, action, noteRequired }) {
       .run();
   }
   await logAudit(db, admin, action, claim.type, claim.artist_id ?? claim.composer_id, `${claim.name} — ${claim.claimant}${n.text ? ` — “${n.text}”` : ''}`);
-  return c.json(await loadClaim(db, id).then(({ id: cid, status, review_note }) => ({ id: cid, status, review_note })));
+  const email = await tellClaimant(c.env, { email: claim.claimant_email, verifiedAt: claim.claimant_email_verified_at, name: claim.name }, to, n.text);
+  for (const other of displaced) await tellClaimant(c.env, { ...other, name: claim.name }, 'rejected', 'Another claim on this profile was approved.');
+  return c.json(await loadClaim(db, id).then(({ id: cid, status, review_note }) => ({ id: cid, status, review_note, email })));
 }
 
 app.put('/:id/approve', (c) => review(c, { from: 'pending', to: 'approved', action: 'claim.approve', noteRequired: false }));

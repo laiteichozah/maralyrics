@@ -311,5 +311,62 @@ const down = await sendMail(FULL, { to: 'a@b.co', subject: 's', html: 'h', text:
 globalThis.fetch = net;
 check(down.ok === false, 'sendMail never throws, even if the network does');
 
+// ─── Claim decision emails ───────────────────────────────────────────────────
+console.log('Claim decision emails');
+const mkClaimant = (name, { verified = true } = {}) => {
+  run(`INSERT INTO person_accounts (username, password_hash, contact_email, contact_phone, email_verified_at) VALUES (?, 'x', ?, '+919876543210', ${verified ? 'CURRENT_TIMESTAMP' : 'NULL'})`, name, `${name}@example.com`);
+  return get('SELECT id FROM person_accounts WHERE username = ?', name).id;
+};
+const mkClaim = (accountId, artistId) => { run(`INSERT INTO person_claims (account_id, artist_id, evidence) VALUES (?, ?, 'my official page https://youtube.com/@x')`, accountId, artistId); return Number(get('SELECT MAX(id) AS id FROM person_claims').id); };
+const decide = (id, action, body = {}, env = FULL) => call('PUT', `/api/v1/admin/claims/${id}/${action}`, { token: mgr, body, env });
+run(`INSERT INTO artists (id, name, slug) VALUES (20, 'Dee Dancer', 'dee-dancer')`);
+const accA = mkClaimant('cdc.a'); const accB = mkClaimant('cdc.b'); const accC = mkClaimant('cdc.c', { verified: false });
+const claimA = mkClaim(accA, 20); const claimB = mkClaim(accB, 20); const claimC = mkClaim(accC, 20);
+const m0 = sent.length;
+const approved = await decide(claimA, 'approve', { note: 'Welcome aboard!' });
+check(approved.status === 200 && approved.json.status === 'approved' && approved.json.email === 'sent', 'approving emails the claimant (response says email: sent)');
+const toA = sent.filter((m) => m.to[0] === 'cdc.a@example.com');
+check(toA.length === 1 && toA[0].subject === 'Your claim on Dee Dancer was approved' && /Welcome aboard!/.test(toA[0].html) && /Welcome aboard!/.test(toA[0].text) && /https:\/\/maralyrics\.com\/my-profile#profile/.test(toA[0].html), 'approval email: subject, the team note, and a link to the profile editor');
+const toB = sent.filter((m) => m.to[0] === 'cdc.b@example.com');
+check(toB.length === 1 && toB[0].subject === 'About your claim on Dee Dancer' && /Another claim on this profile was approved/.test(toB[0].text), 'a rival pending claimant is told their claim was closed, and why');
+check(!sent.some((m) => m.to[0] === 'cdc.c@example.com') && get('SELECT status FROM person_claims WHERE id = ?', claimC).status === 'rejected', 'a rival with an UNCONFIRMED address is not emailed (but their claim is closed)');
+check(sent.length === m0 + 2, 'exactly the right emails: approved claimant + confirmed rival');
+const again = sent.length;
+check((await decide(claimA, 'approve')).status === 409 && sent.length === again, 'reviewing twice → 409 and no second email');
+
+const revoked = await decide(claimA, 'revoke', { note: 'Your page no longer matches.' });
+const toA2 = sent.filter((m) => m.to[0] === 'cdc.a@example.com');
+check(revoked.status === 200 && revoked.json.email === 'sent' && /was removed/.test(toA2[1].subject) && /no longer matches/.test(toA2[1].text), 'revoking emails the claimant with the note');
+
+const accD = mkClaimant('cdc.d'); const claimD = mkClaim(accD, 20);
+const nasty = '<script>alert(1)</script> & "quotes"\nsecond line';
+const rejected = await decide(claimD, 'reject', { note: nasty });
+const toD = sent.filter((m) => m.to[0] === 'cdc.d@example.com')[0];
+check(rejected.json.email === 'sent' && toD.subject === 'About your claim on Dee Dancer' && /We could not approve your claim/.test(toD.html), 'rejecting emails the claimant');
+check(!/<script>/.test(toD.html) && /&lt;script&gt;alert\(1\)&lt;\/script&gt; &amp; &quot;quotes&quot;/.test(toD.html) && /<script>alert\(1\)<\/script> & "quotes"/.test(toD.text), "the team's note is escaped in the HTML and left as plain text in the text version");
+check((await decide(claimD, 'reject', {})).status === 409 && (await decide(mkClaim(accD, 20), 'reject', {})).status === 400, 'a rejection still needs a note (400), and a closed claim cannot be reviewed again (409)');
+
+const accE = mkClaimant('cdc.e', { verified: false }); const claimE = mkClaim(accE, 20);
+const e0 = sent.length;
+const skipped = await decide(claimE, 'reject', { note: 'Not enough detail.' });
+check(skipped.status === 200 && skipped.json.status === 'rejected' && skipped.json.email === 'skipped' && sent.length === e0, 'an unconfirmed address: the decision is saved, nothing is sent, response says email: skipped');
+
+const accF = mkClaimant('cdc.f'); const claimF = mkClaim(accF, 20);
+const f0 = sent.length;
+const mailOff = await decide(claimF, 'reject', { note: 'Not now.' }, NO_MAIL);
+check(mailOff.status === 200 && mailOff.json.email === 'off' && sent.length === f0, 'email not configured: decision saved, no mail, email: off');
+
+const accG = mkClaimant('cdc.g'); const claimG = mkClaim(accG, 20);
+resendStatus = 500;
+const down2 = await decide(claimG, 'reject', { note: 'Not now.' });
+resendStatus = 200;
+check(down2.status === 200 && down2.json.status === 'rejected' && down2.json.email === 'failed' && get('SELECT status FROM person_claims WHERE id = ?', claimG).status === 'rejected', 'Resend down: the review still goes through (email: failed)');
+
+run(`INSERT INTO artists (id, name, slug) VALUES (21, 'Evil' || char(13) || char(10) || 'Bcc: x@y.z', 'evil-name')`);
+const accH = mkClaimant('cdc.h'); const claimH = mkClaim(accH, 21);
+await decide(claimH, 'approve');
+const toH = sent.filter((m) => m.to[0] === 'cdc.h@example.com')[0];
+check(toH && !/[\r\n]/.test(toH.subject) && /Evil Bcc: x@y\.z/.test(toH.subject), 'a profile name with line breaks cannot add lines (headers) to the subject');
+
 console.log(failures ? `\n✗ ${passes} checks passed, ${failures} failed` : `\n✓ ${passes} checks passed, 0 failed`);
 process.exit(failures ? 1 : 0);

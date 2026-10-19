@@ -2477,7 +2477,11 @@ async function submitClaimReview(e) {
   const btn = document.getElementById('claimReviewSubmit');
   btn.disabled = true;
   try {
-    await apiPut(`${ADMIN_API}/claims/${id}/${action}`, { note }, { success: { approve: 'Claim approved.', reject: 'Claim rejected.', revoke: 'Access revoked.' }[action] });
+    const res = await apiPut(`${ADMIN_API}/claims/${id}/${action}`, { note });
+    const done = { approve: 'Claim approved.', reject: 'Claim rejected.', revoke: 'Access revoked.' }[action];
+    // The claimant is emailed about the decision (when email is set up and their address is confirmed).
+    const mail = { sent: ' We emailed the claimant.', failed: ' The email to the claimant could not be sent.', skipped: " No email was sent: the claimant's address isn't confirmed." }[res && res.email] || '';
+    AdminUI.success(done + mail);
     closeClaimModal();
     loadClaims();
     refreshClaimsTabCount();
