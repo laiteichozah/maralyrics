@@ -20,7 +20,8 @@
     "test:social": "node scripts/check-social-icons.mjs",
     "test:green": "node --no-warnings scripts/check-green.mjs",
     "test:richtext": "node --no-warnings scripts/check-richtext.mjs",
-    "test:auth": "node --no-warnings scripts/check-auth.mjs"
+    "test:auth": "node --no-warnings scripts/check-auth.mjs",
+    "test:songnav": "node --no-warnings scripts/check-song-nav.mjs"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",
