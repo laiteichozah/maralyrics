@@ -5,6 +5,10 @@
 //   npm run changelog -- --tag         also create any missing annotated tag (vX.Y.Z) at each release's ref
 //   npm run changelog -- --check       exit 1 if CHANGELOG.md or public/releases.json is out of date (used by npm test)
 //   npm run changelog -- --notes 1.4.0 print the release notes of one version (for a GitHub release body)
+//   npm run changelog -- --title 1.4.0 print the GitHub release title of one version ("v1.4.0 — Title")
+//
+// GitHub Releases are published from these notes by `scripts/publish-releases.mjs` (the "Publish releases" workflow runs it
+// whenever a vX.Y.Z tag is pushed, and on demand from the Actions tab to back-fill or refresh every release).
 //
 // To cut a new release: add an entry at the END of scripts/releases.json (version, ref = the commit to tag — use "HEAD"
 // for the newest —, title, summary, highlights), run `npm run changelog -- --tag`, commit CHANGELOG.md, push the tags.
@@ -77,11 +81,27 @@ function changelog() {
   return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
 
-const noteIdx = args.indexOf('--notes');
-if (noteIdx !== -1) {
-  const v = described.find((d) => d.version === String(args[noteIdx + 1]).replace(/^v/, ''));
-  if (!v) { console.error(`No such version: ${args[noteIdx + 1]}`); process.exit(1); }
-  console.log([...notes(v, { markdown: true }), '', '### Full log', ...v.log.map((c) => `- \`${c.hash}\` ${c.date} ${c.subject} — ${c.author}`)].join('\n'));
+const compareUrl = (i) => (i > 0 ? `${GITHUB}/compare/${resolved[i - 1].sha}...${resolved[i].sha}` : `${GITHUB}/commits/${resolved[i].sha}`);
+const findVersion = (flag) => {
+  const wanted = String(args[args.indexOf(flag) + 1]).replace(/^v/, '');
+  const i = described.findIndex((d) => d.version === wanted);
+  if (i === -1) { console.error(`No such version: ${wanted}`); process.exit(1); }
+  return i;
+};
+if (args.includes('--title')) {
+  const v = described[findVersion('--title')];
+  console.log(`v${v.version} — ${v.title}`);
+  process.exit(0);
+}
+if (args.includes('--notes')) {
+  const i = findVersion('--notes');
+  const v = described[i];
+  const sha = (c) => `[\`${c.hash}\`](${GITHUB}/commit/${git('rev-parse', c.hash)})`;
+  console.log([
+    `Released ${v.date}`, '', ...notes(v, { markdown: true }), '',
+    `**[See this version on GitHub](${compareUrl(i)})**`, '',
+    '### Full log', ...v.log.map((c) => `- ${sha(c)} ${c.date} ${c.subject} — ${c.author}`),
+  ].join('\n'));
   process.exit(0);
 }
 
@@ -100,7 +120,7 @@ function publicReleases() {
       commits,
     };
   });
-  return `${JSON.stringify({ repo: REPO, github_url: GITHUB, changelog_url: `${GITHUB}/blob/main/CHANGELOG.md`, tags_url: `${GITHUB}/tags`, releases: out.reverse() }, null, 1)}\n`;
+  return `${JSON.stringify({ repo: REPO, github_url: GITHUB, changelog_url: `${GITHUB}/blob/main/CHANGELOG.md`, releases_url: `${GITHUB}/releases`, releases: out.reverse() }, null, 1)}\n`;
 }
 
 const files = { 'CHANGELOG.md': changelog(), 'public/releases.json': publicReleases() };

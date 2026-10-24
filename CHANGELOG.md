@@ -12,6 +12,7 @@ Merged after the latest version; it ships with the next one.
 - hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)
 - .gitignore now also keeps keystores and .env files out of git
 - The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)
+- GitHub Releases for every version, published from the same notes by the "Publish releases" workflow (scripts/publish-releases.mjs); the Project page links to them
 
 ## v1.9.0 — Reading flow (2026-10-24)
 
