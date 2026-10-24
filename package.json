@@ -1,6 +1,6 @@
 {
   "name": "maralyrics",
-  "version": "1.0.0",
+  "version": "1.9.0",
   "private": true,
   "description": "MaraLyrics — A modern Mara song lyrics website powered by Cloudflare Workers & D1",
   "scripts": {
@@ -21,7 +21,9 @@
     "test:green": "node --no-warnings scripts/check-green.mjs",
     "test:richtext": "node --no-warnings scripts/check-richtext.mjs",
     "test:auth": "node --no-warnings scripts/check-auth.mjs",
-    "test:songnav": "node --no-warnings scripts/check-song-nav.mjs"
+    "test:songnav": "node --no-warnings scripts/check-song-nav.mjs",
+    "test": "npm run test:claims && npm run test:green && npm run test:social && npm run test:idol && npm run test:badges && npm run test:richtext && npm run test:auth && npm run test:songnav && npm run seo:check && npm run i18n:check",
+    "changelog": "node scripts/changelog.mjs"
   },
   "dependencies": {
     "@cloudflare/kv-asset-handler": "^0.3.4",

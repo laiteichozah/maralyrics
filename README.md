@@ -131,6 +131,8 @@ The important npm scripts are defined in `package.json`:
 - `npm run db:create` — create a D1 database (`wrangler d1 create`)
 - `npm run db:schema` / `db:schema:local` — apply `schema.sql` (idempotent; safe on a fresh or existing DB)
 - `npm run db:seed:local` — load `seed.sql` sample data (local only — never run against prod)
+- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
+- `npm run changelog` — regenerates [CHANGELOG.md](CHANGELOG.md) (every version with its full commit log) from `scripts/releases.json`; add `-- --tag` to create the annotated release tags (`vX.Y.Z`), or `-- --notes 1.4.0` to print one version's notes. See the header of `scripts/changelog.mjs` for how to cut a release.
 - `npm run db:migrate` / `db:migrate:local` — apply any pending files in `migrations/` via `wrangler d1 migrations apply` (tracked, runs each migration once)
 
 ---
