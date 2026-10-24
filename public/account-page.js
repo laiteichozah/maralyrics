@@ -13,7 +13,7 @@
   const API = `${CONFIG.API_BASE}/account`;
   const TURNSTILE_SITEKEY = '0x4AAAAAABjildkegfR6T0sd'; // same public site key as the feedback forms
   const TABS = ['overview', 'profile', 'preferences', 'security', 'data'];
-  const PHOTO_SIZE = 256;                                // a chosen photo is centre-cropped to a square this size (JPEG)
+  const PHOTO_SIZE = 256;                                // a chosen photo is cropped (by the person, in the cropper) to a square this size (JPEG)
   const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18n.t(key, vars);
@@ -66,6 +66,7 @@
     $('forgotLink').hidden = !cfg.email_enabled;
     showAuthView(view);
     startGoogle();
+    renderGoogleButtons(); // the page may have loaded signed in, so the sign-in button was hidden when Google's script arrived
   }
 
   function selectAuthTab(which) {
@@ -238,6 +239,7 @@
     account = me.account;
     $('syncAuth').hidden = true;
     $('syncHome').hidden = false;
+    startGoogle(); // the Security / Your data tabs have Google buttons too (connect, confirm a deletion)
     $('syncAuto').checked = Sync.info().auto;
     renderAccount();
     fillForms();
@@ -309,20 +311,13 @@
     if (!file) return;
     if (!/^image\//.test(file.type)) { say('profMsg', t('account.err_image')); return; }
     if (file.size > MAX_PHOTO_FILE_BYTES) { say('profMsg', t('account.err_image_big')); return; }
-    const url = URL.createObjectURL(file);
     try {
-      const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = url; });
-      const side = Math.min(img.width, img.height);
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = PHOTO_SIZE;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff'; // JPEG has no alpha
-      ctx.fillRect(0, 0, PHOTO_SIZE, PHOTO_SIZE);
-      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, PHOTO_SIZE, PHOTO_SIZE);
-      photoDraft = canvas.toDataURL('image/jpeg', 0.85);
+      const cropped = await PhotoCropper.open(file, { size: PHOTO_SIZE }); // the person frames it; null = cancelled
+      if (cropped === null) return;
+      photoDraft = cropped;
       say('profMsg', '');
       renderAccount();
-    } catch { say('profMsg', t('account.err_image')); } finally { URL.revokeObjectURL(url); }
+    } catch { say('profMsg', t('account.err_image')); }
   });
 
   $('profileForm').addEventListener('submit', async (e) => {

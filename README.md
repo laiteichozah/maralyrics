@@ -135,6 +135,8 @@ Signed in, `/account` has five tabs: **Overview** (sync status), **Profile** (na
 
 - Run `npm run db:migrate` **before** `npm run deploy` (migration `0020` adds `display_name` and `avatar`).
 - Tests: `npm run test:account`.
+- **Photo cropper** (`public/photo-cropper.js`): choosing a profile photo — on `/account` and in the artist / composer editor on `/my-profile` — opens a dialog where the person drags the picture to frame it and zooms with a slider, the mouse wheel, the +/- buttons or the keys (arrows move, `+`/`-` zoom, Enter/Escape use/cancel). The result is a square JPEG (256 px for accounts, 400 px for artist pages).
+- **Browser test of every account feature**: `npm run test:e2e` drives a real Chromium through sign-up, the Cloudflare challenges, two-device sync (also offline), profile and the photo crop (pixel-checked), preferences, security, data download / deletion and a phone screen, against the real Worker with Google and Turnstile stubbed. It needs Playwright with Chromium (it skips with a message when there is none) and is not part of `npm test`. `E2E_SHOTS=dir` saves screenshots of the crop dialog; `E2E_DEBUG=dir` saves every page if the test stops early.
 
 ---
 
