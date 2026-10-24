@@ -49,6 +49,7 @@
     if (!res.ok) {
       const err = new Error(data.error || t('common.err_generic'));
       err.status = res.status;
+      err.code = data.code;
       throw err;
     }
     return data;
@@ -56,10 +57,15 @@
 
   // ── Cloudflare Turnstile (rendered explicitly, once per form) ──
   const widgets = {};
-  function renderTurnstile(boxId, tries = 0) {
+  function renderTurnstile(boxId, tries = 0, extra = {}) {
     if (widgets[boxId] !== undefined) return;
-    if (!window.turnstile) { if (tries < 40) setTimeout(() => renderTurnstile(boxId, tries + 1), 250); return; }
-    widgets[boxId] = window.turnstile.render(`#${boxId}`, { sitekey: TURNSTILE_SITEKEY, theme: 'dark' });
+    if (!window.turnstile) { if (tries < 40) setTimeout(() => renderTurnstile(boxId, tries + 1, extra), 250); return; }
+    widgets[boxId] = window.turnstile.render(`#${boxId}`, { sitekey: TURNSTILE_SITEKEY, theme: 'auto', ...extra });
+  }
+  /** Removes a widget (so a later challenge starts from a clean one). */
+  function removeTurnstile(boxId) {
+    if (widgets[boxId] !== undefined && window.turnstile) { try { window.turnstile.remove(widgets[boxId]); } catch { /* already gone */ } }
+    delete widgets[boxId];
   }
   const turnstileToken = (boxId) => (widgets[boxId] !== undefined && window.turnstile ? window.turnstile.getResponse(widgets[boxId]) : '') || '';
   const turnstileReset = (boxId) => { if (widgets[boxId] !== undefined && window.turnstile) window.turnstile.reset(widgets[boxId]); };
@@ -135,9 +141,13 @@
     say('signinMsg', '');
     await busy($('signinBtn'), async () => {
       try {
-        await enter(await api('POST', '/login', { identifier: $('signinUser').value, password: $('signinPass').value }));
+        await enter(await api('POST', '/login', { identifier: $('signinUser').value, password: $('signinPass').value, turnstile_token: turnstileToken('signinTurnstile') }));
         $('signinPass').value = '';
-      } catch (err) { say('signinMsg', err.message); }
+      } catch (err) {
+        say('signinMsg', err.message);
+        // After a couple of wrong passwords the server wants a Cloudflare challenge too: show it, and use a fresh one each time.
+        if (err.code === 'challenge_required') { renderTurnstile('signinTurnstile'); turnstileReset('signinTurnstile'); }
+      }
     });
   });
 
@@ -205,14 +215,23 @@
     window.google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: onGoogle, use_fedcm_for_prompt: true });
     window.google.accounts.id.renderButton($('googleBtn'), { type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', logo_alignment: 'left', width: Math.min(400, $('googleBtn').parentElement.clientWidth || 320) });
   }
-  async function onGoogle(response) {
+  async function onGoogle(response, challengeToken = '') {
     say('signinMsg', '');
     say('regMsg', '');
     try {
-      const data = await api('POST', '/google', { credential: response.credential });
+      const data = await api('POST', '/google', { credential: response.credential, turnstile_token: challengeToken });
+      $('googleChallenge').hidden = true;
+      removeTurnstile('googleTurnstile');
       await enter(data);
       if (data.password_removed) notice(t('account.google_password_removed'), true);
     } catch (err) {
+      if (err.code === 'challenge_required') {
+        // A NEW account needs the Cloudflare challenge first; solving it sends the same Google sign-in again.
+        $('googleChallenge').hidden = false;
+        removeTurnstile('googleTurnstile');
+        renderTurnstile('googleTurnstile', 0, { callback: (tok) => onGoogle(response, tok) });
+        return;
+      }
       const box = $('registerForm').hidden ? 'signinMsg' : 'regMsg';
       say(box, err.message);
     }

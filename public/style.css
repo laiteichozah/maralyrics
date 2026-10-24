@@ -410,6 +410,11 @@ body::before {
   display: none;
 }
 .account-toggle__btn.is-signed-in .account-toggle__dot { display: block; }
+/* With a photo, the person icon is replaced by the photo. */
+.account-toggle__avatar { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.account-toggle__avatar[hidden] { display: none; }
+.account-toggle__btn.has-avatar { overflow: visible; padding: 0; }
+.account-toggle__btn.has-avatar svg { display: none; }
 .downloads-toggle__badge {
   position: absolute;
   top: -6px;

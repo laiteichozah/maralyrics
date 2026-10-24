@@ -563,7 +563,7 @@ const Sync = {
   },
   _write(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full or blocked: syncing just pauses */ } },
   state() {
-    if (!this._state) this._state = { account: null, email: '', rev: 0, items: {}, auto: true, at: 0, ...this._read(this.STATE_KEY, {}) };
+    if (!this._state) this._state = { account: null, email: '', name: '', avatar: '', rev: 0, items: {}, auto: true, at: 0, ...this._read(this.STATE_KEY, {}) };
     return this._state;
   },
   _saveState() { this._write(this.STATE_KEY, this.state()); },
@@ -625,13 +625,24 @@ const Sync = {
     const s = this.state();
     if (s.account && s.account !== account.id) {
       await this.wipeLocal();
-      this._state = { account: null, email: '', rev: 0, items: {}, auto: true, at: 0 };
+      this._state = { account: null, email: '', name: '', avatar: '', rev: 0, items: {}, auto: true, at: 0 };
       this._saveQueue({});
     }
     const now = this.state();
     now.account = account.id;
     now.email = account.contact_email || account.username || '';
+    now.name = account.display_name || '';
+    if ('avatar' in account) now.avatar = account.avatar || '';
     this._saveState();
+  },
+
+  /** The account page changed the name / photo: keep the header button in step. */
+  setProfile({ name, avatar }) {
+    const s = this.state();
+    if (name !== undefined) s.name = name || '';
+    if (avatar !== undefined) s.avatar = avatar || '';
+    this._saveState();
+    this.mountHeader();
   },
 
   /** Token removed. The lists on this device stay (they are the visitor's); `wipe` also clears them (shared computers). */
@@ -640,7 +651,7 @@ const Sync = {
     try { localStorage.removeItem(this.TOKEN_KEY); } catch { /* ignore */ }
     if (wipe) {
       await this.wipeLocal();
-      this._state = { account: null, email: '', rev: 0, items: {}, auto: true, at: 0 };
+      this._state = { account: null, email: '', name: '', avatar: '', rev: 0, items: {}, auto: true, at: 0 };
       this._saveQueue({});
     }
     this._saveState();
@@ -783,6 +794,17 @@ const Sync = {
       if (theme && typeof Theme !== 'undefined' && Theme.getMode() !== theme) Theme.setMode(theme);
       const lang = pref('lang');
       if (lang && I18n.getLang() !== lang) I18n.setLanguage(lang);
+      const display = pref('display');
+      if (display && DisplayMode.current !== display) DisplayMode.set(display);
+      const calendarItem = eff[this._k('pref', 'calendar')];
+      if (calendarItem) {
+        const want = calendarItem.deleted ? '' : calendarItem.value;
+        if ((CalendarPrefs.get() || '') !== (want || '')) {
+          CalendarPrefs.set(want);
+          const select = document.getElementById('calendarPrefSelect');
+          if (select && [...select.options].some((o) => o.value === (want || ''))) select.value = want || '';
+        }
+      }
     } finally { this.applying = false; }
     this._refreshUI(changed);
     await this._applyDownloads(eff);
@@ -844,11 +866,15 @@ const Sync = {
         btn = document.createElement('a');
         btn.href = '/account';
         btn.className = 'account-toggle__btn';
-        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="account-toggle__dot" aria-hidden="true"></span>';
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><img class="account-toggle__avatar" alt="" hidden /><span class="account-toggle__dot" aria-hidden="true"></span>';
         anchor.parentElement.insertBefore(btn, anchor);
       }
       btn.classList.toggle('is-signed-in', signedIn);
       btn.classList.toggle('active', onPage);
+      const avatar = signedIn ? this.state().avatar : '';
+      const img = btn.querySelector('.account-toggle__avatar');
+      if (img) { img.hidden = !avatar; if (avatar && img.getAttribute('src') !== avatar) img.src = avatar; }
+      btn.classList.toggle('has-avatar', !!avatar);
       btn.setAttribute('aria-label', label);
       btn.title = label;
     });
@@ -916,6 +942,7 @@ const DisplayMode = {
     this.current = mode;
     try { localStorage.setItem(this.STORAGE_KEY, mode); } catch { /* ignore */ }
     this.apply();
+    Sync.record('pref', 'display', true, mode); // follows the account (ignored while the account's own value is being applied)
   },
 };
 
@@ -4205,6 +4232,7 @@ const CalendarPrefs = (() => {
       if (slug) localStorage.setItem(STORAGE_KEY, slug);
       else localStorage.removeItem(STORAGE_KEY);
     } catch (e) { /* ignore */ }
+    Sync.record('pref', 'calendar', !!slug, slug || null); // follows the account (ignored while the account's own value is being applied)
   }
 
   /** Fetches and caches the calendar list for this page load. Rejects (and

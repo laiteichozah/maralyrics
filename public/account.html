@@ -26,7 +26,7 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/account.css?v=2" />
+  <link rel="stylesheet" href="/account.css?v=3" />
 
   <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
@@ -198,6 +198,10 @@
 
           <div class="acct-google" id="googleBlock" hidden>
             <div id="googleBtn" class="acct-google__btn"></div>
+            <div id="googleChallenge" class="acct-challenge" hidden>
+              <p class="acct-hint" data-i18n="account.google_challenge">One quick security check, then your account is created.</p>
+              <div id="googleTurnstile"></div>
+            </div>
             <div class="acct-or" aria-hidden="true"><span data-i18n="account.or_email">or use your email</span></div>
           </div>
 
@@ -213,6 +217,7 @@
               </div>
               <input type="password" id="signinPass" autocomplete="current-password" required />
             </div>
+            <div id="signinTurnstile"></div>
             <p class="acct-message" id="signinMsg" role="alert" hidden></p>
             <button type="submit" class="acct-btn acct-btn--block" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
           </form>
@@ -229,6 +234,7 @@
               <small data-i18n="account.password_hint">At least 8 characters.</small>
             </div>
             <div id="regTurnstile"></div>
+            <small class="acct-hint" data-i18n="account_sec.protected">Protected by a Cloudflare security check.</small>
             <p class="acct-message" id="regMsg" role="alert" hidden></p>
             <button type="submit" class="acct-btn acct-btn--block" id="regBtn" data-i18n="account.register_btn">Create account</button>
           </form>
@@ -281,7 +287,7 @@
         <span class="acct-avatar" id="syncAvatar" aria-hidden="true"></span>
         <div class="acct-banner__text">
           <h2 class="acct-banner__name" id="syncName"></h2>
-          <p class="acct-banner__meta" data-i18n="account_sync.signed_in_as">Signed in</p>
+          <p class="acct-banner__meta" id="syncMeta"></p>
         </div>
         <div class="acct-banner__actions">
           <button type="button" class="acct-btn acct-btn--quiet acct-btn--sm" id="syncSignout" data-i18n="account.signout">Sign out</button>
@@ -293,44 +299,209 @@
         <button type="button" class="acct-btn acct-btn--sm" id="verifySend" data-i18n="account.verify_send">Send confirmation email</button>
       </div>
 
-      <section class="acct-card" aria-labelledby="syncTitle">
-        <h2 class="acct-section-title" id="syncTitle" data-i18n="account_sync.sync_title">Sync</h2>
-        <p class="acct-status-line" id="syncLine" role="status"></p>
-        <dl class="sync-stats">
-          <div><dt data-i18n="account_sync.stat_fav">Favorites</dt><dd id="statFav">0</dd></div>
-          <div><dt data-i18n="account_sync.stat_dl">Downloads</dt><dd id="statDl">0</dd></div>
-          <div><dt data-i18n="account_sync.stat_pin">Pinned</dt><dd id="statPin">0</dd></div>
-        </dl>
-        <div class="acct-actions">
-          <button type="button" class="acct-btn" id="syncNow" data-i18n="account_sync.sync_now">Sync now</button>
-          <a class="acct-btn acct-btn--quiet" href="/downloads" data-i18n="nav.my_downloads">My Downloads</a>
-        </div>
+      <div class="acct-tabs" role="tablist" aria-label="Account">
+        <button type="button" class="acct-tab" role="tab" data-tab="overview" id="tabOverview" aria-controls="panelOverview" data-i18n="account_sec.tab_overview">Overview</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="profile" id="tabProfile" aria-controls="panelProfile" data-i18n="account_sec.tab_profile">Profile</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="preferences" id="tabPrefs" aria-controls="panelPreferences" data-i18n="account_sec.tab_prefs">Preferences</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="security" id="tabSecurity" aria-controls="panelSecurity" data-i18n="account_sec.tab_security">Security</button>
+        <button type="button" class="acct-tab" role="tab" data-tab="data" id="tabData" aria-controls="panelData" data-i18n="account_sec.tab_data">Your data</button>
+      </div>
+
+      <!-- Overview -->
+      <section class="acct-panel" id="panelOverview" role="tabpanel" aria-labelledby="tabOverview" hidden>
+        <section class="acct-card" aria-labelledby="syncTitle">
+          <h2 class="acct-section-title" id="syncTitle" data-i18n="account_sync.sync_title">Sync</h2>
+          <p class="acct-status-line" id="syncLine" role="status"></p>
+          <dl class="sync-stats">
+            <div><dt data-i18n="account_sync.stat_fav">Favorites</dt><dd id="statFav">0</dd></div>
+            <div><dt data-i18n="account_sync.stat_dl">Downloads</dt><dd id="statDl">0</dd></div>
+            <div><dt data-i18n="account_sync.stat_pin">Pinned</dt><dd id="statPin">0</dd></div>
+          </dl>
+          <div class="acct-actions">
+            <button type="button" class="acct-btn" id="syncNow" data-i18n="account_sync.sync_now">Sync now</button>
+            <a class="acct-btn acct-btn--quiet" href="/downloads" data-i18n="nav.my_downloads">My Downloads</a>
+          </div>
+        </section>
+
+        <section class="acct-card" aria-labelledby="artistTitle">
+          <h2 class="acct-section-title" id="artistTitle" data-i18n="account_sync.artists_title">Artists &amp; composers</h2>
+          <p class="acct-note" data-i18n="account_sync.artists_text">This account can also claim an artist or composer page, and keep its bio, photo and links up to date.</p>
+          <a class="acct-btn acct-btn--quiet" href="/my-profile" data-i18n="account_sync.artists_link">Open For Artists</a>
+        </section>
+
+        <section class="acct-card" aria-labelledby="outTitle">
+          <h2 class="acct-section-title" id="outTitle" data-i18n="account_sync.signout_title">Signing out</h2>
+          <p class="acct-note" data-i18n="account_sync.signout_note">Your favorites and downloads stay on this device when you sign out. On a shared computer, clear them as you leave.</p>
+          <div class="acct-actions">
+            <button type="button" class="acct-btn acct-btn--quiet" id="signoutKeep" data-i18n="account_sync.signout_keep">Sign out</button>
+            <button type="button" class="acct-btn acct-btn--quiet" id="signoutWipe" data-i18n="account_sync.signout_wipe">Sign out and clear this device</button>
+          </div>
+        </section>
       </section>
 
-      <section class="acct-card" aria-labelledby="deviceTitle">
-        <h2 class="acct-section-title" id="deviceTitle" data-i18n="account_sync.device_title">This device</h2>
-        <label class="sync-check">
-          <input type="checkbox" id="syncAuto" />
-          <span>
-            <strong data-i18n="account_sync.auto_label">Save my downloads on this device</strong>
-            <small data-i18n="account_sync.auto_hint">Songs you download on your other devices are copied here when you are online, and removed here when you remove them there. Turn this off to keep this device's downloads as they are.</small>
-          </span>
-        </label>
+      <!-- Profile -->
+      <section class="acct-panel" id="panelProfile" role="tabpanel" aria-labelledby="tabProfile" hidden>
+        <section class="acct-card" aria-labelledby="profTitle">
+          <h2 class="acct-section-title" id="profTitle" data-i18n="account_sec.profile_title">Your profile</h2>
+          <form id="profileForm" class="acct-form">
+            <div class="acct-photo">
+              <span class="acct-avatar acct-avatar--lg" id="profAvatar" aria-hidden="true"></span>
+              <div>
+                <div class="acct-photo__actions">
+                  <button type="button" class="acct-btn acct-btn--quiet acct-btn--sm" id="photoPick" data-i18n="account_sec.photo_choose">Choose photo</button>
+                  <button type="button" class="acct-btn acct-btn--quiet acct-btn--sm" id="photoRemove" data-i18n="account_sec.photo_remove" hidden>Remove photo</button>
+                  <input type="file" id="photoFile" accept="image/*" hidden />
+                </div>
+                <small class="acct-hint" data-i18n="account_sec.photo_hint">Only you see your photo. It is cropped to a square.</small>
+              </div>
+            </div>
+            <div class="acct-field">
+              <label for="profName" data-i18n="account_sec.name">Name</label>
+              <input type="text" id="profName" maxlength="50" autocomplete="name" />
+              <small data-i18n="account_sec.name_hint">How we greet you. Optional.</small>
+            </div>
+            <div class="acct-field">
+              <label for="profUser" data-i18n="account_sec.username">Username</label>
+              <input type="text" id="profUser" maxlength="30" autocomplete="username" autocapitalize="none" spellcheck="false" />
+              <small data-i18n="account_sec.username_hint">You can sign in with it instead of your email. 3–30 letters, numbers, dots, dashes or underscores.</small>
+            </div>
+            <p class="acct-message" id="profMsg" role="alert" hidden></p>
+            <div class="acct-actions"><button type="submit" class="acct-btn" id="profSave" data-i18n="account.save">Save</button></div>
+          </form>
+        </section>
+
+        <section class="acct-card" aria-labelledby="contactTitle">
+          <h2 class="acct-section-title" id="contactTitle" data-i18n="account_sec.contact_title">Contact details</h2>
+          <form id="contactForm" class="acct-form">
+            <div class="acct-field">
+              <label for="contactEmail" data-i18n="account.email">Email</label>
+              <input type="email" id="contactEmail" autocomplete="email" required />
+              <small id="contactEmailState"></small>
+            </div>
+            <div class="acct-field">
+              <label for="contactPhone" data-i18n="account_sec.phone_optional">Phone number (optional)</label>
+              <input type="tel" id="contactPhone" autocomplete="tel" inputmode="tel" placeholder="+91 98765 43210" />
+              <small data-i18n="account_sec.phone_hint">Only needed if you claim an artist or composer page. Only our review team sees it.</small>
+            </div>
+            <p class="acct-message" id="contactMsg" role="alert" hidden></p>
+            <div class="acct-actions"><button type="submit" class="acct-btn" id="contactSave" data-i18n="account.save">Save</button></div>
+          </form>
+        </section>
       </section>
 
-      <section class="acct-card" aria-labelledby="artistTitle">
-        <h2 class="acct-section-title" id="artistTitle" data-i18n="account_sync.artists_title">Artists &amp; composers</h2>
-        <p class="acct-note" data-i18n="account_sync.artists_text">This account can also claim an artist or composer page, and keep its bio, photo and links up to date.</p>
-        <a class="acct-btn acct-btn--quiet" href="/my-profile" data-i18n="account_sync.artists_link">Open For Artists</a>
+      <!-- Preferences -->
+      <section class="acct-panel" id="panelPreferences" role="tabpanel" aria-labelledby="tabPrefs" hidden>
+        <section class="acct-card" aria-labelledby="prefTitle">
+          <h2 class="acct-section-title" id="prefTitle" data-i18n="account_sec.prefs_title">Preferences</h2>
+          <p class="acct-note" data-i18n="account_sec.prefs_note">These follow your account to every device you sign in on.</p>
+          <div class="acct-field">
+            <span class="acct-label" data-i18n="settings_panel.language">Language</span>
+            <div class="acct-chips acct-chips--tight" id="prefLang" role="group">
+              <button type="button" class="acct-chip" data-lang="en">English</button>
+              <button type="button" class="acct-chip" data-lang="mrh">Mara</button>
+              <button type="button" class="acct-chip" data-lang="my">မြန်မာ</button>
+            </div>
+          </div>
+          <div class="acct-field">
+            <span class="acct-label" data-i18n="settings_panel.theme">Theme</span>
+            <div class="acct-chips acct-chips--tight" id="prefTheme" role="group">
+              <button type="button" class="acct-chip" data-theme="dark" data-i18n="theme.dark">Dark</button>
+              <button type="button" class="acct-chip" data-theme="light" data-i18n="theme.light">Light</button>
+              <button type="button" class="acct-chip" data-theme="system" data-i18n="theme.title_system">Follow System</button>
+              <button type="button" class="acct-chip" data-theme="time" data-i18n="theme.title_time">Follow Time</button>
+            </div>
+          </div>
+          <div class="acct-field">
+            <span class="acct-label" data-i18n="account_sec.pref_view">Song lists</span>
+            <div class="acct-chips acct-chips--tight" id="prefView" role="group">
+              <button type="button" class="acct-chip" data-view="card" data-i18n="account_sec.view_card">Cards</button>
+              <button type="button" class="acct-chip" data-view="list" data-i18n="account_sec.view_list">List</button>
+            </div>
+          </div>
+          <p class="acct-hint" data-i18n="account_sec.calendar_hint">Your default calendar is in Settings (the gear in the header); it follows your account too.</p>
+        </section>
+
+        <section class="acct-card" aria-labelledby="deviceTitle">
+          <h2 class="acct-section-title" id="deviceTitle" data-i18n="account_sync.device_title">This device</h2>
+          <label class="sync-check">
+            <input type="checkbox" id="syncAuto" />
+            <span>
+              <strong data-i18n="account_sync.auto_label">Save my downloads on this device</strong>
+              <small data-i18n="account_sync.auto_hint">Songs you download on your other devices are copied here when you are online, and removed here when you remove them there. Turn this off to keep this device's downloads as they are.</small>
+            </span>
+          </label>
+        </section>
       </section>
 
-      <section class="acct-card" aria-labelledby="outTitle">
-        <h2 class="acct-section-title" id="outTitle" data-i18n="account_sync.signout_title">Signing out</h2>
-        <p class="acct-note" data-i18n="account_sync.signout_note">Your favorites and downloads stay on this device when you sign out. On a shared computer, clear them as you leave.</p>
-        <div class="acct-actions">
-          <button type="button" class="acct-btn acct-btn--quiet" id="signoutKeep" data-i18n="account_sync.signout_keep">Sign out</button>
-          <button type="button" class="acct-btn acct-btn--quiet" id="signoutWipe" data-i18n="account_sync.signout_wipe">Sign out and clear this device</button>
-        </div>
+      <!-- Security -->
+      <section class="acct-panel" id="panelSecurity" role="tabpanel" aria-labelledby="tabSecurity" hidden>
+        <section class="acct-card" aria-labelledby="pwTitle">
+          <h2 class="acct-section-title" id="pwTitle" data-i18n="account_sec.password_title">Password</h2>
+          <p class="acct-note" id="pwNote"></p>
+          <form id="passwordForm" class="acct-form" autocomplete="off">
+            <div class="acct-field" id="pwCurrentField">
+              <label for="pwCurrent" data-i18n="account.current_password">Current password</label>
+              <input type="password" id="pwCurrent" autocomplete="current-password" />
+            </div>
+            <div class="acct-field">
+              <label for="pwNew" data-i18n="account.new_password">New password</label>
+              <input type="password" id="pwNew" autocomplete="new-password" minlength="8" required />
+              <small data-i18n="account.password_hint">At least 8 characters.</small>
+            </div>
+            <p class="acct-message" id="pwMsg" role="alert" hidden></p>
+            <div class="acct-actions"><button type="submit" class="acct-btn" id="pwSave" data-i18n="account.save_password">Update password</button></div>
+          </form>
+        </section>
+
+        <section class="acct-card" aria-labelledby="googleTitle">
+          <h2 class="acct-section-title" id="googleTitle" data-i18n="account_sec.google_title">Google</h2>
+          <p class="acct-note" id="googleNote"></p>
+          <div id="googleLinkBlock" hidden>
+            <div id="googleLinkBtn" class="acct-google__btn acct-google__btn--left"></div>
+          </div>
+          <form id="unlinkForm" class="acct-form" hidden>
+            <div class="acct-field">
+              <label for="unlinkPass" data-i18n="account.password">Password</label>
+              <input type="password" id="unlinkPass" autocomplete="current-password" required />
+            </div>
+            <div class="acct-actions"><button type="submit" class="acct-btn acct-btn--quiet" id="unlinkBtn" data-i18n="account_sec.google_disconnect">Disconnect Google</button></div>
+          </form>
+          <p class="acct-message" id="googleMsg" role="alert" hidden></p>
+        </section>
+
+        <section class="acct-card" aria-labelledby="sessionsTitle">
+          <h2 class="acct-section-title" id="sessionsTitle" data-i18n="account_sec.sessions_title">Signed-in devices</h2>
+          <p class="acct-note" data-i18n="account_sec.sessions_note">Signed in somewhere you no longer use? Sign out everywhere. You stay signed in on this device.</p>
+          <p class="acct-message" id="sessionsMsg" role="alert" hidden></p>
+          <div class="acct-actions"><button type="button" class="acct-btn acct-btn--quiet" id="logoutAll" data-i18n="account_sec.logout_all">Sign out of all devices</button></div>
+        </section>
+      </section>
+
+      <!-- Your data -->
+      <section class="acct-panel" id="panelData" role="tabpanel" aria-labelledby="tabData" hidden>
+        <section class="acct-card" aria-labelledby="exportTitle">
+          <h2 class="acct-section-title" id="exportTitle" data-i18n="account_sec.export_title">Download your data</h2>
+          <p class="acct-note" data-i18n="account_sec.export_note">A file with your account details, favorites, pinned and downloaded songs and preferences.</p>
+          <p class="acct-message" id="exportMsg" role="alert" hidden></p>
+          <div class="acct-actions"><button type="button" class="acct-btn acct-btn--quiet" id="exportBtn" data-i18n="account_sec.export_btn">Download my data</button></div>
+        </section>
+
+        <section class="acct-card acct-card--danger" aria-labelledby="deleteTitle">
+          <h2 class="acct-section-title" id="deleteTitle" data-i18n="account_sec.delete_title">Delete your account</h2>
+          <p class="acct-note" data-i18n="account_sec.delete_note">This removes your account and everything synced to it (favorites, pinned and downloaded songs, preferences). It cannot be undone. Songs stay on this device unless you clear it first.</p>
+          <form id="deleteForm" class="acct-form" autocomplete="off">
+            <div class="acct-field" id="deletePassField">
+              <label for="deletePass" data-i18n="account_sec.delete_password">Your password, to confirm</label>
+              <input type="password" id="deletePass" autocomplete="current-password" />
+            </div>
+            <div id="deleteGoogleBlock" hidden>
+              <p class="acct-note" data-i18n="account_sec.delete_google">Confirm it is you with Google:</p>
+              <div id="googleConfirmBtn" class="acct-google__btn acct-google__btn--left"></div>
+            </div>
+            <p class="acct-message" id="deleteMsg" role="alert" hidden></p>
+            <div class="acct-actions"><button type="submit" class="acct-btn acct-btn--danger" id="deleteBtn" data-i18n="account_sec.delete_btn">Delete my account</button></div>
+          </form>
+        </section>
       </section>
     </div>
   </main>
@@ -378,6 +549,6 @@
   <script src="/theme.js"></script>
   <!-- App Script -->
   <script src="/app.js"></script>
-  <script src="/account-page.js?v=1"></script>
+  <script src="/account-page.js?v=2"></script>
 </body>
 </html>

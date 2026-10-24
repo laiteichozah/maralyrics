@@ -223,6 +223,20 @@
 .sync-check small { display: block; margin-top: 4px; color: var(--a-muted); font-size: 0.875rem; line-height: 1.5; }
 .acct-about .acct-hint { margin-top: 14px; }
 
+/* Account page: preferences, danger zone, Cloudflare challenge */
+.acct-chips--tight { margin-top: 0; }
+.acct-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--a-text); background: rgba(139, 92, 246, 0.12); }
+.acct-panel .acct-field + .acct-field { margin-top: 16px; }
+.acct-card--danger { border-color: rgba(248, 113, 113, 0.5); }
+.acct-btn--danger { background: #b42318; }
+.acct-btn--danger:hover { background: #912018; }
+.acct-google__btn--left { justify-content: flex-start; }
+.acct-message + .acct-actions, .acct-google__btn + .acct-message, .acct-actions + .acct-message { margin-top: 12px; }
+.acct-chips + .acct-hint, .acct-field + .acct-hint { display: block; margin-top: 14px; }
+.acct-challenge { margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.acct-challenge .acct-hint { text-align: center; }
+#signinTurnstile:not(:empty), #regTurnstile:not(:empty), #forgotTurnstile:not(:empty) { min-height: 65px; }
+
 /* ── Small screens ── */
 @media (max-width: 720px) {
   .acct { padding: 20px 16px 64px; }
