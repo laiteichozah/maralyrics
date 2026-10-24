@@ -11,6 +11,7 @@ Merged after the latest version; it ships with the next one.
 - This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.9.0, generated with `npm run changelog` (see scripts/changelog.mjs)
 - hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)
 - .gitignore now also keeps keystores and .env files out of git
+- The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)
 
 ## v1.9.0 — Reading flow (2026-10-24)
 

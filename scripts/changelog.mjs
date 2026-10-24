@@ -3,11 +3,13 @@
 //
 //   npm run changelog                  regenerate CHANGELOG.md from scripts/releases.json + git history
 //   npm run changelog -- --tag         also create any missing annotated tag (vX.Y.Z) at each release's ref
+//   npm run changelog -- --check       exit 1 if CHANGELOG.md or public/releases.json is out of date (used by npm test)
 //   npm run changelog -- --notes 1.4.0 print the release notes of one version (for a GitHub release body)
 //
 // To cut a new release: add an entry at the END of scripts/releases.json (version, ref = the commit to tag — use "HEAD"
 // for the newest —, title, summary, highlights), run `npm run changelog -- --tag`, commit CHANGELOG.md, push the tags.
 // Each version's log is every commit since the previous version's ref; merge commits are counted but not listed.
+// It also writes public/releases.json, which the Project page (/project) renders as the public "Version history".
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -16,11 +18,21 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
 const EMPTY_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+const REPO = 'laiteichozah/maralyrics';
+const GITHUB = `https://github.com/${REPO}`;
 
 const file = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts/releases.json'), 'utf8'));
 const releases = file.releases;
 const unreleased = file.unreleased || [];
-const resolved = releases.map((r) => ({ ...r, sha: git('rev-parse', '--verify', `${r.ref}^{commit}`) }));
+const args = process.argv.slice(2);
+let resolved;
+try {
+  resolved = releases.map((r) => ({ ...r, sha: git('rev-parse', '--verify', `${r.ref}^{commit}`) }));
+} catch (err) {
+  // A shallow clone (or no git) can't rebuild the log, so a check has nothing to compare against.
+  if (args.includes('--check')) { console.log('changelog check skipped: git history is not available here'); process.exit(0); }
+  throw err;
+}
 
 function describe(r, i) {
   const prev = i > 0 ? resolved[i - 1].sha : null;
@@ -65,7 +77,6 @@ function changelog() {
   return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
 
-const args = process.argv.slice(2);
 const noteIdx = args.indexOf('--notes');
 if (noteIdx !== -1) {
   const v = described.find((d) => d.version === String(args[noteIdx + 1]).replace(/^v/, ''));
@@ -74,8 +85,33 @@ if (noteIdx !== -1) {
   process.exit(0);
 }
 
-fs.writeFileSync(path.join(ROOT, 'CHANGELOG.md'), changelog());
-console.log(`CHANGELOG.md written: ${described.length} versions, ${described.reduce((n, v) => n + v.log.length, 0)} commits`);
+/** The public, website-facing version of the history (newest first): no deploy notes or migrations, with GitHub links. */
+function publicReleases() {
+  const out = described.map((v, i) => {
+    const prev = i > 0 ? resolved[i - 1].sha : null;
+    const commits = [...v.log].reverse().map((c) => ({
+      sha: git('rev-parse', c.hash), short: c.hash, date: c.date, subject: c.subject, author: c.author,
+    }));
+    return {
+      version: v.version, tag: `v${v.version}`, title: v.title, date: v.date, summary: v.summary, highlights: v.highlights,
+      commit_count: v.log.length,
+      compare_url: prev ? `${GITHUB}/compare/${prev}...${v.sha}` : `${GITHUB}/commits/${v.sha}`,
+      tag_url: `${GITHUB}/releases/tag/v${v.version}`,
+      commits,
+    };
+  });
+  return `${JSON.stringify({ repo: REPO, github_url: GITHUB, changelog_url: `${GITHUB}/blob/main/CHANGELOG.md`, tags_url: `${GITHUB}/tags`, releases: out.reverse() }, null, 1)}\n`;
+}
+
+const files = { 'CHANGELOG.md': changelog(), 'public/releases.json': publicReleases() };
+if (args.includes('--check')) {
+  const stale = Object.entries(files).filter(([name, text]) => !fs.existsSync(path.join(ROOT, name)) || fs.readFileSync(path.join(ROOT, name), 'utf8') !== text).map(([name]) => name);
+  if (stale.length) { console.error(`✗ out of date: ${stale.join(', ')} — run: npm run changelog`); process.exit(1); }
+  console.log(`✓ CHANGELOG.md and public/releases.json are up to date (${described.length} versions)`);
+  process.exit(0);
+}
+for (const [name, text] of Object.entries(files)) fs.writeFileSync(path.join(ROOT, name), text);
+console.log(`CHANGELOG.md and public/releases.json written: ${described.length} versions, ${described.reduce((n, v) => n + v.log.length, 0)} commits`);
 
 if (args.includes('--tag')) {
   const existing = new Set(git('tag', '-l').split('\n').filter(Boolean));

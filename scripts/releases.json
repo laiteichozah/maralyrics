@@ -3,7 +3,8 @@
     "`npm test` runs every check in one go (all test suites, SEO and i18n); a project-wide check found no failures",
     "This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.9.0, generated with `npm run changelog` (see scripts/changelog.mjs)",
     "hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)",
-    ".gitignore now also keeps keystores and .env files out of git"
+    ".gitignore now also keeps keystores and .env files out of git",
+    "The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)"
   ],
   "releases": [
     {

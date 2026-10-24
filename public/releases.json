@@ -1,0 +1,685 @@
+{
+ "repo": "laiteichozah/maralyrics",
+ "github_url": "https://github.com/laiteichozah/maralyrics",
+ "changelog_url": "https://github.com/laiteichozah/maralyrics/blob/main/CHANGELOG.md",
+ "tags_url": "https://github.com/laiteichozah/maralyrics/tags",
+ "releases": [
+  {
+   "version": "1.9.0",
+   "tag": "v1.9.0",
+   "title": "Reading flow",
+   "date": "2026-10-24",
+   "summary": "Previous / Next song buttons on the song page.",
+   "highlights": [
+    "Tap or click the lyrics to show Previous / Next buttons; they follow the list the song was opened from, or all songs A–Z for a shared link (#81)"
+   ],
+   "commit_count": 1,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/5fbd746a41658caba971530a153437e6487c4128...f7ab52b7dd33e30392c54c19b414eec5605a2a4f",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.9.0",
+   "commits": [
+    {
+     "sha": "f7ab52b7dd33e30392c54c19b414eec5605a2a4f",
+     "short": "f7ab52b",
+     "date": "2026-10-24",
+     "subject": "Previous / Next song buttons that appear when the lyrics are tapped (#81)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.8.0",
+   "tag": "v1.8.0",
+   "title": "Sign in, rich text and email",
+   "date": "2026-10-19",
+   "summary": "Sign in with Google or email, emails through Resend, formatted bios, and a calmer account design.",
+   "highlights": [
+    "Sign in or sign up with Google, or with email + password; confirmation and password-reset emails through Resend; a confirmed email is required to claim or order (#78)",
+    "Rich-text bios (bold, italic, underline, links, lists, quotes, line breaks) in the admin dashboard and the claimed-artist editor, stored as sanitized HTML (#78)",
+    "The account pages redesigned in a plain and calm style (#79)",
+    "Claimants are emailed when a claim is approved, rejected or revoked (#80)"
+   ],
+   "commit_count": 3,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/9bf815a3782ba2c79465d9cc80ed5e0009dc0d26...5fbd746a41658caba971530a153437e6487c4128",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.8.0",
+   "commits": [
+    {
+     "sha": "5fbd746a41658caba971530a153437e6487c4128",
+     "short": "5fbd746",
+     "date": "2026-10-19",
+     "subject": "Email the claimant when a claim is approved, rejected or revoked (#80)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4a104003801844d4f2f68d0568f2d64d6ce85cd9",
+     "short": "4a10400",
+     "date": "2026-10-19",
+     "subject": "Redesign the artist account pages: plain and calm instead of purple-and-gold 'royal' (#79)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "55e0006e79252c63cd8a17c7ef4f295b25e5d278",
+     "short": "55e0006",
+     "date": "2026-10-19",
+     "subject": "Rich-text bios + sign in with Google / email (Resend confirmation and password reset) (#78)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.7.0",
+   "tag": "v1.7.0",
+   "title": "Artist accounts",
+   "date": "2026-10-10",
+   "summary": "Artists and composers can create accounts, claim their profile, edit it and buy the Green mark.",
+   "highlights": [
+    "Claim your profile: accounts for artists and composers, reviewed by Managers and Super Admins; owners edit their bio, photo and social links (#75)",
+    "Green mark: paid plans (1, 3, 6, 12 or 36 months), reviewed by hand, with a green tick on profiles (#76)",
+    "A dedicated \"For Artists\" page (the Artist Court) with tabs for Profile, Green Mark, Claims and Account; email and phone are compulsory (#77)"
+   ],
+   "commit_count": 3,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/ba9c3a914c86f5df6d5bc090027d93c74c4145d9...9bf815a3782ba2c79465d9cc80ed5e0009dc0d26",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.7.0",
+   "commits": [
+    {
+     "sha": "9bf815a3782ba2c79465d9cc80ed5e0009dc0d26",
+     "short": "9bf815a",
+     "date": "2026-10-10",
+     "subject": "Artist Court: royal For Artists page with Green mark tab; email and phone compulsory (#77)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "c81ea519269ab294323131357c15651dfd300061",
+     "short": "c81ea51",
+     "date": "2026-10-10",
+     "subject": "Green mark: paid plans (1/3/6/12/36 months), hand-reviewed, with a tick on profiles (#76)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d2bd16203e62b8234e15a5b654fc627b41dd8a07",
+     "short": "d2bd162",
+     "date": "2026-10-10",
+     "subject": "Claim your profile: artists and composers edit their own profile (#75)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.6.0",
+   "tag": "v1.6.0",
+   "title": "Mara Idol",
+   "date": "2026-10-10",
+   "summary": "A new section for the Mara Idol contest: seasons, idols, videos and their pages.",
+   "highlights": [
+    "Mara Idol: seasons, idols, public pages and admin management (#69)",
+    "Video links honour the start time of copied YouTube links; video thumbnails come from the platform or are uploaded; a video's title comes back when it is no longer active (#70, #73, #74)",
+    "Wide cover crop and a separate square season photo (#71)",
+    "Season pages no longer fail with Error 1101 when a migration has not been run yet (#72)"
+   ],
+   "commit_count": 6,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/19dc9531b27169664aafb4bddec4558c1f7d16ba...ba9c3a914c86f5df6d5bc090027d93c74c4145d9",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.6.0",
+   "commits": [
+    {
+     "sha": "ba9c3a914c86f5df6d5bc090027d93c74c4145d9",
+     "short": "ba9c3a9",
+     "date": "2026-10-10",
+     "subject": "Mara Idol videos: bring the title back when a video is no longer active (#74)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "cac04e424cf3619215ed0a4b714e7b6bfb63e70b",
+     "short": "cac04e4",
+     "date": "2026-10-10",
+     "subject": "Mara Idol videos: thumbnails from the platform or uploaded manually (#73)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "87eb84ea2c1acc3637a7060ab17f357bfb02af57",
+     "short": "87eb84e",
+     "date": "2026-10-10",
+     "subject": "Fix Error 1101 on Mara Idol season pages when migration 0014 has not run yet (#72)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "0373a320764d3aa098b761c9de1d0fda10f4fc7c",
+     "short": "0373a32",
+     "date": "2026-10-09",
+     "subject": "Mara Idol: wide cover crop and a separate square season photo (#71)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d8a80706782f83f8152b29c00a7e100e28d39e82",
+     "short": "d8a8070",
+     "date": "2026-10-09",
+     "subject": "Mara Idol videos: honour the start time in copied YouTube links (#70)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4f951c4636041fd65309266a75c32f0a2085f168",
+     "short": "4f951c4",
+     "date": "2026-10-09",
+     "subject": "Add Mara Idol: seasons, idols, public pages and admin management (#69)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.5.0",
+   "tag": "v1.5.0",
+   "title": "Findability and recognition",
+   "date": "2026-10-09",
+   "summary": "Search-engine visibility and a way to honour artists.",
+   "highlights": [
+    "i18n cleanup and comprehensive SEO: server-rendered content for crawlers, structured data and a sitemap (#67)",
+    "Recognition badges for artists and composers (month, year or lifetime), awarded by Super Admins (#68)"
+   ],
+   "commit_count": 2,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/e1bcdcc98a671149cdaf42e931df713f724a62bf...19dc9531b27169664aafb4bddec4558c1f7d16ba",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.5.0",
+   "commits": [
+    {
+     "sha": "19dc9531b27169664aafb4bddec4558c1f7d16ba",
+     "short": "19dc953",
+     "date": "2026-10-09",
+     "subject": "Add artist/composer recognition badges (month, year, lifetime), Super Admin only (#68)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "5c6b01fad192c3772a0975afdfa8acccbdd3d911",
+     "short": "5c6b01f",
+     "date": "2026-10-09",
+     "subject": "i18n cleanup + comprehensive SEO (server-rendered content, structured data, sitemap) (#67)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.4.0",
+   "tag": "v1.4.0",
+   "title": "Community and offline",
+   "date": "2026-10-09",
+   "summary": "People, sponsors, events and offline songs: the community side of the site.",
+   "highlights": [
+    "Admin header shows an avatar and role badge; role marks beside names; admin photo upload with crop; editors listed on the Project page (#53–#55, #57)",
+    "Inline create inside the song form; photos in name lists; View Site opens in a new tab (#54, #57)",
+    "Sponsors & Partners on the Project page, and up to 7 pinned favorite songs that lead the list (#59, #61)",
+    "Event detail modal from Today's Event and from event notifications; notifications list up to 5 credited artists (#58, #60)",
+    "Explicit song downloads and a My Downloads page (#62)",
+    "Featured artists / composers spotlight and directory page, with a styled sort dropdown (#63, #64)",
+    "Admin dashboard loading states and toast feedback (#65); notification and settings icons stay in the header on phones (#66)",
+    "GitHub contributor links point at laiteichozah/maralyrics (#56)"
+   ],
+   "commit_count": 14,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/233bdb482c664c3313ff35b0b1886a6439e0e5aa...e1bcdcc98a671149cdaf42e931df713f724a62bf",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.4.0",
+   "commits": [
+    {
+     "sha": "e1bcdcc98a671149cdaf42e931df713f724a62bf",
+     "short": "e1bcdcc",
+     "date": "2026-10-09",
+     "subject": "Pin notification & settings icons in the header on phones (#66)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b1c35449a1264c8ad537a92dfb85ba71b4798a7f",
+     "short": "b1c3544",
+     "date": "2026-10-06",
+     "subject": "Admin dashboard: loading states and toast feedback (#65)",
+     "author": "Bei Laitei"
+    },
+    {
+     "sha": "2beb427e31a3c566dccab8f995f3cbbcb5370fd3",
+     "short": "2beb427",
+     "date": "2026-10-05",
+     "subject": "Replace native sort select on artists/composers page with a styled dropdown (#64)",
+     "author": "Bei Laitei"
+    },
+    {
+     "sha": "fbfb402f11cce4e7317d43b9c24178d523404f3a",
+     "short": "fbfb402",
+     "date": "2026-10-05",
+     "subject": "Featured artists/composers spotlight and directory page (#63)",
+     "author": "Bei Laitei"
+    },
+    {
+     "sha": "33cdc927643254831eb492c21f65b7b192403ab5",
+     "short": "33cdc92",
+     "date": "2026-10-02",
+     "subject": "Explicit song downloads, My Downloads page, nav + drawer entries (#62)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ddcb3ec41d4afdd7559a563295c88af6001fccc3",
+     "short": "ddcb3ec",
+     "date": "2026-10-02",
+     "subject": "Pinned songs lead the list; list-view pin spacing; \"Offline\" label (#61)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "3281d88a52bd3bfeb5c960a07e412b7a5c328499",
+     "short": "3281d88",
+     "date": "2026-10-02",
+     "subject": "Event detail modal from Today's Event card and event notifications (#60)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f67e171626017adc9df0856eb5d194cfc968db2a",
+     "short": "f67e171",
+     "date": "2026-10-02",
+     "subject": "Sponsors & Partners on the Project page + pin up to 7 favorite songs (#59)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d5fbbe3b58c252029c1798fac9ec00642e84e5c5",
+     "short": "d5fbbe3",
+     "date": "2026-10-01",
+     "subject": "Notifications: list all credited artists (up to 5, then 'and N more') (#58)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "7616e51b0b4309f95b4cbfc92846faac7d795028",
+     "short": "7616e51",
+     "date": "2026-10-01",
+     "subject": "Admin-style photo crop for artists/composers/copyright owners, photos in name lists, View Site in new tab (#57)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f1efc36a37d11afbd4c251c34a404d3eca581fed",
+     "short": "f1efc36",
+     "date": "2026-10-01",
+     "subject": "Point GitHub contributors/links at laiteichozah/maralyrics (#56)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "c57fe3edd6e3174bf881b01955905c6ed71312e7",
+     "short": "c57fe3e",
+     "date": "2026-10-01",
+     "subject": "Drop role text next to names where the avatar role mark is shown (#55)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "236be77809e6ebe5118a56786a7915b4df066242",
+     "short": "236be77",
+     "date": "2026-10-01",
+     "subject": "Inline create in song form, role marks, admin photo upload with crop, editors on Project page (#54)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "dd198f4e9fca445e7ee91f96cfdc40af99ba8cae",
+     "short": "dd198f4",
+     "date": "2026-09-29",
+     "subject": "Replace admin header's \"Username (ROLE)\" text with an avatar + role badge (#53)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.3.0",
+   "tag": "v1.3.0",
+   "title": "Admin on the go",
+   "date": "2026-09-29",
+   "summary": "The admin dashboard works on phones and offline, gets its own Android app, and two security audits are fixed.",
+   "highlights": [
+    "Search ranks exact and title matches above lyric mentions (#44); \"is there an event today\" checks bypass the cache (#43)",
+    "Admin dashboard layout fixed for phone-width screens (#45)",
+    "Offline-first PWA support for the admin dashboard (#46)",
+    "High-severity findings from the technical audit fixed (#47), then High/Medium findings from the admin dashboard audit (#48)",
+    "Android admin app as a Trusted Web Activity (#49), plus three CI fixes for building it (#50, #51, #52)"
+   ],
+   "commit_count": 10,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/d6ca96b335f957e236716dac97e1b70611c4fce8...233bdb482c664c3313ff35b0b1886a6439e0e5aa",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.3.0",
+   "commits": [
+    {
+     "sha": "233bdb482c664c3313ff35b0b1886a6439e0e5aa",
+     "short": "233bdb4",
+     "date": "2026-09-29",
+     "subject": "Fix CI: release keystore written to wrong directory for Gradle's file() (#52)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ef6da73f5e0217c5138b5e7caff450e16986d757",
+     "short": "ef6da73",
+     "date": "2026-09-29",
+     "subject": "Fix CI: setup-android's default package list includes removed 'tools' (#51)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ecb641342591708d160c740ecbb6781906ed405a",
+     "short": "ecb6413",
+     "date": "2026-09-29",
+     "subject": "Fix CI: secrets can't be used in step if: conditions (#50)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "36f05b968e8bdcdebfbc26fe767be6c2df7e0116",
+     "short": "36f05b9",
+     "date": "2026-09-28",
+     "subject": "Add Android admin app (Trusted Web Activity) (#49)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8a2e68e95aa113cafba65ba7955fd3cbb349b4d3",
+     "short": "8a2e68e",
+     "date": "2026-09-28",
+     "subject": "Fix High/Medium-severity findings from admin dashboard audit (#48)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f6ce3e9dd9b82da2dda341cd11c7137202fbbfc7",
+     "short": "f6ce3e9",
+     "date": "2026-09-28",
+     "subject": "Fix High-severity findings from the technical audit (#47)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8d31243dbfedc83d4a1cdea642a6627db74cf3b3",
+     "short": "8d31243",
+     "date": "2026-09-27",
+     "subject": "Add offline-first PWA support to the admin dashboard (#46)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6d15927e339919d7ea30ddc870cb408d99ddfaf0",
+     "short": "6d15927",
+     "date": "2026-09-27",
+     "subject": "Fix admin dashboard layout on phone-width screens (#45)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ce0bb08421bb3142501bfeefe23fcb437ff92913",
+     "short": "ce0bb08",
+     "date": "2026-09-27",
+     "subject": "Rank exact and title-heavy matches above lyric mentions in search (#44)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ff8d1688efc5610601e8459d965edd7e50f19891",
+     "short": "ff8d168",
+     "date": "2026-09-27",
+     "subject": "Bypass caching for the \"is there an event today\" checks (#43)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.2.0",
+   "tag": "v1.2.0",
+   "title": "Reach",
+   "date": "2026-09-21",
+   "summary": "Promoting the Android app, advertising, a community calendar and rich-text articles.",
+   "highlights": [
+    "Android app promotion: a banner and a one-time promo dialog; default language updated",
+    "Google AdSense integration and ads.txt; Terms and Privacy Policy updated for AdSense",
+    "Community calendar with a year-by-year event list (#39)",
+    "Rich-text editing for Articles, and a fix for a stale service-worker cache (#40)"
+   ],
+   "commit_count": 15,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/50d6ad280e3090a6d126518d1c277717486ab38b...d6ca96b335f957e236716dac97e1b70611c4fce8",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.2.0",
+   "commits": [
+    {
+     "sha": "d85bb6cd348824dc7093bce75a1828ca5119a89b",
+     "short": "d85bb6c",
+     "date": "2026-09-21",
+     "subject": "Update Terms and Privacy Policy for Google AdSense",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "ad7e32d27f800ae263fdb726f6c39c5e7f2082a9",
+     "short": "ad7e32d",
+     "date": "2026-09-21",
+     "subject": "Deduplicate AdSense script and add it site-wide (#42)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8bc847beb8699837c68dac5e40cc27e76ea84c27",
+     "short": "8bc847b",
+     "date": "2026-09-21",
+     "subject": "Fix unhandled Cache errors from browser extension requests (#41)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "cf96c87a4b50ff9fab2396c7a65cb9d3cf195016",
+     "short": "cf96c87",
+     "date": "2026-09-20",
+     "subject": "Fix stale service worker cache and add rich text editing to Articles (#40)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ddfe599013fc8d1a834d79cc501f5fd01f43cb51",
+     "short": "ddfe599",
+     "date": "2026-09-17",
+     "subject": "Add community calendar icon with year-by-year event list (#39)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6db7757a91eaeaa53be195f5e9d1c63f7d4bf769",
+     "short": "6db7757",
+     "date": "2026-09-14",
+     "subject": "Remove duplicate Google AdSense script tag",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b07c265f6baa090c8a8f46e82409fedc488b8514",
+     "short": "b07c265",
+     "date": "2026-09-14",
+     "subject": "Add ads.txt for ad verification",
+     "author": "Laitei"
+    },
+    {
+     "sha": "13badb3d5bdb0d6fff2b66c7b9fe1e4abc160638",
+     "short": "13badb3",
+     "date": "2026-09-14",
+     "subject": "Integrate Google AdSense script in index.html",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b7b2df89720b6b803d5238a8123a6a46314b9b76",
+     "short": "b7b2df8",
+     "date": "2026-09-14",
+     "subject": "Add Google AdSense meta tag to index.html",
+     "author": "Laitei"
+    },
+    {
+     "sha": "969a292cb9d2ed8cafede35ec3b14d17dc6a798f",
+     "short": "969a292",
+     "date": "2026-09-11",
+     "subject": "Update packages.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "6d2c94712ab0b33d111e03007886ebd667653633",
+     "short": "6d2c947",
+     "date": "2026-09-11",
+     "subject": "Added App promo one time dialog. - Updated default language. - Upated translation",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "2f01f3872d5a1793ae6a0be27eed08c9c84eee52",
+     "short": "2f01f38",
+     "date": "2026-09-11",
+     "subject": "Updated fetching method.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "d97388914827dbd2d312b006cd1311b251717081",
+     "short": "d973889",
+     "date": "2026-09-11",
+     "subject": "Added Android App Ad.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "a1f5453fc8de3433a0a1e84d0a715940192d7512",
+     "short": "a1f5453",
+     "date": "2026-09-05",
+     "subject": "Admin panel: fix image re-encoding, duplicate listeners, and misc bugs (#38)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4543e3d44886d45d9e6d1ef0f2e12f638c03324e",
+     "short": "4543e3d",
+     "date": "2026-09-05",
+     "subject": "Admin panel: fix slug diacritics, stale manual-slug flag, add search to all tabs (#37)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
+   "version": "1.1.0",
+   "tag": "v1.1.0",
+   "title": "Languages and everyday reading",
+   "date": "2026-09-04",
+   "summary": "Burmese and Mara translations, a site-wide modernization, better search and the everyday reading features people use most.",
+   "highlights": [
+    "Burmese (my) and Mara (mrh) translations of the whole site",
+    "Site-wide modernization: mobile navigation, SEO meta, i18n bug fixes, admin UX and backend hardening (#32); duplicate security headers removed",
+    "Fuzzy \"did you mean\" search suggestions matched against lyrics (#34)",
+    "Card / list display toggle, song sorting and cookie-backed favorites (#35)",
+    "Song of the Day (a daily random pick) and a finished i18n coverage sweep (#36)"
+   ],
+   "commit_count": 11,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/c57e1f532c086a5e5e45d68af392a3b299647463...50d6ad280e3090a6d126518d1c277717486ab38b",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.1.0",
+   "commits": [
+    {
+     "sha": "50d6ad280e3090a6d126518d1c277717486ab38b",
+     "short": "50d6ad2",
+     "date": "2026-09-04",
+     "subject": "Add \"Song of the Day\" (daily random pick) + finish i18n coverage sweep (#36)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "3275e84213d01643b37435474b5ab438cd6fa946",
+     "short": "3275e84",
+     "date": "2026-09-04",
+     "subject": "Add Card/List display toggle, song sorting, and cookie-backed favorites (#35)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b2265cf3175d5a594eda54c36d66fac19f9bef91",
+     "short": "b2265cf",
+     "date": "2026-09-04",
+     "subject": "Updates for file public/locales/en.json in mrh (#33)",
+     "author": "transifex-integration[bot]"
+    },
+    {
+     "sha": "dfa48b41f927f87341b71214283364cef98b44ec",
+     "short": "dfa48b4",
+     "date": "2026-09-04",
+     "subject": "Add fuzzy \"did you mean\" search suggestions matched against lyrics body (#34)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "57e305dc36229bb991ae4ecf57a513b6d2912427",
+     "short": "57e305d",
+     "date": "2026-09-03",
+     "subject": "Site-wide modernization: fix mobile nav, SEO meta, i18n bugs, admin UX, and backend hardening (#32)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b597576ad4fea6a40c9abdcc37a8f049a31812be",
+     "short": "b597576",
+     "date": "2026-09-03",
+     "subject": "Translate public/locales/en.json in mrh (#31)",
+     "author": "transifex-integration[bot]"
+    },
+    {
+     "sha": "9aecf74a0b080825c00803c8189c37b052ca1cf1",
+     "short": "9aecf74",
+     "date": "2026-08-07",
+     "subject": "Translate public/locales/en.json in my (#30)",
+     "author": "transifex-integration[bot]"
+    },
+    {
+     "sha": "d3af9e6629a33826d8033334197784f7ad8c33c6",
+     "short": "d3af9e6",
+     "date": "2026-08-07",
+     "subject": "Translate public/locales/en.json in my (#29)",
+     "author": "transifex-integration[bot]"
+    },
+    {
+     "sha": "2d3b980c8f30ef0159abd22fb0ccb47fed78bd30",
+     "short": "2d3b980",
+     "date": "2026-07-28",
+     "subject": "Drop redundant security headers already set at the Cloudflare zone level",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "45910db181bda96b5de9d5d32642410db1a759be",
+     "short": "45910db",
+     "date": "2026-07-28",
+     "subject": "Deduplicate security response headers in _headers",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "0e2fec6c932714835367e122ebf8bbe28bf495ae",
+     "short": "0e2fec6",
+     "date": "2026-07-28",
+     "subject": "Fixed bugs. Improved features.",
+     "author": "Laitei40"
+    }
+   ]
+  },
+  {
+   "version": "1.0.0",
+   "tag": "v1.0.0",
+   "title": "Foundation",
+   "date": "2026-07-11",
+   "summary": "The MaraLyrics lyrics site and its admin dashboard on Cloudflare Pages + Workers + D1, with a six-tier permission model.",
+   "highlights": [
+    "Song, artist, composer and copyright-owner pages, search, categories and an admin dashboard for managing them",
+    "Admin roles overhauled into a 6-tier permission model (viewer, translator, reviewer, editor, manager, super admin) with song revisions and an audit log",
+    "Admin profile pages with follow / unfollow and self-service account management",
+    "Header links consolidated into a Settings dropdown; polished artist / composer checkbox lists with an \"Unknown\" option"
+   ],
+   "commit_count": 6,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/commits/c57e1f532c086a5e5e45d68af392a3b299647463",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.0.0",
+   "commits": [
+    {
+     "sha": "c57e1f532c086a5e5e45d68af392a3b299647463",
+     "short": "c57e1f5",
+     "date": "2026-07-11",
+     "subject": "Consolidate header links into a Settings dropdown",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "cfac46b76be2c981749f65c13a26bf8bcc5d1bb8",
+     "short": "cfac46b",
+     "date": "2026-07-11",
+     "subject": "Add admin profile pages with follow/unfollow and self-service account management",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "b44b78fe8db44aa29d10d7ce3e6c7268bc800a99",
+     "short": "b44b78f",
+     "date": "2026-07-11",
+     "subject": "Overhaul admin roles into a 6-tier permission model with revisions and audit log",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "46ccd8f4e324bef32e9aeac43c90c73dd9d5b045",
+     "short": "46ccd8f",
+     "date": "2026-07-11",
+     "subject": "Fix admin feedback modal padding and field layout",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "a8deb146ebba5eadab3cb7168ea61c86f81763f0",
+     "short": "a8deb14",
+     "date": "2026-07-10",
+     "subject": "Fix filter crash on the Unknown checkbox row",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "28a4816967fba6fc9af1f46f2bb0d6001e7010a2",
+     "short": "28a4816",
+     "date": "2026-07-10",
+     "subject": "Polish the artist/composer checkbox lists, add an \"Unknown\" option",
+     "author": "Laitei40"
+    }
+   ]
+  }
+ ]
+}
