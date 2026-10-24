@@ -10,12 +10,14 @@ import { validateOwnerEdit, validateContact } from '../lib/profile.js';
 import { logAudit } from '../lib/audit.js';
 import { bioToHtml, bioPlain } from '../lib/richText.js';
 import { loadOffer, validateOrderInput } from '../lib/green.js';
+import { normalizeOps, syncAccount } from '../lib/sync.js';
 
 // Artist / composer accounts, mounted at /api/v1/account. Anyone can register an account, but an account can
 // change nothing until a Manager / Super Admin approves a claim on a profile (see adminClaims.js).
 //   POST   /register  /login               → { token, account }
 //   GET    /me                             → the account and its claims
 //   POST   /change-password
+//   POST   /sync                           → favourites, pins, downloads and preferences shared by every device of the account
 //   POST   /claims                         → ask to claim an artist / composer profile (pending review)
 //   DELETE /claims/:id                     → withdraw a pending claim
 //   GET    /claims/:id/profile  PUT …      → read / edit an APPROVED claim's profile (bio, photo, social links)
@@ -38,6 +40,8 @@ const DUMMY_PASSWORD_HASH = 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAA
 
 const TYPES = { artist: { table: 'artists', fk: 'artist_id' }, composer: { table: 'composers', fk: 'composer_id' } };
 const ip = (c) => c.req.header('CF-Connecting-IP');
+// The page an emailed link opens: the Artist Court (default) or the reader's Account page.
+const linkPage = (data) => (data && data.page === 'account' ? 'account' : 'my-profile');
 
 // 'password_hash' of an account that has no password (it only signs in with Google). Not a valid hash, so no password matches it.
 const NO_PASSWORD = '!';
@@ -74,13 +78,13 @@ const verifiedEmailTaken = (db, email, exceptId = 0) => db
  * Emails a confirmation link for the account's current address. → 'sent' | 'limited' | 'failed' | 'off'.
  * Never throws: a mail problem must not break registration.
  */
-async function sendVerification(c, account) {
+async function sendVerification(c, account, page = 'my-profile') {
   if (!mailEnabled(c.env)) return 'off';
   if (!account.contact_email) return 'failed';
   const db = c.env.DB;
   if ((await recentCount(db, { accountId: account.id, email: account.contact_email, kind: 'verify' })) >= MAX_EMAILS_PER_HOUR) return 'limited';
   const token = await createToken(db, { accountId: account.id, email: account.contact_email, kind: 'verify' });
-  const msg = verifyEmailMessage({ link: `${siteOrigin(c.env)}/my-profile?verify=${encodeURIComponent(token)}` });
+  const msg = verifyEmailMessage({ link: `${siteOrigin(c.env)}/${page}?verify=${encodeURIComponent(token)}` });
   return (await sendMail(c.env, { to: account.contact_email, ...msg })).ok ? 'sent' : 'failed';
 }
 
@@ -96,8 +100,10 @@ app.post('/register', async (c) => {
   const password = String(data.password || '');
   if (password.length < PASSWORD_MIN) return c.json({ error: `Password must be at least ${PASSWORD_MIN} characters` }, 400);
   if (password.length > PASSWORD_MAX) return c.json({ error: 'Password is too long' }, 400);
-  // Real identity: email AND phone are compulsory.
-  const contact = validateContact({ contact_email: data.email ?? data.contact_email, contact_phone: data.contact_phone });
+  // Artists and composers (claiming a profile is a real-identity step): email AND phone are compulsory.
+  // A reader signing up to sync favourites and downloads (reader: true) needs only an email; the phone can be added later.
+  const reader = data.reader === true;
+  const contact = validateContact({ contact_email: data.email ?? data.contact_email, contact_phone: data.contact_phone }, { phoneOptional: reader });
   if (!contact.ok) return c.json({ error: contact.error }, 400);
   // The username is optional now (people sign in with their email); one is made from the email when it is left out.
   const wanted = String(data.username || '').trim().toLowerCase();
@@ -123,7 +129,7 @@ app.post('/register', async (c) => {
     throw err;
   }
   const account = await loadAccount(db, result.meta.last_row_id);
-  const verification = await sendVerification(c, account);
+  const verification = await sendVerification(c, account, linkPage(data));
   return c.json({ token: await signPersonToken(account, c.env), account: publicAccount(account), verification }, 201);
 });
 
@@ -235,7 +241,7 @@ app.post('/forgot-password', async (c) => {
   const account = await db.prepare(`SELECT ${ACCOUNT_COLS} FROM person_accounts WHERE lower(contact_email) = ? ORDER BY (email_verified_at IS NULL), id LIMIT 1`).bind(email).first();
   if (account && (await recentCount(db, { accountId: account.id, email, kind: 'reset' })) < MAX_EMAILS_PER_HOUR) {
     const token = await createToken(db, { accountId: account.id, email, kind: 'reset' });
-    await sendMail(c.env, { to: account.contact_email, ...resetPasswordMessage({ link: `${siteOrigin(c.env)}/my-profile?reset=${encodeURIComponent(token)}` }) });
+    await sendMail(c.env, { to: account.contact_email, ...resetPasswordMessage({ link: `${siteOrigin(c.env)}/${linkPage(data)}?reset=${encodeURIComponent(token)}` }) });
   }
   // The same answer whether or not an account exists, so this can't be used to find out who is registered.
   return c.json({ ok: true });
@@ -270,6 +276,7 @@ app.use('/claims', requirePerson);
 app.use('/claims/*', requirePerson);
 app.use('/green', requirePerson);
 app.use('/green/*', requirePerson);
+app.use('/sync', requirePerson);
 
 async function loadClaims(db, accountId) {
   const rows = await db
@@ -286,6 +293,14 @@ async function loadClaims(db, accountId) {
     .all();
   return rows.results;
 }
+
+// Catch up with the account's other devices: send this device's changes since its last sync, get everyone else's.
+app.post('/sync', async (c) => {
+  const data = await c.req.json().catch(() => ({}));
+  const parsed = normalizeOps(data.ops);
+  if (parsed.error) return c.json({ error: parsed.error }, 400);
+  return c.json(await syncAccount(c.env.DB, c.get('person').id, { since: data.since, ops: parsed.ops }));
+});
 
 app.get('/me', async (c) => {
   const person = c.get('person');

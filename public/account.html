@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In &amp; Sync — Favorites and Downloads on Every Device | MaraLyrics</title>
+
+  <!-- SEO Meta (dynamically updated by JS) -->
+  <meta name="description" content="Sign in to MaraLyrics with Google or your email to keep your favorite and downloaded Mara songs in step on every device you use." />
+  <meta name="theme-color" content="#0a0e1a" />
+  <meta name="google-adsense-account" content="ca-pub-8698846427938035">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8698846427938035"
+     crossorigin="anonymous"></script>
+
+  <!-- Account page: not for search results -->
+  <meta name="robots" content="noindex, follow" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://api.maralyrics.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/account.css?v=2" />
+
+  <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+</head>
+<body class="acct-page">
+
+  <!-- ═══ Header ═══ -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="header__logo">
+        <img src="/icon.svg" alt="MaraLyrics" class="header__logo-icon" width="32" height="32" />
+        MaraLyrics
+      </a>
+      <button class="header__menu-btn" aria-label="Open navigation menu" data-i18n-aria="mobile_drawer.open_aria" aria-expanded="false" aria-controls="mobileDrawer">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="header__nav">
+        <a href="/" class="header__nav-link" data-i18n="common.home">Home</a>
+        <a href="/#popular" class="header__nav-link" data-i18n="nav.popular">Popular</a>
+        <a href="/articles" class="header__nav-link" data-i18n="nav.articles">Articles</a>
+        <a href="/mara-idol" class="header__nav-link" data-i18n="nav.mara_idol">Mara Idol</a>
+        <a href="/my-profile" class="header__nav-link" data-i18n="nav.for_artists">For Artists</a>
+
+        <!-- Community Calendar -->
+        <button type="button" class="calendar-toggle__btn" data-calendar-open aria-label="Community Calendar" title="Community Calendar" data-i18n-aria="calendar.toggle_aria" data-i18n-title="calendar.toggle_aria">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </button>
+        <!-- My Downloads -->
+        <a href="/downloads" class="downloads-toggle__btn" aria-label="My Downloads" title="My Downloads" data-i18n-aria="nav.my_downloads" data-i18n-title="nav.my_downloads">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10m0 0l-4-4m4 4l4-4M5 19h14"/></svg>
+          <span class="downloads-toggle__badge" hidden>0</span>
+        </a>
+
+
+        <!-- Settings Dropdown -->
+        <!-- Notifications -->
+        <div class="notif-toggle">
+          <button type="button" class="notif-toggle__btn" aria-label="Notifications" title="Notifications" aria-expanded="false" data-i18n-aria="notifications.toggle_aria" data-i18n-title="notifications.toggle_aria">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-toggle__badge" id="notifBadge" hidden>0</span>
+          </button>
+          <div class="notif-panel">
+            <div class="notif-panel__header">
+              <span class="notif-panel__title" data-i18n="notifications.panel_title">Notifications</span>
+              <button type="button" class="notif-panel__clear" id="notifClearBtn" data-i18n="notifications.clear_all">Clear all</button>
+            </div>
+            <div class="notif-panel__permission" id="notifPermissionBanner" hidden>
+              <p data-i18n="notifications.permission_prompt">Get notified about new songs and today's events, right in your browser.</p>
+              <button type="button" class="notif-panel__enable-btn" id="notifEnableBtn" data-i18n="notifications.enable">Enable notifications</button>
+            </div>
+            <div class="notif-panel__list" id="notifList">
+              <p class="notif-panel__empty" data-i18n="notifications.empty">Nothing new yet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Dropdown -->
+        <div class="settings-toggle">
+          <button class="settings-toggle__btn" aria-label="Settings" title="Settings" data-i18n-aria="settings_panel.toggle" data-i18n-title="settings_panel.toggle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </button>
+          <div class="settings-panel">
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+                <span data-i18n="settings_panel.language">Language</span>
+              </div>
+              <div class="settings-panel__options">
+                <button class="lang-switcher__btn active" data-lang="en">EN</button>
+                <button class="lang-switcher__btn" data-lang="mrh">Mara</button>
+                <button class="lang-switcher__btn" data-lang="my">မြန်မာ</button>
+              </div>
+            </div>
+            <div class="settings-panel__divider"></div>
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                <span data-i18n="settings_panel.theme">Theme</span>
+              </div>
+              <div class="settings-panel__options">
+                <button class="theme-switcher__btn" data-theme="dark" title="Dark" data-i18n-title="theme.dark">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="light" title="Light" data-i18n-title="theme.light">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="system" title="Follow System" data-i18n-title="theme.title_system">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </button>
+                <button class="theme-switcher__btn" data-theme="time" title="Follow Time" data-i18n-title="theme.title_time">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="settings-panel__divider"></div>
+            <div class="settings-panel__section">
+              <div class="settings-panel__label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span data-i18n="settings_panel.calendar">Default Calendar</span>
+              </div>
+              <select class="calendar-pref-select" id="calendarPrefSelect" data-i18n-aria="settings_panel.calendar_aria" aria-label="Default calendar for Today's Event">
+                <option value="" data-i18n="settings_panel.calendar_all">All calendars</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+  <!-- Mobile drawer lives outside <header> so that backdrop-filter on the
+       header does not create a containing block that clips position:fixed. -->
+  <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+    <div class="mobile-drawer__backdrop"></div>
+    <aside class="mobile-drawer__panel" role="dialog" aria-label="Mobile navigation" data-i18n-aria="mobile_drawer.aria_label">
+      <div class="mobile-drawer__header">
+        <div class="mobile-drawer__title-wrap">
+          <p class="mobile-drawer__eyebrow" data-i18n="mobile_drawer.eyebrow">Navigation</p>
+          <h2 class="mobile-drawer__title" data-i18n="mobile_drawer.title">Explore</h2>
+        </div>
+        <button class="mobile-drawer__close" aria-label="Close navigation menu" data-i18n-aria="mobile_drawer.close_aria">&times;</button>
+      </div>
+      <div class="mobile-drawer__content">
+        <a href="/#popular" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🔥</span>
+          <span data-i18n="nav.popular">Popular</span>
+        </a>
+        <a href="/articles" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">📰</span>
+          <span data-i18n="nav.articles">Articles</span>
+        </a>
+        <a href="/artists-composers" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🎤</span>
+          <span data-i18n="people.hero_title">Artists &amp; Composers</span>
+        </a>
+        <a href="/mara-idol" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon">🌟</span>
+          <span data-i18n="nav.mara_idol">Mara Idol</span>
+        </a>
+        <a href="/my-profile" class="mobile-drawer__link active">
+          <span class="mobile-drawer__icon">👑</span>
+          <span data-i18n="nav.for_artists">For Artists</span>
+        </a>
+        <button type="button" class="mobile-drawer__link" data-calendar-open>
+          <span class="mobile-drawer__icon">📅</span>
+          <span data-i18n="calendar.toggle_aria">Community Calendar</span>
+        </button>
+        <a href="/downloads" class="mobile-drawer__link">
+          <span class="mobile-drawer__icon"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="#2f80ed"/><path d="M12 5v9m0 0l-4-4m4 4l4-4M6.5 18.5h11" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span data-i18n="nav.my_downloads">My Downloads</span>
+          <span class="downloads-toggle__badge downloads-toggle__badge--inline" hidden>0</span>
+        </a>
+      </div>
+    </aside>
+  </div>
+
+
+  <!-- ═══ Reader account: sign in, and sync across devices ═══ -->
+  <main class="acct" id="syncPage">
+    <p class="acct-message" id="pageNotice" role="status" hidden></p>
+
+    <!-- ═══ Signed out ═══ -->
+    <div id="syncAuth" hidden>
+      <div class="acct-auth">
+        <div id="authTabsBox">
+          <h1 class="acct-auth__title" id="authTitle" data-i18n="account_sync.signin_title">Sign in</h1>
+          <p class="acct-auth__lead" data-i18n="account_sync.lead">Keep your favorite and downloaded songs on every device you use.</p>
+
+          <div class="acct-google" id="googleBlock" hidden>
+            <div id="googleBtn" class="acct-google__btn"></div>
+            <div class="acct-or" aria-hidden="true"><span data-i18n="account.or_email">or use your email</span></div>
+          </div>
+
+          <form id="signinForm" class="acct-form" autocomplete="on">
+            <div class="acct-field">
+              <label for="signinUser" data-i18n="account.email_or_username">Email or username</label>
+              <input type="text" id="signinUser" autocomplete="username" required />
+            </div>
+            <div class="acct-field">
+              <div class="acct-field__row">
+                <label for="signinPass" data-i18n="account.password">Password</label>
+                <button type="button" class="acct-linkbtn" id="forgotLink" data-i18n="account.forgot" hidden>Forgot your password?</button>
+              </div>
+              <input type="password" id="signinPass" autocomplete="current-password" required />
+            </div>
+            <p class="acct-message" id="signinMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn acct-btn--block" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
+          </form>
+
+          <form id="registerForm" class="acct-form" autocomplete="on" hidden>
+            <div class="acct-field">
+              <label for="regEmail" data-i18n="account.email">Email</label>
+              <input type="email" id="regEmail" autocomplete="email" required />
+              <small data-i18n="account.email_signup_hint">You will sign in with this address.</small>
+            </div>
+            <div class="acct-field">
+              <label for="regPass" data-i18n="account.password">Password</label>
+              <input type="password" id="regPass" autocomplete="new-password" minlength="8" required />
+              <small data-i18n="account.password_hint">At least 8 characters.</small>
+            </div>
+            <div id="regTurnstile"></div>
+            <p class="acct-message" id="regMsg" role="alert" hidden></p>
+            <button type="submit" class="acct-btn acct-btn--block" id="regBtn" data-i18n="account.register_btn">Create account</button>
+          </form>
+
+          <p class="acct-switch">
+            <span id="switchToRegister"><span data-i18n="account.switch_new">New here?</span> <button type="button" class="acct-linkbtn" id="tabRegister" data-i18n="account.tab_register">Create account</button></span>
+            <span id="switchToSignin" hidden><span data-i18n="account.switch_have">Already have an account?</span> <button type="button" class="acct-linkbtn" id="tabSignin" data-i18n="account.tab_signin">Sign in</button></span>
+          </p>
+        </div>
+
+        <form id="forgotForm" class="acct-form" hidden>
+          <h2 class="acct-auth__title acct-auth__title--sub" data-i18n="account.forgot_title">Reset your password</h2>
+          <p class="acct-auth__lead" data-i18n="account.forgot_intro">Enter the email address of your account and we will send you a link to choose a new password.</p>
+          <div class="acct-field">
+            <label for="forgotEmail" data-i18n="account.email">Email</label>
+            <input type="email" id="forgotEmail" autocomplete="email" required />
+          </div>
+          <div id="forgotTurnstile"></div>
+          <p class="acct-message" id="forgotMsg" role="alert" hidden></p>
+          <button type="submit" class="acct-btn acct-btn--block" id="forgotBtn" data-i18n="account.forgot_send">Send reset link</button>
+          <p class="acct-switch"><button type="button" class="acct-linkbtn" id="forgotBack" data-i18n="account.back_to_signin">Back to sign in</button></p>
+        </form>
+
+        <form id="resetForm" class="acct-form" hidden>
+          <h2 class="acct-auth__title acct-auth__title--sub" data-i18n="account.reset_title">Choose a new password</h2>
+          <div class="acct-field">
+            <label for="resetPass" data-i18n="account.new_password">New password</label>
+            <input type="password" id="resetPass" autocomplete="new-password" minlength="8" required />
+            <small data-i18n="account.password_hint">At least 8 characters.</small>
+          </div>
+          <p class="acct-message" id="resetMsg" role="alert" hidden></p>
+          <button type="submit" class="acct-btn acct-btn--block" id="resetBtn" data-i18n="account.reset_save">Save new password</button>
+        </form>
+
+        <section class="acct-about" id="syncAbout" aria-labelledby="aboutTitle">
+          <h2 id="aboutTitle" data-i18n="account_sync.perks_title">With an account you get</h2>
+          <ul>
+            <li><strong data-i18n="account_sync.perk_fav_t">Your favorites everywhere</strong> <span data-i18n="account_sync.perk_fav_d">Favorite a song on your phone and find it on your computer.</span></li>
+            <li><strong data-i18n="account_sync.perk_dl_t">Your downloads follow you</strong> <span data-i18n="account_sync.perk_dl_d">Songs you keep for offline reading are saved on each of your devices.</span></li>
+            <li><strong data-i18n="account_sync.perk_set_t">Your settings, too</strong> <span data-i18n="account_sync.perk_set_d">Pinned songs, your theme and your language.</span></li>
+          </ul>
+          <p class="acct-hint" data-i18n="account_sync.artists_note">Artists and composers use the same account to manage their pages.</p>
+        </section>
+      </div>
+    </div>
+
+    <!-- ═══ Signed in ═══ -->
+    <div id="syncHome" hidden>
+      <header class="acct-banner">
+        <span class="acct-avatar" id="syncAvatar" aria-hidden="true"></span>
+        <div class="acct-banner__text">
+          <h2 class="acct-banner__name" id="syncName"></h2>
+          <p class="acct-banner__meta" data-i18n="account_sync.signed_in_as">Signed in</p>
+        </div>
+        <div class="acct-banner__actions">
+          <button type="button" class="acct-btn acct-btn--quiet acct-btn--sm" id="syncSignout" data-i18n="account.signout">Sign out</button>
+        </div>
+      </header>
+
+      <div class="acct-notice" id="verifyBar" role="status" hidden>
+        <span id="verifyText" data-i18n="account_sync.verify_text">Please confirm your email address. We sent you a link.</span>
+        <button type="button" class="acct-btn acct-btn--sm" id="verifySend" data-i18n="account.verify_send">Send confirmation email</button>
+      </div>
+
+      <section class="acct-card" aria-labelledby="syncTitle">
+        <h2 class="acct-section-title" id="syncTitle" data-i18n="account_sync.sync_title">Sync</h2>
+        <p class="acct-status-line" id="syncLine" role="status"></p>
+        <dl class="sync-stats">
+          <div><dt data-i18n="account_sync.stat_fav">Favorites</dt><dd id="statFav">0</dd></div>
+          <div><dt data-i18n="account_sync.stat_dl">Downloads</dt><dd id="statDl">0</dd></div>
+          <div><dt data-i18n="account_sync.stat_pin">Pinned</dt><dd id="statPin">0</dd></div>
+        </dl>
+        <div class="acct-actions">
+          <button type="button" class="acct-btn" id="syncNow" data-i18n="account_sync.sync_now">Sync now</button>
+          <a class="acct-btn acct-btn--quiet" href="/downloads" data-i18n="nav.my_downloads">My Downloads</a>
+        </div>
+      </section>
+
+      <section class="acct-card" aria-labelledby="deviceTitle">
+        <h2 class="acct-section-title" id="deviceTitle" data-i18n="account_sync.device_title">This device</h2>
+        <label class="sync-check">
+          <input type="checkbox" id="syncAuto" />
+          <span>
+            <strong data-i18n="account_sync.auto_label">Save my downloads on this device</strong>
+            <small data-i18n="account_sync.auto_hint">Songs you download on your other devices are copied here when you are online, and removed here when you remove them there. Turn this off to keep this device's downloads as they are.</small>
+          </span>
+        </label>
+      </section>
+
+      <section class="acct-card" aria-labelledby="artistTitle">
+        <h2 class="acct-section-title" id="artistTitle" data-i18n="account_sync.artists_title">Artists &amp; composers</h2>
+        <p class="acct-note" data-i18n="account_sync.artists_text">This account can also claim an artist or composer page, and keep its bio, photo and links up to date.</p>
+        <a class="acct-btn acct-btn--quiet" href="/my-profile" data-i18n="account_sync.artists_link">Open For Artists</a>
+      </section>
+
+      <section class="acct-card" aria-labelledby="outTitle">
+        <h2 class="acct-section-title" id="outTitle" data-i18n="account_sync.signout_title">Signing out</h2>
+        <p class="acct-note" data-i18n="account_sync.signout_note">Your favorites and downloads stay on this device when you sign out. On a shared computer, clear them as you leave.</p>
+        <div class="acct-actions">
+          <button type="button" class="acct-btn acct-btn--quiet" id="signoutKeep" data-i18n="account_sync.signout_keep">Sign out</button>
+          <button type="button" class="acct-btn acct-btn--quiet" id="signoutWipe" data-i18n="account_sync.signout_wipe">Sign out and clear this device</button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div class="footer__col">
+          <a href="/" class="footer__brand"><img src="/icon.svg" alt="MaraLyrics" class="footer__brand-icon" width="28" height="28" loading="lazy" /> MaraLyrics</a>
+          <p class="footer__tagline" data-i18n="footer.tagline">Preserving Mara music for future generations.</p>
+          <div class="footer__social">
+            <a href="https://www.youtube.com/@haoleimrh" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--youtube" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+            <a href="https://www.reddit.com/r/maralyrics/" target="_blank" rel="noopener noreferrer" class="footer__social-link footer__social-link--reddit" aria-label="Reddit"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 01-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 01.042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 013.058 12.4c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 01.14-.197.35.35 0 01.238-.042l2.906.617a1.214 1.214 0 011.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.248 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.561-1.249-1.249-1.249zm-5.466 3.99a.327.327 0 00-.231.094.33.33 0 000 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 00.029-.463.33.33 0 00-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 00-.232-.095z"/></svg></a>
+          </div>
+        </div>
+        <div class="footer__col">
+          <h2 class="footer__heading" data-i18n="footer.heading_information">Information</h2>
+          <ul class="footer__links"><li><a href="/articles" data-i18n="nav.articles">Articles</a></li><li><a href="/artists-composers" data-i18n="people.hero_title">Artists &amp; Composers</a></li><li><a href="/mara-idol" data-i18n="nav.mara_idol">Mara Idol</a></li><li><a href="/about" data-i18n="about.breadcrumb">About Us</a></li><li><a href="/project" data-i18n="project.title">The Project</a></li><li><a href="/faq" data-i18n="faq.breadcrumb">FAQ</a></li></ul>
+        </div>
+        <div class="footer__col">
+          <h2 class="footer__heading" data-i18n="footer.heading_legal">Legal</h2>
+          <ul class="footer__links"><li><a href="/privacy" data-i18n="privacy.title">Privacy Policy</a></li><li><a href="/terms" data-i18n="terms.title">Terms &amp; Conditions</a></li><li><a href="/copyright" data-i18n="footer.link_copyright">Copyright</a></li></ul>
+        </div>
+        <div class="footer__col">
+          <h2 class="footer__heading" data-i18n="footer.heading_support">Support</h2>
+          <ul class="footer__links"><li><a href="/contact" data-i18n="contact.title">Contact Us</a></li><li><a href="/report" data-i18n="footer.link_report">Report Error</a></li><li><a href="/my-profile" data-i18n="footer.link_artists">For Artists</a></li></ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <p data-i18n="footer.made_with">Proudly Made in Maraland <span class="footer__heart">♥</span> for the Mara community</p>
+        <p data-i18n="footer.copyright">&copy; 2026 MaraLyrics. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Consent -->
+  <script src="/consent.js"></script>
+  <!-- Toast -->
+  <script src="/toast.js"></script>
+  <!-- i18n -->
+  <script src="/i18n.js"></script>
+  <!-- Theme -->
+  <script src="/theme.js"></script>
+  <!-- App Script -->
+  <script src="/app.js"></script>
+  <script src="/account-page.js?v=1"></script>
+</body>
+</html>

@@ -120,6 +120,13 @@ Artists and composers sign in on `/my-profile` ("For Artists") with **Google** o
 - When a Manager approves, rejects or revokes a claim, the claimant gets an email with the decision and the team's note (only to a confirmed address; rivals closed by an approval are told too). The admin toast says whether it was sent.
 - Tests: `npm run test:auth`.
 
+#### Reader accounts: sync across devices
+
+Anyone can create an account on `/account` ("Sign in & sync" in the header) with **Google** or **email + password** (it is the same account system as the artists' one — no phone number is needed to read). Signed-in devices share their **favorites, pinned songs, downloaded songs, theme and language**: changes are queued on the device, sent to `POST /api/v1/account/sync`, and the account's other devices are pulled in (the newest change to an item wins; removals are kept as tombstones). Downloaded songs are copied to the other devices in the background (a switch on `/account` turns that off per device). The code is the `Sync` module in `public/app.js`, `worker/lib/sync.js` and `public/account-page.js`.
+
+- Run `npm run db:migrate` **before** `npm run deploy` (migration `0019` adds `person_sync_items` and `person_sync_state`).
+- Tests: `npm run test:sync`.
+
 ---
 
 ## Scripts
@@ -131,7 +138,7 @@ The important npm scripts are defined in `package.json`:
 - `npm run db:create` — create a D1 database (`wrangler d1 create`)
 - `npm run db:schema` / `db:schema:local` — apply `schema.sql` (idempotent; safe on a fresh or existing DB)
 - `npm run db:seed:local` — load `seed.sql` sample data (local only — never run against prod)
-- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
+- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`, `test:sync`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
 - `npm run changelog` — regenerates [CHANGELOG.md](CHANGELOG.md) (every version with its full commit log) and `public/releases.json` (the "Version history" on the Project page, with GitHub links) from `scripts/releases.json`; `npm test` fails if either is out of date; add `-- --tag` to create the annotated release tags (`vX.Y.Z`), or `-- --notes 1.4.0` to print one version's notes. GitHub Releases are published from the same notes by `.github/workflows/release.yml` (`scripts/publish-releases.mjs`): pushing a `vX.Y.Z` tag creates its release, and Actions → *Publish releases* → *Run workflow* back-fills the missing ones (tick *update* to rewrite existing ones). See the header of `scripts/changelog.mjs` for how to cut a release.
 - `npm run db:migrate` / `db:migrate:local` — apply any pending files in `migrations/` via `wrangler d1 migrations apply` (tracked, runs each migration once)
 

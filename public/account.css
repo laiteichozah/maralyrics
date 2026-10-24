@@ -1,5 +1,5 @@
 /* ┌────────────────────────────────────────────────────────┐
-   │  MaraLyrics — artist & composer account (/my-profile)   │
+   │  MaraLyrics — accounts: /my-profile (artists & composers) and /account (readers)   │
    │  Plain and calm: the site's own colours and font, flat  │
    │  surfaces, thin borders, one accent colour. Scoped to   │
    │  .acct / body.acct-page; the rest of the site is        │
@@ -211,6 +211,17 @@
 .acct .rte-editor ul, .acct .rte-editor ol, .acct .acct-preview__bio ul, .acct .acct-preview__bio ol { margin: 0 0 0.7em; padding-left: 1.4em; }
 .acct .rte-editor blockquote, .acct .acct-preview__bio blockquote { margin: 0 0 0.7em; padding: 2px 0 2px 12px; border-left: 3px solid var(--a-line); color: var(--a-muted); }
 .acct .rte-editor a, .acct .acct-preview__bio a { color: var(--accent-light); text-decoration: underline; }
+
+/* ── Sync status (the reader's /account page) ── */
+.sync-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.sync-stats > div { padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 10px; }
+.sync-stats dt { color: var(--a-muted); font-size: 0.8125rem; }
+.sync-stats dd { margin: 2px 0 0; font-size: 1.5rem; font-weight: 650; line-height: 1.2; }
+.sync-check { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.sync-check input { flex: none; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--a-btn); }
+.sync-check strong { display: block; font-weight: 600; }
+.sync-check small { display: block; margin-top: 4px; color: var(--a-muted); font-size: 0.875rem; line-height: 1.5; }
+.acct-about .acct-hint { margin-top: 14px; }
 
 /* ── Small screens ── */
 @media (max-width: 720px) {

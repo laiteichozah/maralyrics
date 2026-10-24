@@ -374,7 +374,8 @@ body::before {
 }
 
 /* ─── My Downloads nav button (icon + count badge) ───────────── */
-.downloads-toggle__btn {
+.downloads-toggle__btn,
+.account-toggle__btn {
   position: relative;
   display: flex;
   align-items: center;
@@ -389,11 +390,26 @@ body::before {
   transition: all var(--transition-fast);
 }
 .downloads-toggle__btn:hover,
-.downloads-toggle__btn.active {
+.downloads-toggle__btn.active,
+.account-toggle__btn:hover,
+.account-toggle__btn.active {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
   border-color: #2f80ed;
 }
+/* The header's Account button: a small green dot shows that this device is signed in and syncing. */
+.account-toggle__dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid var(--bg-primary);
+  display: none;
+}
+.account-toggle__btn.is-signed-in .account-toggle__dot { display: block; }
 .downloads-toggle__badge {
   position: absolute;
   top: -6px;
@@ -4262,6 +4278,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   .settings-toggle__btn,
   .notif-toggle__btn,
   .downloads-toggle__btn,
+  .account-toggle__btn,
   .calendar-toggle__btn {
     width: 32px;
     height: 32px;

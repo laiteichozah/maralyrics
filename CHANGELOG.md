@@ -13,6 +13,7 @@ Merged after the latest version; it ships with the next one.
 - .gitignore now also keeps keystores and .env files out of git
 - The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)
 - GitHub Releases for every version, published from the same notes by the "Publish releases" workflow (scripts/publish-releases.mjs); the Project page links to them
+- Reader accounts: sign in on /account with Google or email + password to keep favorites, pinned songs, downloads, theme and language in step on every device (migration 0019; run `npm run db:migrate` then `npm run deploy`)
 
 ## v1.9.0 — Reading flow (2026-10-24)
 

@@ -99,6 +99,9 @@ const I18n = (() => {
     document.querySelectorAll('.lang-switcher__btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.lang === currentLang);
     });
+
+    // For scripts that build their own text (the header's Account button, the Account page).
+    document.dispatchEvent(new CustomEvent('i18n-applied', { detail: { lang: currentLang } }));
   }
 
   /** Set and persist language. */
@@ -165,6 +168,8 @@ const I18n = (() => {
         const lang = btn.dataset.lang;
         if (lang && lang !== currentLang) {
           setLanguage(lang);
+          // A language the visitor chose follows their account to their other devices.
+          if (typeof Sync !== 'undefined') Sync.record('pref', 'lang', true, lang);
         }
       });
     });
