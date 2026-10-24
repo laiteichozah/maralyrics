@@ -12,7 +12,7 @@
   const API = `${CONFIG.API_BASE}/account`;
   const TOKEN_KEY = 'ml_account_token';
   const TURNSTILE_SITEKEY = '0x4AAAAAABjildkegfR6T0sd'; // same public site key as the feedback forms
-  const PHOTO_SIZE = 400; // uploaded photos are centre-cropped to a square this size (JPEG)
+  const PHOTO_SIZE = 400; // uploaded photos are cropped (by the person, in the cropper) to a square this size (JPEG)
   const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
   const MAX_LINKS = 10;
   const TABS = ['profile', 'green', 'claims', 'account'];
@@ -763,21 +763,14 @@
     if (!file) return;
     if (!/^image\//.test(file.type)) { say('editorMsg', t('account.err_image')); return; }
     if (file.size > MAX_PHOTO_FILE_BYTES) { say('editorMsg', t('account.err_image_big')); return; }
-    const url = URL.createObjectURL(file);
     try {
-      const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = url; });
-      const side = Math.min(img.width, img.height);
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = PHOTO_SIZE;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff'; // JPEG has no alpha
-      ctx.fillRect(0, 0, PHOTO_SIZE, PHOTO_SIZE);
-      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, PHOTO_SIZE, PHOTO_SIZE);
-      photo = canvas.toDataURL('image/jpeg', 0.85);
+      const cropped = await PhotoCropper.open(file, { size: PHOTO_SIZE }); // the person frames it; null = cancelled
+      if (cropped === null) return;
+      photo = cropped;
       say('editorMsg', '');
       renderPhoto();
       renderPreview();
-    } catch { say('editorMsg', t('account.err_image')); } finally { URL.revokeObjectURL(url); }
+    } catch { say('editorMsg', t('account.err_image')); }
   });
 
   $('editorForm').addEventListener('submit', async (e) => {

@@ -414,6 +414,16 @@
     "did_you_mean": "Did you mean:",
     "match_label": "match"
   },
+  "crop": {
+    "title": "Crop your photo",
+    "hint": "Drag the photo to frame it, and zoom with the slider.",
+    "stage_aria": "Photo. Use the arrow keys to move it and plus and minus to zoom.",
+    "zoom": "Zoom",
+    "zoom_in": "Zoom in",
+    "zoom_out": "Zoom out",
+    "cancel": "Cancel",
+    "use": "Use photo"
+  },
   "account_sec": {
     "protected": "Protected by a Cloudflare security check.",
     "tab_overview": "Overview",
