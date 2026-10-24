@@ -30,7 +30,7 @@ const section = (name) => console.log(`\n${name}`);
 // ─── 1. Static HTML ──────────────────────────────────────────────────────────
 const pages = fs.readdirSync(PUBLIC).filter((f) => f.endsWith('.html')).map((f) => f.replace(/\.html$/, ''));
 const SHELLS = new Set(['songview', 'artistview', 'composerview', 'copyrightownerview', 'articleview', 'idolseasonview', 'idolview']);
-const NOINDEX = new Set(['404', 'downloads', 'report', 'my-profile', ...SHELLS]);
+const NOINDEX = new Set(['404', 'downloads', 'report', 'my-profile', 'account', ...SHELLS]);
 
 const attr = (tag, name) => (tag.match(new RegExp(`\\b${name}="([^"]*)"`)) || [])[1];
 const metaContent = (html, sel) => {

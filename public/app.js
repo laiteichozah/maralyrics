@@ -380,27 +380,33 @@ const Downloads = {
     }
   },
 
-  async add(song) {
+  /** `quiet` = this change came from the account sync itself, so it must not be reported back. */
+  async add(song, { quiet = false } = {}) {
     if (!this.supported || !song?.slug) throw new Error(I18n.t('downloads.unsupported'));
     const existing = await this.get(song.slug);
+    const isNew = !this.slugs.has(song.slug); // re-saving a fresher copy of a song already kept is not a new download
     await this._tx('readwrite', (store) => store.put({ slug: song.slug, song, savedAt: existing?.savedAt || Date.now() }));
     this.slugs.add(song.slug);
     this._saveMirror();
+    if (isNew && !quiet) Sync.record('download', song.slug, true);
     // Ask the browser not to evict this data when it is short on space.
     try { navigator.storage?.persist?.(); } catch { /* ignore */ }
     document.dispatchEvent(new CustomEvent('downloads-changed', { detail: { slug: song.slug } }));
   },
 
-  async remove(slug) {
+  async remove(slug, { quiet = false } = {}) {
     await this._tx('readwrite', (store) => store.delete(slug));
     this.slugs.delete(slug);
     this._saveMirror();
+    if (!quiet) Sync.record('download', slug, false);
     document.dispatchEvent(new CustomEvent('downloads-changed', { detail: { slug } }));
   },
 
-  async clear() {
+  async clear({ quiet = false } = {}) {
+    const was = [...this.slugs];
     await this._tx('readwrite', (store) => store.clear());
     this.slugs.clear();
+    if (!quiet) was.forEach((slug) => Sync.record('download', slug, false));
     this._saveMirror();
     document.dispatchEvent(new CustomEvent('downloads-changed'));
   },
@@ -421,7 +427,8 @@ const Favorites = {
 
   /** Check if preference storage is allowed (same consent gate as SearchHistory). */
   _canStore() {
-    return typeof CookieConsent === 'undefined' || CookieConsent.hasConsent();
+    // Signed in to an account: the visitor asked for their favourites to be kept and synced, so that is allowed.
+    return Sync.active() || typeof CookieConsent === 'undefined' || CookieConsent.hasConsent();
   },
 
   /** Get the list of favorited song slugs. */
@@ -455,10 +462,12 @@ const Favorites = {
     if (nowFavorited) slugs.push(slug);
     else slugs.splice(idx, 1);
     this._save(slugs);
+    Sync.record('favorite', slug, nowFavorited);
     return nowFavorited;
   },
 
   clear() {
+    this.getAll().forEach((slug) => Sync.record('favorite', slug, false));
     this._save([]);
   },
 };
@@ -494,18 +503,20 @@ const Pins = {
 
   /** Pin/unpin a song. Returns 'pinned' | 'unpinned' | 'full' | 'not_favorite' | 'no_consent'. */
   toggle(slug) {
-    if (typeof CookieConsent !== 'undefined' && !CookieConsent.hasConsent()) return 'no_consent';
+    if (!Sync.active() && typeof CookieConsent !== 'undefined' && !CookieConsent.hasConsent()) return 'no_consent';
     const slugs = this.getAll();
     const idx = slugs.indexOf(slug);
     if (idx !== -1) {
       slugs.splice(idx, 1);
       this._save(slugs);
+      Sync.record('pin', slug, false);
       return 'unpinned';
     }
     if (!Favorites.has(slug)) return 'not_favorite';
     if (slugs.length >= this.MAX) return 'full';
     slugs.push(slug);
     this._save(slugs);
+    Sync.record('pin', slug, true, slugs.length - 1); // the position keeps the pin order the same on every device
     return 'pinned';
   },
 
@@ -515,6 +526,359 @@ const Pins = {
     if (idx === -1) return;
     slugs.splice(idx, 1);
     this._save(slugs);
+    Sync.record('pin', slug, false);
+  },
+};
+
+// ─── Account Sync (favourites, pins, downloads and preferences follow the signed-in account) ──────────────
+// A reader signs in on /account (Google, or email + password). From then on every change made here is queued, sent to
+// the Worker (POST /account/sync) and the changes made on the account's other devices are pulled in and applied to this
+// device's own stores (the favourites / pins cookies, the downloads in IndexedDB, theme and language).
+//  · The queue lives in localStorage, so a change made offline — or just before the tab closed — is sent later.
+//  · The newest change to an item wins (a removal is a change too), on the server and here.
+//  · Downloaded songs are copied to this device in the background (unless the visitor turned that off); removals follow.
+//  · The token is the same one the Artist Court uses: one account, one sign-in.
+const Sync = {
+  TOKEN_KEY: 'ml_account_token',
+  STATE_KEY: 'maralyrics.sync',          // { account, email, rev, items, auto, at }
+  QUEUE_KEY: 'maralyrics.sync.queue',    // { "kind:key": { kind, key, value, deleted, at } } — changes not yet on the server
+  CHUNK: 200,                            // the Worker's per-request limit
+  MIN_GAP_MS: 20 * 1000,                 // automatic pulls (focus, timer) are spaced at least this far apart
+  MAX_DOWNLOADS_PER_RUN: 40,
+  status: 'off',                         // 'off' | 'idle' | 'syncing' | 'offline' | 'error'
+  applying: false,                       // true while writing the account's data into this device (those writes aren't reported back)
+  _state: null,
+  _timer: null,
+  _running: null,
+  _again: false,
+  _failures: 0,
+  _lastRun: 0,
+
+  // ── Account / token ─────────────────────────────
+  token() { try { return localStorage.getItem(this.TOKEN_KEY) || ''; } catch { return ''; } },
+  active() { return !!this.token(); },
+
+  _read(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v && typeof v === 'object' ? v : fallback; } catch { return fallback; }
+  },
+  _write(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full or blocked: syncing just pauses */ } },
+  state() {
+    if (!this._state) this._state = { account: null, email: '', rev: 0, items: {}, auto: true, at: 0, ...this._read(this.STATE_KEY, {}) };
+    return this._state;
+  },
+  _saveState() { this._write(this.STATE_KEY, this.state()); },
+  queue() { return this._read(this.QUEUE_KEY, {}); },
+  _saveQueue(q) { this._write(this.QUEUE_KEY, q); },
+  _k: (kind, key) => `${kind}:${key}`,
+
+  setStatus(status) {
+    this.status = status;
+    document.dispatchEvent(new CustomEvent('sync-status', { detail: this.info() }));
+  },
+
+  /** What the Account page shows. */
+  info() {
+    const s = this.state();
+    const live = (kind) => Object.entries(this.effective()).filter(([k, v]) => k.startsWith(`${kind}:`) && !v.deleted).length;
+    return {
+      active: this.active(), status: this.status, email: s.email || '', at: s.at || 0, auto: s.auto !== false,
+      pending: Object.keys(this.queue()).length,
+      counts: { favorite: live('favorite'), download: live('download'), pin: live('pin') },
+    };
+  },
+
+  /** The account's items as far as this device knows them: what the server last said, overlaid with changes not yet sent. */
+  effective() {
+    const out = {};
+    for (const [k, v] of Object.entries(this.state().items)) out[k] = { deleted: !!v[0], value: v[1], at: v[2] };
+    for (const [k, q] of Object.entries(this.queue())) out[k] = { deleted: !!q.deleted, value: q.value, at: q.at };
+    return out;
+  },
+
+  // ── Recording local changes ─────────────────────
+  /** Called by Favorites / Pins / Downloads / the theme and language buttons when the visitor changes something. */
+  record(kind, key, present, value = null) {
+    if (this.applying || !key || !this.active()) return;
+    const q = this.queue();
+    q[this._k(kind, key)] = { kind, key, value: present ? value : null, deleted: !present, at: Date.now() };
+    this._saveQueue(q);
+    this.schedule(1500);
+  },
+
+  schedule(ms = 1500) {
+    if (!this.active()) return;
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.run(), ms);
+  },
+
+  // ── Signing in and out ──────────────────────────
+  /** Call right after a token was stored (Account page, Artist Court). */
+  async signedIn(account) {
+    if (account) await this.adoptAccount(account);
+    this.mountHeader();
+    await this.run({ force: true });
+  },
+
+  /** Remembers which account this device is synced with. A different person on a device that was used with another
+   *  account starts clean instead of having their lists merged into the new account. */
+  async adoptAccount(account) {
+    const s = this.state();
+    if (s.account && s.account !== account.id) {
+      await this.wipeLocal();
+      this._state = { account: null, email: '', rev: 0, items: {}, auto: true, at: 0 };
+      this._saveQueue({});
+    }
+    const now = this.state();
+    now.account = account.id;
+    now.email = account.contact_email || account.username || '';
+    this._saveState();
+  },
+
+  /** Token removed. The lists on this device stay (they are the visitor's); `wipe` also clears them (shared computers). */
+  async signedOut({ wipe = false } = {}) {
+    clearTimeout(this._timer);
+    try { localStorage.removeItem(this.TOKEN_KEY); } catch { /* ignore */ }
+    if (wipe) {
+      await this.wipeLocal();
+      this._state = { account: null, email: '', rev: 0, items: {}, auto: true, at: 0 };
+      this._saveQueue({});
+    }
+    this._saveState();
+    this.setStatus('off');
+    this.mountHeader();
+    document.dispatchEvent(new CustomEvent('sync-applied', { detail: { everything: true } }));
+  },
+
+  async wipeLocal() {
+    this.applying = true;
+    try {
+      Favorites._save([]);
+      Pins._save([]);
+      try { await Downloads.clear({ quiet: true }); } catch { /* ignore */ }
+    } finally { this.applying = false; }
+    this._refreshUI(null);
+  },
+
+  setAuto(on) { this.state().auto = !!on; this._saveState(); if (on) this.run({ force: true }); else this.setStatus(this.status); },
+
+  // ── The sync itself ─────────────────────────────
+  async _post(body) {
+    const res = await fetch(`${CONFIG.API_BASE}/account/sync`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.token()}` }, body: JSON.stringify(body),
+    });
+    if (res.status === 401) { const err = new Error('signed-out'); err.status = 401; throw err; }
+    if (!res.ok) { const err = new Error(`sync ${res.status}`); err.status = res.status; throw err; }
+    return res.json();
+  },
+
+  /** Learns who is signed in (the Artist Court may have stored the token) and handles an expired session. */
+  async identify() {
+    const s = this.state();
+    if (s.account && s.email) return true;
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}/account/me`, { headers: { Authorization: `Bearer ${this.token()}` } });
+      if (res.status === 401) { await this.signedOut(); return false; }
+      if (!res.ok) return true;
+      const { account } = await res.json();
+      await this.adoptAccount(account);
+    } catch { /* offline: try next time */ }
+    return true;
+  },
+
+  /** Anything on this device the account has never heard of (made before signing in) is offered to it, oldest possible. */
+  _adopt() {
+    const known = this.effective();
+    const q = this.queue();
+    let added = false;
+    const offer = (kind, key, value = null) => {
+      const k = this._k(kind, key);
+      if (known[k] || q[k]) return;
+      q[k] = { kind, key, value, deleted: false, at: 0 };
+      added = true;
+    };
+    Favorites.getAll().forEach((slug) => offer('favorite', slug));
+    Pins.getAll().forEach((slug, i) => offer('pin', slug, i));
+    Downloads.slugs.forEach((slug) => offer('download', slug));
+    if (added) this._saveQueue(q);
+  },
+
+  run({ force = false } = {}) {
+    if (!this.active()) return Promise.resolve();
+    if (this._running) { this._again = true; return this._running; }
+    if (!force && Date.now() - this._lastRun < this.MIN_GAP_MS && Object.keys(this.queue()).length === 0) return Promise.resolve();
+    this._running = this._run().finally(() => {
+      this._running = null;
+      if (this._again) { this._again = false; this.schedule(300); }
+    });
+    return this._running;
+  },
+
+  async _run() {
+    if (!Utils.isOnline()) { this.setStatus('offline'); return; }
+    this._state = null; // pick up what another tab may have saved
+    if (!(await this.identify())) return;
+    this.setStatus('syncing');
+    this._lastRun = Date.now();
+    try {
+      this._adopt();
+      for (let guard = 0; guard < 60; guard++) {
+        const s = this.state();
+        const q = this.queue();
+        const sending = Object.values(q).slice(0, this.CHUNK);
+        const res = await this._post({ since: s.rev, ops: sending });
+        const now = this.queue();
+        sending.forEach((op) => { const k = this._k(op.kind, op.key); if (now[k] && now[k].at === op.at) delete now[k]; });
+        this._saveQueue(now);
+        for (const it of res.items) s.items[this._k(it.kind, it.key)] = [it.deleted ? 1 : 0, it.value ?? null, it.at];
+        s.rev = res.rev;
+        s.at = Date.now();
+        this._saveState();
+        if (!res.more && Object.keys(now).length === 0) break;
+      }
+      this._failures = 0;
+      await this._apply();
+      this.setStatus('idle');
+    } catch (err) {
+      if (err.status === 401) { await this.signedOut(); return; }
+      this._failures++;
+      this.setStatus(Utils.isOnline() ? 'error' : 'offline');
+      this.schedule(Math.min(5 * 60 * 1000, 15000 * 2 ** Math.min(this._failures, 5)));
+    }
+  },
+
+  // ── Writing the account's data into this device ─
+  async _apply() {
+    const eff = this.effective();
+    const live = (kind) => Object.entries(eff).filter(([k, v]) => k.startsWith(`${kind}:`) && !v.deleted)
+      .map(([k, v]) => ({ key: k.slice(kind.length + 1), ...v }));
+    const deadOf = (kind) => new Set(Object.entries(eff).filter(([k, v]) => k.startsWith(`${kind}:`) && v.deleted).map(([k]) => k.slice(kind.length + 1)));
+    const deadFav = deadOf('favorite');
+    const deadPin = deadOf('pin');
+    const changed = new Set();
+    this.applying = true;
+    try {
+      // Favourites: keep this device's order, drop what was removed elsewhere, add what was added elsewhere.
+      const favLive = live('favorite');
+      const favSet = new Set(favLive.map((i) => i.key));
+      const favOld = Favorites.getAll();
+      const favNew = favOld.filter((slug) => favSet.has(slug) || !deadFav.has(slug));
+      favLive.sort((a, b) => a.at - b.at).forEach((i) => { if (!favNew.includes(i.key)) favNew.push(i.key); });
+      if (JSON.stringify(favOld) !== JSON.stringify(favNew)) {
+        Favorites._save(favNew);
+        [...favOld, ...favNew].forEach((slug) => { if (favOld.includes(slug) !== favNew.includes(slug)) changed.add(slug); });
+      }
+      // Pins: the account's order (by position), only for songs that are favourites.
+      const pinNew = live('pin').sort((a, b) => (Number(a.value) - Number(b.value)) || (a.at - b.at))
+        .map((i) => i.key).filter((slug) => favNew.includes(slug)).slice(0, Pins.MAX);
+      const pinKept = Pins.getAll().filter((slug) => !deadPin.has(slug) && favNew.includes(slug) && !pinNew.includes(slug));
+      const pinAll = [...pinNew, ...pinKept].slice(0, Pins.MAX);
+      const pinOld = Pins.getAll();
+      if (JSON.stringify(pinOld) !== JSON.stringify(pinAll)) {
+        Pins._save(pinAll);
+        [...pinOld, ...pinAll].forEach((slug) => { if (pinOld.includes(slug) !== pinAll.includes(slug)) changed.add(slug); });
+      }
+      // Preferences chosen on another device.
+      const pref = (name) => (eff[this._k('pref', name)] && !eff[this._k('pref', name)].deleted ? eff[this._k('pref', name)].value : null);
+      const theme = pref('theme');
+      if (theme && typeof Theme !== 'undefined' && Theme.getMode() !== theme) Theme.setMode(theme);
+      const lang = pref('lang');
+      if (lang && I18n.getLang() !== lang) I18n.setLanguage(lang);
+    } finally { this.applying = false; }
+    this._refreshUI(changed);
+    await this._applyDownloads(eff);
+  },
+
+  async _applyDownloads(eff) {
+    if (this.state().auto === false || !Downloads.supported) return;
+    const wanted = [];
+    const removed = [];
+    for (const [k, v] of Object.entries(eff)) {
+      if (!k.startsWith('download:')) continue;
+      const slug = k.slice('download:'.length);
+      if (v.deleted) { if (Downloads.has(slug)) removed.push(slug); } else if (!Downloads.has(slug)) wanted.push(slug);
+    }
+    if (!wanted.length && !removed.length) return;
+    this.applying = true;
+    try {
+      for (const slug of removed) { try { await Downloads.remove(slug, { quiet: true }); } catch { /* ignore */ } }
+      let done = 0;
+      for (const slug of wanted) {
+        if (done >= this.MAX_DOWNLOADS_PER_RUN || !Utils.isOnline() || !this.active()) break;
+        try {
+          const song = await API.getSong(slug);
+          if (song && song.slug) { await Downloads.add(song, { quiet: true }); done++; }
+        } catch { /* a song that no longer exists or a hiccup: the next sync tries again */ }
+      }
+      if (done) Downloads.prepareOffline();
+    } finally { this.applying = false; }
+    if (wanted.length > this.MAX_DOWNLOADS_PER_RUN) this.schedule(5000); // the rest, in the next batch
+  },
+
+  /** Redraws favourite / pin buttons and lists after the account's data changed this device's. */
+  _refreshUI(changed) {
+    try {
+      const slugs = changed ? [...changed] : [...document.querySelectorAll('.song-card__favorite, .song-page__favorite')].map((el) => el.dataset.slug);
+      slugs.forEach((slug) => {
+        if (!slug) return;
+        const fav = Favorites.has(slug);
+        document.querySelectorAll(`.song-card__favorite[data-slug="${CSS.escape(slug)}"], .song-page__favorite[data-slug="${CSS.escape(slug)}"]`)
+          .forEach((el) => updateFavoriteButton(el, fav));
+        syncPinButtons(slug);
+      });
+      if (typeof HomePage !== 'undefined' && HomePage.songGrid && (!changed || changed.size)) {
+        if (HomePage.favoritesOnly) HomePage.loadFavorites(true); else HomePage.refreshList();
+      }
+    } catch (err) { console.warn('[sync] could not refresh the page:', err); }
+    document.dispatchEvent(new CustomEvent('sync-applied', { detail: { changed: changed ? [...changed] : null } }));
+  },
+
+  // ── Header button ───────────────────────────────
+  mountHeader() {
+    const signedIn = this.active();
+    const text = (key, fallback) => { const v = I18n.t(key); return v && v !== key ? v : fallback; };
+    const label = signedIn ? text('account_sync.nav_signed_in', 'Account · syncing') : text('account_sync.nav', 'Sign in & sync');
+    const onPage = /^\/account\/?$/.test(location.pathname);
+    document.querySelectorAll('.header__nav .downloads-toggle__btn').forEach((anchor) => {
+      let btn = anchor.parentElement.querySelector('.account-toggle__btn');
+      if (!btn) {
+        btn = document.createElement('a');
+        btn.href = '/account';
+        btn.className = 'account-toggle__btn';
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span class="account-toggle__dot" aria-hidden="true"></span>';
+        anchor.parentElement.insertBefore(btn, anchor);
+      }
+      btn.classList.toggle('is-signed-in', signedIn);
+      btn.classList.toggle('active', onPage);
+      btn.setAttribute('aria-label', label);
+      btn.title = label;
+    });
+    document.querySelectorAll('.mobile-drawer__content a[href="/downloads"]').forEach((anchor) => {
+      let link = anchor.parentElement.querySelector('.mobile-drawer__link--account');
+      if (!link) {
+        link = document.createElement('a');
+        link.href = '/account';
+        link.className = 'mobile-drawer__link mobile-drawer__link--account';
+        link.innerHTML = '<span class="mobile-drawer__icon">👤</span><span class="mobile-drawer__account-label"></span>';
+        anchor.after(link);
+      }
+      link.querySelector('.mobile-drawer__account-label').textContent = label;
+    });
+  },
+
+  // ── Start ───────────────────────────────────────
+  init() {
+    this.mountHeader();
+    document.addEventListener('i18n-applied', () => this.mountHeader());
+    if (this.active()) this.run({ force: true });
+    const poke = () => { if (this.active() && !document.hidden) this.run(); };
+    document.addEventListener('visibilitychange', poke);
+    window.addEventListener('online', () => this.run({ force: true }));
+    window.addEventListener('focus', poke);
+    // Signed in or out in another tab / on the Artist Court page.
+    window.addEventListener('storage', (e) => {
+      if (e.key === this.TOKEN_KEY) { this.mountHeader(); if (e.newValue) this.run({ force: true }); else this.setStatus('off'); }
+    });
+    setInterval(poke, 60 * 1000);
   },
 };
 
@@ -2415,7 +2779,7 @@ const DownloadsPage = {
     }
     if (this.clearBtn) {
       this.clearBtn.addEventListener('click', async () => {
-        if (!Downloads.count || !window.confirm(I18n.t('downloads.confirm_clear'))) return;
+        if (!Downloads.count || !window.confirm(I18n.t(Sync.active() ? 'downloads.confirm_clear_synced' : 'downloads.confirm_clear'))) return;
         try { await Downloads.clear(); } catch { /* ignore */ }
       });
     }
@@ -4866,7 +5230,7 @@ document.addEventListener('click', async (e) => {
 
   // Removing a download is a deliberate act — downloaded songs are kept until the visitor says so.
   if (Downloads.has(slug)) {
-    if (!window.confirm(I18n.t('downloads.confirm_remove'))) return;
+    if (!window.confirm(I18n.t(Sync.active() ? 'downloads.confirm_remove_synced' : 'downloads.confirm_remove'))) return;
     try {
       await Downloads.remove(slug);
       toast('downloads.removed');
@@ -4955,6 +5319,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initialize theme
   Theme.init();
+
+  // Account sync (does nothing for a visitor who isn't signed in, except add the Account button to the header)
+  Sync.init();
 
   // Restore the card/list display preference on every song grid on this page
   DisplayMode.init();

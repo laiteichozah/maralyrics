@@ -227,6 +227,7 @@
     selectedId = null;
     greenState.offer = null;
     store.set('');
+    Sync.signedOut();
     if (window.google && window.google.accounts) window.google.accounts.id.disableAutoSelect();
     showAuth();
   }
@@ -240,6 +241,7 @@
     }
     account = me.account;
     claims = me.claims;
+    Sync.signedIn(account); // the same account keeps favorites and downloads in step (see app.js)
     $('accountAuth').hidden = true;
     $('accountHome').hidden = false;
     fillContact();
