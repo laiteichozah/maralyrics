@@ -1,0 +1,46 @@
+name: Publish releases
+
+# Publishes a GitHub Release (title, notes and full commit log from scripts/releases.json) for every vX.Y.Z tag.
+#
+#  - Pushing a tag (git push origin --tags) creates that version's release automatically.
+#  - Actions -> "Publish releases" -> Run workflow back-fills every version that has a tag but no release yet.
+#    Tick "update" to also rewrite the notes of releases that already exist (after editing scripts/releases.json).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      update:
+        description: 'Also rewrite the title and notes of releases that already exist'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-releases
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the notes list every commit, and the tags are needed
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Publish releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          UPDATE: ${{ inputs.update && '--update' || '' }}
+        run: |
+          if [ -n "$TAG" ]; then
+            node scripts/publish-releases.mjs --tag "$TAG"
+          else
+            node scripts/publish-releases.mjs $UPDATE
+          fi
