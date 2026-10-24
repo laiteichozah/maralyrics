@@ -14,7 +14,9 @@ export const MAX_ITEMS = 6000;       // rows per account, tombstones included
 const PAGE = 1000;                   // rows returned per request; the device asks again while `more` is true
 const KEY_MAX = 200;
 const CLOCK_SLACK_MS = 60 * 1000;    // a change dated further ahead than this is treated as "now"
-const PREFS = { theme: ['dark', 'light', 'system', 'time'], lang: ['en', 'mrh', 'my'] };
+// The preferences that follow the account: a list of allowed values, or a pattern (the default calendar is a slug).
+const PREFS = { theme: ['dark', 'light', 'system', 'time'], lang: ['en', 'mrh', 'my'], display: ['card', 'list'], calendar: /^[a-z0-9][a-z0-9_-]{0,99}$/i };
+const prefValueOk = (name, value) => (Array.isArray(PREFS[name]) ? PREFS[name].includes(value) : typeof value === 'string' && PREFS[name].test(value));
 const CONTROL = /[\u0000-\u001f\u007f]/;
 
 /** → { ops, error } — normalised, de-duplicated changes (the newest per item), or an error message. */
@@ -34,7 +36,7 @@ export function normalizeOps(input, now = Date.now()) {
     if (kind === 'pref') {
       if (!Object.prototype.hasOwnProperty.call(PREFS, key)) return { error: 'Unknown preference' };
       if (!deleted) {
-        if (!PREFS[key].includes(raw.value)) return { error: 'Invalid preference value' };
+        if (!prefValueOk(key, raw.value)) return { error: 'Invalid preference value' };
         value = raw.value;
       }
     } else if (kind === 'pin' && !deleted) {

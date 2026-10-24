@@ -283,6 +283,8 @@ CREATE TABLE IF NOT EXISTS person_accounts (
     email_verified_at DATETIME,                    -- NULL until the owner proves control of contact_email (migration 0018)
     google_sub    TEXT,                            -- Google's account id, for "Sign in with Google" (migration 0018)
     session_epoch INTEGER NOT NULL DEFAULT 0,      -- bumped on password change/reset → older session tokens stop working
+    display_name  TEXT,                            -- shown on the owner's account page (migration 0020)
+    avatar        TEXT,                            -- the owner's photo, a small data:image URL (migration 0020)
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );

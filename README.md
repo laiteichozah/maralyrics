@@ -127,6 +127,15 @@ Anyone can create an account on `/account` ("Sign in & sync" in the header) with
 - Run `npm run db:migrate` **before** `npm run deploy` (migration `0019` adds `person_sync_items` and `person_sync_state`).
 - Tests: `npm run test:sync`.
 
+#### Account page: profile, preferences, security, your data, Cloudflare challenges
+
+Signed in, `/account` has five tabs: **Overview** (sync status), **Profile** (name, photo, username, email, optional phone), **Preferences** (language, theme, card/list view — and the default calendar in Settings — all synced), **Security** (change or set a password, connect / disconnect Google, sign out of all devices) and **Your data** (download everything we hold as JSON; delete the account, which needs the password or a fresh Google sign-in and is refused while the account manages an artist/composer page).
+
+**Cloudflare Turnstile** protects every way to create an account (email sign-up, and a *new* account created through Google), "Forgot password", claims, and sign-in after two wrong passwords (on both `/account` and `/my-profile`). It is checked only when the `TURNSTILE_SECRET_KEY` secret exists (`npx wrangler secret put TURNSTILE_SECRET_KEY`); without it the check is skipped, which is meant for local development only.
+
+- Run `npm run db:migrate` **before** `npm run deploy` (migration `0020` adds `display_name` and `avatar`).
+- Tests: `npm run test:account`.
+
 ---
 
 ## Scripts
@@ -138,7 +147,7 @@ The important npm scripts are defined in `package.json`:
 - `npm run db:create` — create a D1 database (`wrangler d1 create`)
 - `npm run db:schema` / `db:schema:local` — apply `schema.sql` (idempotent; safe on a fresh or existing DB)
 - `npm run db:seed:local` — load `seed.sql` sample data (local only — never run against prod)
-- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`, `test:sync`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
+- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`, `test:sync`, `test:account`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
 - `npm run changelog` — regenerates [CHANGELOG.md](CHANGELOG.md) (every version with its full commit log) and `public/releases.json` (the "Version history" on the Project page, with GitHub links) from `scripts/releases.json`; `npm test` fails if either is out of date; add `-- --tag` to create the annotated release tags (`vX.Y.Z`), or `-- --notes 1.4.0` to print one version's notes. GitHub Releases are published from the same notes by `.github/workflows/release.yml` (`scripts/publish-releases.mjs`): pushing a `vX.Y.Z` tag creates its release, and Actions → *Publish releases* → *Run workflow* back-fills the missing ones (tick *update* to rewrite existing ones). See the header of `scripts/changelog.mjs` for how to cut a release.
 - `npm run db:migrate` / `db:migrate:local` — apply any pending files in `migrations/` via `wrangler d1 migrations apply` (tracked, runs each migration once)
 
