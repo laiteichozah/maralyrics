@@ -5,6 +5,13 @@ node_modules/
 .wrangler/
 .dev.vars
 
+# Secrets and signing keys — never commit
+.env
+.env.*
+*.keystore
+*.jks
+*.pem
+
 # Database backups (contain real user PII — never commit)
 backups/
 

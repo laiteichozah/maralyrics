@@ -1,0 +1,132 @@
+{
+  "unreleased": [
+    "`npm test` runs every check in one go (all test suites, SEO and i18n); a project-wide check found no failures",
+    "This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.9.0, generated with `npm run changelog` (see scripts/changelog.mjs)",
+    "hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)",
+    ".gitignore now also keeps keystores and .env files out of git"
+  ],
+  "releases": [
+    {
+      "version": "1.0.0",
+      "ref": "c57e1f5",
+      "title": "Foundation",
+      "summary": "The MaraLyrics lyrics site and its admin dashboard on Cloudflare Pages + Workers + D1, with a six-tier permission model.",
+      "highlights": [
+        "Song, artist, composer and copyright-owner pages, search, categories and an admin dashboard for managing them",
+        "Admin roles overhauled into a 6-tier permission model (viewer, translator, reviewer, editor, manager, super admin) with song revisions and an audit log",
+        "Admin profile pages with follow / unfollow and self-service account management",
+        "Header links consolidated into a Settings dropdown; polished artist / composer checkbox lists with an \"Unknown\" option"
+      ]
+    },
+    {
+      "version": "1.1.0",
+      "ref": "50d6ad2",
+      "title": "Languages and everyday reading",
+      "summary": "Burmese and Mara translations, a site-wide modernization, better search and the everyday reading features people use most.",
+      "highlights": [
+        "Burmese (my) and Mara (mrh) translations of the whole site",
+        "Site-wide modernization: mobile navigation, SEO meta, i18n bug fixes, admin UX and backend hardening (#32); duplicate security headers removed",
+        "Fuzzy \"did you mean\" search suggestions matched against lyrics (#34)",
+        "Card / list display toggle, song sorting and cookie-backed favorites (#35)",
+        "Song of the Day (a daily random pick) and a finished i18n coverage sweep (#36)"
+      ]
+    },
+    {
+      "version": "1.2.0",
+      "ref": "d6ca96b",
+      "title": "Reach",
+      "summary": "Promoting the Android app, advertising, a community calendar and rich-text articles.",
+      "highlights": [
+        "Android app promotion: a banner and a one-time promo dialog; default language updated",
+        "Google AdSense integration and ads.txt; Terms and Privacy Policy updated for AdSense",
+        "Community calendar with a year-by-year event list (#39)",
+        "Rich-text editing for Articles, and a fix for a stale service-worker cache (#40)"
+      ]
+    },
+    {
+      "version": "1.3.0",
+      "ref": "233bdb4",
+      "title": "Admin on the go",
+      "summary": "The admin dashboard works on phones and offline, gets its own Android app, and two security audits are fixed.",
+      "highlights": [
+        "Search ranks exact and title matches above lyric mentions (#44); \"is there an event today\" checks bypass the cache (#43)",
+        "Admin dashboard layout fixed for phone-width screens (#45)",
+        "Offline-first PWA support for the admin dashboard (#46)",
+        "High-severity findings from the technical audit fixed (#47), then High/Medium findings from the admin dashboard audit (#48)",
+        "Android admin app as a Trusted Web Activity (#49), plus three CI fixes for building it (#50, #51, #52)"
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "ref": "e1bcdcc",
+      "title": "Community and offline",
+      "summary": "People, sponsors, events and offline songs: the community side of the site.",
+      "highlights": [
+        "Admin header shows an avatar and role badge; role marks beside names; admin photo upload with crop; editors listed on the Project page (#53–#55, #57)",
+        "Inline create inside the song form; photos in name lists; View Site opens in a new tab (#54, #57)",
+        "Sponsors & Partners on the Project page, and up to 7 pinned favorite songs that lead the list (#59, #61)",
+        "Event detail modal from Today's Event and from event notifications; notifications list up to 5 credited artists (#58, #60)",
+        "Explicit song downloads and a My Downloads page (#62)",
+        "Featured artists / composers spotlight and directory page, with a styled sort dropdown (#63, #64)",
+        "Admin dashboard loading states and toast feedback (#65); notification and settings icons stay in the header on phones (#66)",
+        "GitHub contributor links point at laiteichozah/maralyrics (#56)"
+      ]
+    },
+    {
+      "version": "1.5.0",
+      "ref": "19dc953",
+      "title": "Findability and recognition",
+      "summary": "Search-engine visibility and a way to honour artists.",
+      "highlights": [
+        "i18n cleanup and comprehensive SEO: server-rendered content for crawlers, structured data and a sitemap (#67)",
+        "Recognition badges for artists and composers (month, year or lifetime), awarded by Super Admins (#68)"
+      ]
+    },
+    {
+      "version": "1.6.0",
+      "ref": "ba9c3a9",
+      "title": "Mara Idol",
+      "summary": "A new section for the Mara Idol contest: seasons, idols, videos and their pages.",
+      "highlights": [
+        "Mara Idol: seasons, idols, public pages and admin management (#69)",
+        "Video links honour the start time of copied YouTube links; video thumbnails come from the platform or are uploaded; a video's title comes back when it is no longer active (#70, #73, #74)",
+        "Wide cover crop and a separate square season photo (#71)",
+        "Season pages no longer fail with Error 1101 when a migration has not been run yet (#72)"
+      ]
+    },
+    {
+      "version": "1.7.0",
+      "ref": "9bf815a",
+      "title": "Artist accounts",
+      "summary": "Artists and composers can create accounts, claim their profile, edit it and buy the Green mark.",
+      "highlights": [
+        "Claim your profile: accounts for artists and composers, reviewed by Managers and Super Admins; owners edit their bio, photo and social links (#75)",
+        "Green mark: paid plans (1, 3, 6, 12 or 36 months), reviewed by hand, with a green tick on profiles (#76)",
+        "A dedicated \"For Artists\" page (the Artist Court) with tabs for Profile, Green Mark, Claims and Account; email and phone are compulsory (#77)"
+      ]
+    },
+    {
+      "version": "1.8.0",
+      "ref": "5fbd746",
+      "title": "Sign in, rich text and email",
+      "summary": "Sign in with Google or email, emails through Resend, formatted bios, and a calmer account design.",
+      "highlights": [
+        "Sign in or sign up with Google, or with email + password; confirmation and password-reset emails through Resend; a confirmed email is required to claim or order (#78)",
+        "Rich-text bios (bold, italic, underline, links, lists, quotes, line breaks) in the admin dashboard and the claimed-artist editor, stored as sanitized HTML (#78)",
+        "The account pages redesigned in a plain and calm style (#79)",
+        "Claimants are emailed when a claim is approved, rejected or revoked (#80)"
+      ],
+      "deploy": "Run `npm run db:migrate` before `npm run deploy`. Set the `RESEND_API_KEY` secret and put the Google OAuth client id in `GOOGLE_CLIENT_ID` in wrangler.toml (see the README)."
+    },
+    {
+      "version": "1.9.0",
+      "ref": "f7ab52b",
+      "title": "Reading flow",
+      "summary": "Previous / Next song buttons on the song page.",
+      "highlights": [
+        "Tap or click the lyrics to show Previous / Next buttons; they follow the list the song was opened from, or all songs A–Z for a shared link (#81)"
+      ],
+      "deploy": "Run `npm run deploy` for the new `GET /songs/:slug/neighbors` endpoint."
+    }
+  ]
+}
