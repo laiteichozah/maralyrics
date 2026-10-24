@@ -146,6 +146,9 @@
   },
   "song": {
     "breadcrumb": "Song",
+    "nav_prev": "Previous",
+    "nav_next": "Next",
+    "nav_label": "Song navigation",
     "copy_btn": "Copy",
     "copy_success": "Lyrics copied to clipboard",
     "copy_error": "Couldn't copy lyrics",

@@ -278,6 +278,24 @@ app.get('/songs/:slug', async (c) => {
   return c.json(parseSongPeople(song));
 });
 
+// The songs just before / after this one in the default list (title A–Z, same order as GET /songs), for the Previous /
+// Next buttons on a song page that wasn't opened from a list (e.g. a shared link). No wrap-around: the first song has
+// no previous, the last no next.
+app.get('/songs/:slug/neighbors', async (c) => {
+  const db = c.env.DB;
+  const song = await db.prepare("SELECT id, title FROM songs WHERE slug = ? AND status = 'published'").bind(c.req.param('slug')).first();
+  if (!song) return c.json({ error: 'Song not found' }, 404);
+  const [prev, next] = await Promise.all([
+    db.prepare(`SELECT slug, title FROM songs WHERE status = 'published'
+                AND (title COLLATE NOCASE < ? COLLATE NOCASE OR (title COLLATE NOCASE = ? COLLATE NOCASE AND id < ?))
+                ORDER BY title COLLATE NOCASE DESC, id DESC LIMIT 1`).bind(song.title, song.title, song.id).first(),
+    db.prepare(`SELECT slug, title FROM songs WHERE status = 'published'
+                AND (title COLLATE NOCASE > ? COLLATE NOCASE OR (title COLLATE NOCASE = ? COLLATE NOCASE AND id > ?))
+                ORDER BY title COLLATE NOCASE ASC, id ASC LIMIT 1`).bind(song.title, song.title, song.id).first(),
+  ]);
+  return c.json({ prev: prev || null, next: next || null });
+});
+
 app.post('/songs/:slug/view', async (c) => {
   const result = await c.env.DB
     .prepare('UPDATE songs SET views = views + 1 WHERE slug = ?')

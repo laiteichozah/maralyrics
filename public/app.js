@@ -1551,6 +1551,171 @@ const HomePage = {
 };
 
 // ─── Song Page Controller ──────────────────────────────────────
+// ─── Previous / Next song ──────────────────────────────────────
+// What "next" means depends on where the reader came from: opening a song from a list (an artist's page, Favorites,
+// Downloads, search results, the home list…) remembers that list for this tab, so Previous / Next walk through it.
+// A song opened any other way (a shared link, a bookmark) falls back to all songs A–Z (GET /songs/:slug/neighbors).
+const SongTrail = {
+  KEY: 'ml_song_trail',
+  MAX_ITEMS: 300,
+  MAX_AGE_MS: 12 * 60 * 60 * 1000,
+
+  slugOf(a) {
+    const m = /^\/song\/([^/?#]+)/.exec(a.getAttribute('href') || '');
+    if (!m) return null;
+    try { return decodeURIComponent(m[1]); } catch { return null; }
+  },
+
+  /** Called when a song link is followed: saves the song links of the list it sits in, in page order. */
+  record(anchor) {
+    try {
+      const clicked = this.slugOf(anchor);
+      if (!clicked) return;
+      const linksIn = (el) => [...el.querySelectorAll('a[href^="/song/"]')];
+      const distinct = (el) => new Set(linksIn(el).map((a) => this.slugOf(a))).size;
+      // The nearest ancestor holding at least two different songs is "the list".
+      let box = anchor.parentElement;
+      while (box && box !== document.body && distinct(box) < 2) box = box.parentElement;
+      const links = box && distinct(box) >= 2 ? linksIn(box) : [anchor];
+      const items = [];
+      const seen = new Set();
+      for (const a of links) {
+        const slug = this.slugOf(a);
+        if (!slug || seen.has(slug)) continue;
+        seen.add(slug);
+        const titleEl = a.querySelector('[class*="__title"]');
+        items.push([slug, (titleEl ? titleEl.textContent : a.textContent).replace(/\s+/g, ' ').trim().slice(0, 120)]);
+        if (items.length >= this.MAX_ITEMS) break;
+      }
+      sessionStorage.setItem(this.KEY, JSON.stringify({ at: Date.now(), items }));
+    } catch { /* storage blocked: Previous / Next just use A–Z */ }
+  },
+
+  /** → { prev, next } (each { slug, title } or null) when the saved list contains this song, else null. */
+  neighbors(slug) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(this.KEY) || 'null');
+      if (!saved || !Array.isArray(saved.items) || Date.now() - saved.at > this.MAX_AGE_MS) return null;
+      const i = saved.items.findIndex((it) => it[0] === slug);
+      if (i === -1) return null;
+      const at = (j) => (saved.items[j] ? { slug: saved.items[j][0], title: saved.items[j][1] } : null);
+      return { prev: at(i - 1), next: at(i + 1) };
+    } catch { return null; }
+  },
+};
+
+// Remember the list whenever a song link is followed (the buttons on the song page itself are left alone, so the
+// list survives going from song to song).
+['click', 'auxclick'].forEach((type) => document.addEventListener(type, (e) => {
+  if (type === 'click' && e.button !== 0) return;
+  const a = e.target.closest && e.target.closest('a[href^="/song/"]');
+  if (a && !a.closest('[data-song-nav]')) SongTrail.record(a);
+}, true));
+
+/** The floating Previous / Next buttons: tap or click anywhere on the lyrics to show them, again to hide them. */
+const SongNav = {
+  AUTO_HIDE_MS: 7000,
+
+  async setup(slug) {
+    this.slug = slug;
+    this.hide(true);
+    let n = SongTrail.neighbors(slug);
+    if (!n && Utils.isOnline()) {
+      try { n = await API.fetchJSON(`/songs/${encodeURIComponent(slug)}/neighbors`); } catch { n = null; }
+    }
+    if (this.slug !== slug) return; // another song was loaded meanwhile
+    this.neighbors = n && (n.prev || n.next) ? n : null;
+    this.build();
+    this.bind();
+  },
+
+  build() {
+    if (this.el) { this.el.remove(); this.el = null; }
+    if (!this.neighbors) return;
+    const t = (key, fallback) => { const v = I18n.t(key); return v && v !== key ? v : fallback; };
+    const chevron = (dir) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${dir === 'prev' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'}"/></svg>`;
+    const button = (dir, item) => item ? `
+      <a class="song-nav__btn song-nav__btn--${dir}" href="/song/${Utils.escapeHtml(encodeURIComponent(item.slug))}" rel="${dir}">
+        <span class="song-nav__icon">${chevron(dir)}</span>
+        <span class="song-nav__text">
+          <span class="song-nav__label">${Utils.escapeHtml(t(dir === 'prev' ? 'song.nav_prev' : 'song.nav_next', dir === 'prev' ? 'Previous' : 'Next'))}</span>
+          <span class="song-nav__title">${Utils.escapeHtml(item.title || '')}</span>
+        </span>
+      </a>` : '';
+    const el = document.createElement('nav');
+    el.className = `song-nav${this.neighbors.prev && this.neighbors.next ? '' : ' song-nav--single'}`;
+    el.setAttribute('data-song-nav', '');
+    el.setAttribute('aria-label', t('song.nav_label', 'Song navigation'));
+    el.hidden = true;
+    el.innerHTML = button('prev', this.neighbors.prev) + button('next', this.neighbors.next);
+    // Keep it visible while the pointer or keyboard focus is on it.
+    el.addEventListener('pointerenter', () => this.holdOpen(true));
+    el.addEventListener('pointerleave', () => this.holdOpen(false));
+    el.addEventListener('focusin', () => this.holdOpen(true));
+    el.addEventListener('focusout', () => this.holdOpen(false));
+    document.body.appendChild(el);
+    this.el = el;
+  },
+
+  /** Wire the lyrics and the keyboard once. */
+  bind() {
+    if (this._bound) return;
+    const lyrics = document.getElementById('songLyrics');
+    if (!lyrics) return;
+    this._bound = true;
+    lyrics.tabIndex = 0;
+    lyrics.addEventListener('click', (e) => {
+      if (e.target.closest('a, button')) return;
+      // Someone selecting lyrics to copy is not asking for the buttons.
+      const sel = window.getSelection && window.getSelection();
+      if (sel && !sel.isCollapsed && lyrics.contains(sel.anchorNode)) return;
+      this.toggle();
+    });
+    lyrics.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === lyrics) { e.preventDefault(); this.toggle(); }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (!this.el || this.el.hidden || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if (/^(input|textarea|select)$/i.test(e.target.tagName) || e.target.isContentEditable) return;
+      if (e.key === 'Escape') { this.hide(); return; }
+      const link = e.key === 'ArrowLeft' ? this.el.querySelector('[rel="prev"]') : e.key === 'ArrowRight' ? this.el.querySelector('[rel="next"]') : null;
+      if (link) { e.preventDefault(); window.location.href = link.href; }
+    });
+  },
+
+  toggle() {
+    if (!this.el) return;
+    if (this.el.hidden || !this.el.classList.contains('is-visible')) this.show(); else this.hide();
+  },
+
+  show() {
+    if (!this.el) return;
+    clearTimeout(this._hideTimer);
+    this.el.hidden = false;
+    requestAnimationFrame(() => requestAnimationFrame(() => this.el && this.el.classList.add('is-visible')));
+    this.armAutoHide();
+  },
+
+  hide(now = false) {
+    clearTimeout(this._autoTimer);
+    if (!this.el) return;
+    this.el.classList.remove('is-visible');
+    clearTimeout(this._hideTimer);
+    const done = () => { if (this.el && !this.el.classList.contains('is-visible')) this.el.hidden = true; };
+    if (now) done(); else this._hideTimer = setTimeout(done, 320);
+  },
+
+  armAutoHide() {
+    clearTimeout(this._autoTimer);
+    if (!this._held) this._autoTimer = setTimeout(() => this.hide(), this.AUTO_HIDE_MS);
+  },
+
+  holdOpen(on) {
+    this._held = on;
+    if (on) clearTimeout(this._autoTimer); else if (this.el && this.el.classList.contains('is-visible')) this.armAutoHide();
+  },
+};
+
 const SongPage = {
   async init() {
     const slug = Utils.getSlugFromUrl();
@@ -1679,6 +1844,7 @@ const SongPage = {
 
     this._currentSong = song;
     this.wireSongActions();
+    if (song.slug) SongNav.setup(song.slug);
   },
 
   /** Wire up Copy/Share buttons once; handlers read the current song at click-time. */
