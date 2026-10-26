@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS songs (
     copyright_owner_id  INTEGER,
     category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
     lyrics              TEXT NOT NULL,
+    original_key        TEXT,   -- Guitar Node: the key the song was written in ('C', 'Bb', 'Am', 'F#m'); NULL = unknown (migration 0021)
+    chords              TEXT,   -- Guitar Node: JSON { v: 1, lines: { "<line>": [[offset, "chord"], …] } }; NULL = no chords (migration 0021)
     views               INTEGER DEFAULT 0,
     status              TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'published', 'archived')),
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -185,6 +187,9 @@ CREATE TABLE IF NOT EXISTS song_revisions (
     title               TEXT NOT NULL,
     slug                TEXT NOT NULL,
     lyrics              TEXT NOT NULL,
+    original_key        TEXT,   -- Guitar Node (migration 0021)
+    chords              TEXT,   -- Guitar Node (migration 0021)
+    has_chord_data      INTEGER NOT NULL DEFAULT 0,   -- 1 when the submitter sent the key / chords (so approving applies them)
     category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
     copyright_owner_id  INTEGER REFERENCES copyright_owners(id) ON DELETE SET NULL,
     artist_ids          TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(artist_ids)),

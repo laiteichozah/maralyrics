@@ -24,8 +24,11 @@
     "test:songnav": "node --no-warnings scripts/check-song-nav.mjs",
     "test:sync": "node --no-warnings scripts/check-sync.mjs",
     "test:account": "node --no-warnings scripts/check-account.mjs",
+    "test:guitar": "node --no-warnings scripts/check-guitar-node.mjs",
+    "test:chords": "node --no-warnings scripts/check-chords.mjs",
     "test:e2e": "node --no-warnings scripts/e2e-account.mjs",
-    "test": "npm run test:claims && npm run test:green && npm run test:social && npm run test:idol && npm run test:badges && npm run test:richtext && npm run test:auth && npm run test:songnav && npm run test:sync && npm run test:account && npm run seo:check && npm run i18n:check && npm run changelog:check",
+    "test:e2e:guitar": "node --no-warnings scripts/e2e-guitar-node.mjs",
+    "test": "npm run test:claims && npm run test:green && npm run test:social && npm run test:idol && npm run test:badges && npm run test:richtext && npm run test:auth && npm run test:songnav && npm run test:sync && npm run test:account && npm run test:chords && npm run test:guitar && npm run seo:check && npm run i18n:check && npm run changelog:check",
     "changelog": "node scripts/changelog.mjs",
     "changelog:check": "node scripts/changelog.mjs --check"
   },

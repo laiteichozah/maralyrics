@@ -11,7 +11,7 @@
 //
 // Bump CACHE_VERSION whenever a precached file's content changes, so returning admins
 // pick up the new version instead of a stale cached copy.
-const CACHE_VERSION = 'ml-admin-v18';
+const CACHE_VERSION = 'ml-admin-v19';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -26,6 +26,7 @@ const SHELL_ASSETS = [
   '/toast.js',
   '/social-icons.js',
   '/rich-text.js',
+  '/chords.js',
 ];
 
 self.addEventListener('install', (event) => {

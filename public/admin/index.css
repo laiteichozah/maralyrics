@@ -1556,3 +1556,30 @@ button.is-busy::after {
 .green-order dt { color: var(--text-muted); font-size: var(--text-sm); }
 .green-order dd { margin: 0; overflow-wrap: anywhere; }
 .green-order__receipt { display: block; max-width: 100%; max-height: 360px; border-radius: var(--radius-md); border: 1px solid var(--border-glass); }
+
+
+/* ─── Guitar Node (song form): key, chord sheet, palette, preview ───────────────────────────────────────── */
+.gn-admin { margin: 0 0 var(--space-md); padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md, 10px); }
+.gn-admin__legend { padding: 0 8px; font-weight: 700; font-size: var(--text-sm); }
+.gn-admin__check { display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; }
+.gn-admin__sheet { font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.7; min-height: 260px; white-space: pre; overflow-x: auto; }
+.gn-admin__palette { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-xs); }
+.gn-admin__palette button {
+  min-width: 44px; min-height: 34px; padding: 0 10px; border: 1px solid var(--border-glass); border-radius: 8px;
+  background: var(--bg-glass); color: var(--accent-light); font-family: var(--font-mono); font-weight: 700; cursor: pointer;
+}
+.gn-admin__palette button:hover { border-color: var(--accent); }
+.gn-admin__previewbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: var(--space-xs); }
+.gn-admin__previewbar select { width: auto; min-width: 130px; }
+.gn-admin__preview { max-height: 360px; overflow: auto; padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md, 10px); background: rgba(255,255,255,0.02); font-family: 'Georgia', 'Noto Serif', serif; font-size: 1.05rem; line-height: 1.35; }
+.gn-admin [hidden] { display: none !important; }
+.gn-line { display: flex; flex-wrap: wrap; align-items: flex-end; min-height: 1.35em; margin-top: 0.15em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.gn-line--plain { display: block; padding-top: 0.1em; }
+.gn-line--blank { min-height: 1.1em; }
+.gn-seg { display: inline-flex; flex-direction: column; justify-content: flex-end; min-width: 0; max-width: 100%; }
+.gn-chord { min-height: 1.4em; padding-right: 0.7em; font-family: var(--font-mono); font-size: 0.82em; font-weight: 700; line-height: 1.4; color: var(--accent-light); white-space: pre; }
+.gn-line--chords .gn-chord { padding-right: 1em; }
+.gn-text { white-space: pre-wrap; min-width: 0; }
+.gn-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(139,92,246,0.18); color: var(--accent-light); font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
+
+.gn-admin__tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: var(--space-sm); }
