@@ -9,9 +9,9 @@
 // (songs, articles, reference lists, the offline write queue) lives in IndexedDB via
 // offline-db.js/offline-sync.js, not in this cache — so API requests are left alone here.
 //
-// Bump CACHE_VERSION whenever a precached file's content changes, so returning admins
-// pick up the new version instead of a stale cached copy.
-const CACHE_VERSION = 'ml-admin-v19';
+// Bump CACHE_VERSION whenever a precached file's content changes (the offline copies are replaced; while online the
+// network is always asked first — see the fetch handler).
+const CACHE_VERSION = 'ml-admin-v20';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -77,17 +77,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static shell assets: cache-first, refreshing the cache in the background on a hit
-  // and populating it on a miss — keeps the dashboard usable offline after first load.
+  // Static shell assets (scripts, styles, icons): NETWORK-FIRST, falling back to the cache only when offline. The page itself
+  // is always fetched fresh (above), and its scripts and styles must be the same version as it — serving them from the cache
+  // first meant that, after a deploy, the new page ran last week's JavaScript and CSS until a second reload. Every successful
+  // response refreshes the cache, so the dashboard still opens offline.
   event.respondWith(
-    caches.match(req).then((cached) => {
-      const network = fetch(req)
-        .then((res) => {
-          if (res && res.ok) caches.open(CACHE_VERSION).then((cache) => cache.put(req, res.clone())).catch(() => {});
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(req)
+      .then((res) => {
+        if (res && res.ok) caches.open(CACHE_VERSION).then((cache) => cache.put(req, res.clone())).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(req).then((cached) => cached || Response.error()))
   );
 });

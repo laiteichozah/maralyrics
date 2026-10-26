@@ -1340,6 +1340,16 @@ function gnDrawPreview(parsed) {
 
 function wireGuitarNodeAdmin() {
   gnFillKeys();
+  // The chord engine is a module script that normally has run by now. If it has not (a blocked or failed request), ask for it
+  // again, and say so plainly instead of leaving the key list empty.
+  if (!gnApi()) {
+    import('/chords.js').then(() => { gnFillKeys(); gnDrawPalette(); }).catch(() => {
+      const note = gnEl('gnAdminErrors');
+      note.hidden = false;
+      note.textContent = 'The chord editor could not load (/chords.js). Reload the page with Ctrl+F5; if it still fails, check your connection.';
+      gnEl('gnAdminBody').hidden = false;
+    });
+  }
   gnEl('formChordsOn').addEventListener('change', (e) => {
     const C = gnApi();
     if (e.target.checked) {
