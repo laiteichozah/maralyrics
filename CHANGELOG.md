@@ -263,10 +263,184 @@ The MaraLyrics lyrics site and its admin dashboard on Cloudflare Pages + Workers
 
 **Database migrations:** `0001_professional_upgrade.sql`, `0002_admin_role_system.sql`, `0003_multi_artist_composer.sql`, `0004_role_matrix_and_revisions.sql`, `0005_admin_profiles_and_follows.sql`
 
-6 commits (0 merge commits not listed) · 1 author · 63 files changed, 20004 insertions(+)
+180 commits (30 merge commits not listed) · 4 authors · 63 files changed, 20004 insertions(+)
 
-<details><summary>Full log — 6 commits</summary>
+<details><summary>Full log — 180 commits</summary>
 
+- `a9a5803` 2026-02-13 Initial commit: MaraLyrics - Cloudflare Workers + D1 lyrics website — Laitei
+- `71fac51` 2026-02-13 feat: add admin dashboard with full CRUD for songs — Laitei
+- `2c9dbca` 2026-02-13 chore: move admin assets into admin folder — Laitei
+- `6ed0151` 2026-02-13 Update wrangler.toml — Laitei
+- `0cb0c78` 2026-02-13 Fix API base URL for production deployment on Cloudflare Pages — Laitei
+- `1317a3b` 2026-02-13 Updated Admin page — Laitei
+- `79c6e58` 2026-02-14 Fix admin Pages: copy style.css + icon.svg, update paths for separate domain — Laitei
+- `b4e0525` 2026-02-14 Add _redirects for Pages SPA routing on /song/* URLs — Laitei
+- `146406e` 2026-02-14 Fix song page: move to song/index.html to prevent Pages 308 redirect — Laitei
+- `3f90661` 2026-02-14 Rename song page to songview.html to avoid Pages /song/ path conflict — Laitei
+- `9deed77` 2026-02-14 Add Pages Function for /song/* routing instead of _redirects — Laitei
+- `b8feac0` 2026-02-15 Updated UI, Backend, and System — Laitei
+- `5a754ed` 2026-02-15 Add social links + image upload/crop for artists & composers — Laitei
+- `da36e1f` 2026-02-15 Add Report Error feature with form + API + D1 storage — Laitei
+- `a2f2614` 2026-02-15 Polish report button + MailChannels email — Laitei
+- `d819d84` 2026-02-15 Fix report email sending via MailChannels — Laitei
+- `3308332` 2026-02-15 Add /report route to serve report.html — Laitei
+- `4bd5f0f` 2026-02-15 Remove MailChannels, add Reports tab to admin dashboard — Laitei
+- `26b3b02` 2026-02-15 Fix reports API response format — Laitei
+- `e2b5d53` 2026-02-15 Rename Report Error to Feedback — Laitei
+- `4075efd` 2026-02-15 Add Cloudflare Turnstile to feedback form, add feedback detail modal to admin — Laitei
+- `933f898` 2026-02-15 Professional Send Feedback button with gradient and hover effects — Laitei
+- `f8e465a` 2026-02-15 Remove Turnstile secret from wrangler.toml, use Worker secret instead — Laitei
+- `81f06e6` 2026-02-15 feat: add i18n support for Mara and Burmese with Crowdin integration — Laitei
+- `e4f32ab` 2026-02-15 fix: use correct ISO 639-3 code mrh for Mara language — Laitei
+- `bbe8b6a` 2026-02-15 New translations en.json (Burmese) — Laitei
+- `b015e32` 2026-02-15 New translations en.json (Mara) — Laitei
+- `d4e3b74` 2026-02-15 Add settings dropdown with theme system (Dark/Light/System/Time) — Laitei
+- `70ef67e` 2026-02-15 Improve light theme: proper text/bg contrast across all components — Laitei
+- `3c23a07` 2026-02-15 Fix active category text color in light mode — Laitei
+- `e420b59` 2026-02-15 Add static pages (privacy, terms, copyright), new footer, /api/contact endpoint — Laitei
+- `2803b0e` 2026-02-15 Footer bottom: horizontal on desktop, stacked on mobile — Laitei
+- `4aa16a6` 2026-02-15 Add YouTube and Facebook social icons to footer — Laitei
+- `c6979ed` 2026-02-15 Add i18n support to static pages, update all locale files, remove (Lai) references — Laitei
+- `6014adf` 2026-02-15 New translations en.json (Burmese) — Laitei
+- `47a29d6` 2026-02-15 New translations en.json (Mara) — Laitei
+- `49f9c1a` 2026-02-15 Update email addresses: contact@ → info@ for general, copyright@ → contact@ for copyright claims — Laitei
+- `2754ca3` 2026-02-15 New translations en.json (Burmese) — Laitei
+- `c4c4aea` 2026-02-15 New translations en.json (Mara) — Laitei
+- `b50fc6f` 2026-02-15 Added copyright features — Laitei
+- `2423043` 2026-02-15 Fix copyright owner 404 on Pages, move copyright to song footer — Laitei
+- `9467021` 2026-02-15 Fix copyright owner slug extraction in getSlugFromUrl regex — Laitei
+- `0471a27` 2026-02-15 Simplify copyright owner display on song page — Laitei
+- `e23edc2` 2026-02-15 Move copyright owner to footer row beside Feedback button — Laitei
+- `855554c` 2026-02-15 Lyrics+fuzzy search, debounce, and suggestions for no results — Laitei
+- `0cb9272` 2026-02-15 Add lyrics search, fuzzy matching, and song suggestions — Laitei
+- `5bf7919` 2026-02-15 Support custom domains (maralyrics.com, admin.maralyrics.com) — Laitei
+- `218214b` 2026-02-15 New translations en.json (Mara) — Laitei
+- `6751d1c` 2026-02-16 Fix admin View Song links to use absolute main site URL — Laitei
+- `ed51d1a` 2026-02-16 Fix all admin view links to use absolute main site URLs — Laitei
+- `d186910` 2026-02-16 Add Service Worker for smart offline caching — Laitei
+- `9e54465` 2026-02-16 Add search history and cookie consent banner — Laitei
+- `9f932e3` 2026-02-16 Fix SW ERR_FAILED: add missing await on caches.match fallbacks — Laitei
+- `a3fe7f6` 2026-02-16 Fix search history: z-index and intermediate keystroke saving — Laitei
+- `2a616b5` 2026-02-16 Fix SW ERR_FAILED on song pages + save search history on result click — Laitei
+- `8bc2b19` 2026-02-16 Add reusable toast system, header offline badge, and UI feedback toasts — Laitei
+- `ca8845d` 2026-02-16 Convert all hardcoded strings to I18n — Laitei
+- `9f090a3` 2026-02-16 New translations en.json (Burmese) — Laitei
+- `2ed2536` 2026-02-16 New translations en.json (Mara) — Laitei
+- `6028e63` 2026-02-24 New translations en.json (Burmese) — Laitei
+- `74b3b15` 2026-02-24 New translations en.json (Burmese) — Laitei
+- `8ec9d0e` 2026-02-24 New translations en.json (Mara) — Laitei
+- `abdf674` 2026-02-24 chore(i18n): remove -MM locale duplicates, map mrh-MM/my-MM to mrh/my in Crowdin — Laitei40
+- `2bda9e5` 2026-02-24 fix(i18n): always persist language to localStorage, not gated by cookie consent — Laitei40
+- `4f106b0` 2026-02-25 New translations en.json (Burmese) — Laitei
+- `4d411cf` 2026-02-25 New translations en.json (Mara) — Laitei
+- `e0fb199` 2026-02-25 feat: optimistic delete, session persistence, auto-draft for songs/artists/composers — Laitei40
+- `45b621f` 2026-02-26 Add modern mobile drawer navigation for Home and Popular — Laitei
+- `72c6590` 2026-02-26 Add language and theme controls to mobile drawer — Laitei
+- `8cf7f56` 2026-02-26 Use settings button inside mobile drawer and support multiple toggles — Laitei
+- `8350270` 2026-02-26 Fix mobile drawer variable redeclaration conflict — Laitei
+- `18c4029` 2026-02-26 Move settings-toggle into mobile drawer on small screens; preserve language & theme controls for mobile — Laitei40
+- `619d5b5` 2026-02-26 Allow multi-artist/composer/copyright associations (up to 40); add junction tables; admin multi-select UI — Laitei40
+- `c06f686` 2026-02-26 Support multi associations (artists/composers/copyright owners) up to 40: DB junction tables, API helpers, admin multi-select UI — Laitei40
+- `4741992` 2026-02-26 Fix admin select dropdown colors for dark theme — Laitei40
+- `1c21cca` 2026-02-26 Support up to 40 song associations and fix admin select contrast — Laitei
+- `a65ac5f` 2026-02-26 Revert "Support up to 40 song associations and fix admin dropdown contrast" — Laitei
+- `a7a1cd1` 2026-02-26 Revert "Merge branch 'Laitei40'" — Laitei
+- `a869828` 2026-02-26 Fix admin dropdown contrast and add glass drawer panel — Laitei
+- `bdcbc0d` 2026-02-28 Update my.json — Laitei
+- `2052a2f` 2026-02-28 Update my.json — Laitei
+- `d3d9c20` 2026-03-07 Add files via upload — Laitei
+- `812682d` 2026-03-07 Add dynamic D1-backed sitemap XML endpoint — Laitei
+- `8bc4dd5` 2026-03-06 Delete public/sitemap.xml — Laitei
+- `7984266` 2026-03-06 Create sitemap.xml.js — Laitei
+- `0a551b6` 2026-03-07 Improve dynamic sitemap lastmod and song SEO metadata — Laitei
+- `02ca64d` 2026-03-06 Update wrangler.toml — Laitei
+- `2eeaae5` 2026-03-06 Update sitemap.xml.js — Laitei
+- `f3deac7` 2026-03-07 Update sitemap.xml.js — Laitei
+- `f8781bf` 2026-03-22 Initial plan — copilot-swe-agent[bot]
+- `23aba63` 2026-03-22 Fix drawer theme adaptation and prevent overscroll reveal — copilot-swe-agent[bot]
+- `0effea4` 2026-03-22 Initial plan — copilot-swe-agent[bot]
+- `29f2ef8` 2026-03-22 fix: cookie consent banner too wide on mobile devices — copilot-swe-agent[bot]
+- `001b28a` 2026-03-22 Initial plan — copilot-swe-agent[bot]
+- `13b3942` 2026-03-22 fix: move mobile drawer outside header to fix full-screen display and scroll issues — copilot-swe-agent[bot]
+- `0492c5f` 2026-03-22 Initial plan — copilot-swe-agent[bot]
+- `4de3690` 2026-03-22 fix: replace overflow:hidden with overflow:clip on .mobile-drawer to fix page scroll — copilot-swe-agent[bot]
+- `bfd7e7f` 2026-03-22 Fix blocked page scrolling on mobile drawer — Laitei
+- `2ee4ec1` 2026-03-22 Fix page scrolling and simplify mobile drawer — Laitei
+- `1e0e458` 2026-05-02 Add live settings script to index.html — Laitei
+- `9bc0e62` 2026-05-08 Remove live settings and Transifex script — Laitei
+- `f19cfcd` 2026-05-08 New translations en.json (Mara) — Laitei
+- `b936058` 2026-05-08 New translations en.json (Mara) — Laitei
+- `6b07b8a` 2026-05-08 Update language mapping in crowdin.yml — Laitei
+- `5f96373` 2026-05-09 New translations en.json (Mara) — Laitei
+- `56a1a8b` 2026-05-08 Delete public/locales/mrh-MM.json — Laitei
+- `50ea7e8` 2026-05-08 Delete public/locales/my-MM.json — Laitei
+- `956a6ba` 2026-05-09 New translations en.json (Burmese) — Laitei
+- `eec0995` 2026-05-09 New translations en.json (Burmese) — Laitei
+- `fd5d5ef` 2026-05-08 Update issue templates — Laitei
+- `85dbbec` 2026-05-09 New translations en.json (Burmese) — Laitei
+- `b7677bf` 2026-05-09 New translations en.json (Burmese) (#23) — Laitei
+- `f29bd50` 2026-05-14 New translations en.json (Burmese) (#24) — Laitei
+- `9c311a8` 2026-05-14 Improved Localization system. — Laitei40
+- `be0e790` 2026-05-14 i18n: add brand.name and clean locale files; use brand.name in header/meta — Laitei40
+- `0f5362d` 2026-05-14 fix(locales): repair en.json syntax; add brand.name — Laitei40
+- `218bf0c` 2026-05-14 Updated Localization. — Laitei40
+- `8307ada` 2026-05-14 New Crowdin updates (#25) — Laitei
+- `62e9c85` 2026-05-14 Updated redirects, and workers. — Laitei40
+- `4eb2e1e` 2026-05-14 Updated redirects. — laitei40
+- `148cae9` 2026-05-14 New Crowdin updates (#26) — Laitei
+- `705e8aa` 2026-05-14 Updated routing. — laitei40
+- `b4e5ff4` 2026-05-14 Bugs fixed. — laitei40
+- `26ea520` 2026-05-14 Updated Route.json — laitei40
+- `100b6a5` 2026-05-14 Fixed Bugs. — laitei40
+- `f43a46a` 2026-05-14 Updated route system. — laitei40
+- `3d003a2` 2026-05-14 Updated features. — laitei40
+- `19317aa` 2026-05-14 New translations en.json (Burmese) (#27) — Laitei
+- `a4d6dcd` 2026-05-14 Modify footer brand link for internationalization — Laitei
+- `1abcf74` 2026-05-14 Updated features. — Laitei40
+- `380e029` 2026-05-14 Addded schema.sql — Laitei40
+- `9d57012` 2026-05-14 Fixed bug. — laitei40
+- `83022a8` 2026-05-14 Updated route features. — laitei40
+- `377f43e` 2026-05-14 Route updated. — laitei40
+- `7711cff` 2026-05-14 Fixed bug. — laitei40
+- `47a77c9` 2026-05-14 Fixed Artist, and Composer route. — laitei40
+- `001f91e` 2026-05-14 Fixed bug. — laitei40
+- `1619ef9` 2026-05-14 Rolled back. — laitei40
+- `4f0d2c7` 2026-05-14 Functions folder liata ypazy panano. — laitei40
+- `3013f11` 2026-05-14 Crowding data eima pathlai. — laitei40
+- `80c1e0a` 2026-05-14 A parohpa eima so. — laitei40
+- `0e5e5c0` 2026-05-14 Dateleted some data. — Laitei40
+- `4737d3a` 2026-05-14 Added Clean data. — Laitei40
+- `1da9e72` 2026-06-19 Added LICENSE file. — Laitei40
+- `823f9e2` 2026-06-19 Updated README. — Laitei40
+- `8d9317b` 2026-06-22 Add Transifex configuration for translations — Laitei
+- `1122450` 2026-06-22 Update transifex.yml — Laitei
+- `fdddcfa` 2026-07-04 Updated wrangler.toml — Laitei40
+- `4353afb` 2026-07-04 Updated Admin Dashbard. — Laitei40
+- `4632f45` 2026-07-04 Updated the admin page. — Laitei40
+- `87cd82e` 2026-07-04 Moved Admin site out if the Public directory. — Laitei40
+- `0693325` 2026-07-04 Deleted worker.js — Laitei40
+- `9ba7710` 2026-07-04 Moved admin to public — Laitei40
+- `d86c242` 2026-07-08 Add versioned REST API worker with admin auth, and safe D1 migrations — Laitei40
+- `8dd751a` 2026-07-08 Modernize view page UI: fix broken copyright card, SVG icons, copy/share — Laitei40
+- `5307ca0` 2026-07-08 Increase spacing above Go Home button in empty states — Laitei40
+- `a3dedce` 2026-07-08 Further increase Go Home button spacing (previous bump was too subtle) — Laitei40
+- `596959f` 2026-07-08 Update footer tagline to "Proudly Made in Maraland" — Laitei40
+- `cac38d7` 2026-07-08 Replace footer Facebook link with Reddit community link — Laitei40
+- `02d628e` 2026-07-08 Add "The Project" page: live stats and GitHub contributors — Laitei40
+- `12842fe` 2026-07-08 Add professional SEO system: per-page metadata, sitemap, robots.txt — Laitei40
+- `ac98afe` 2026-07-08 Proxy GitHub contributors through the worker instead of the browser — Laitei40
+- `4d981de` 2026-07-08 Filter out bot accounts (e.g. GitHub Copilot) from contributors list — Laitei40
+- `c7e3f02` 2026-07-08 Complete i18n coverage across the site (excluding actual content data) — Laitei40
+- `e918d73` 2026-07-08 Optimize i18n architecture: dedupe strings into common.*, remove dead keys — Laitei40
+- `7dbbdd0` 2026-07-08 Add incremental sync support to /version and /bootstrap — Laitei40
+- `455a3b5` 2026-07-09 Fix contact/report forms sending on production domain — Laitei40
+- `e56480f` 2026-07-09 Replace single shared ADMIN_TOKEN with a per-account role system — Laitei40
+- `73f434c` 2026-07-09 Update local dev secrets and wrangler.toml docs for JWT_SECRET — Laitei40
+- `fba0fa9` 2026-07-09 Support multiple artists/composers per song (up to 20 each) — Laitei40
+- `8d8f266` 2026-07-09 Collapse multiple credited artists/composers into a "Various" popover — Laitei40
+- `3d44d86` 2026-07-09 Bump service worker cache version to ship the credits popover JS — Laitei40
+- `a61fa2c` 2026-07-09 Fix admin song search to run server-side across all songs — Laitei40
+- `ed0754b` 2026-07-10 Replace native multi-select with checkbox lists for Artist/Composer — Laitei40
 - `28a4816` 2026-07-10 Polish the artist/composer checkbox lists, add an "Unknown" option — Laitei40
 - `a8deb14` 2026-07-10 Fix filter crash on the Unknown checkbox row — Laitei40
 - `46ccd8f` 2026-07-11 Fix admin feedback modal padding and field layout — Laitei40

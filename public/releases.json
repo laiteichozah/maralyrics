@@ -633,7 +633,7 @@
     "Admin profile pages with follow / unfollow and self-service account management",
     "Header links consolidated into a Settings dropdown; polished artist / composer checkbox lists with an \"Unknown\" option"
    ],
-   "commit_count": 6,
+   "commit_count": 180,
    "compare_url": "https://github.com/laiteichozah/maralyrics/commits/c57e1f532c086a5e5e45d68af392a3b299647463",
    "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.0.0",
    "commits": [
@@ -678,6 +678,1224 @@
      "date": "2026-07-10",
      "subject": "Polish the artist/composer checkbox lists, add an \"Unknown\" option",
      "author": "Laitei40"
+    },
+    {
+     "sha": "ed0754b14c071d673c3a857c45106e092945cdbe",
+     "short": "ed0754b",
+     "date": "2026-07-10",
+     "subject": "Replace native multi-select with checkbox lists for Artist/Composer",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "a61fa2cfc23bb068ab92e69738eddd76d37c200b",
+     "short": "a61fa2c",
+     "date": "2026-07-09",
+     "subject": "Fix admin song search to run server-side across all songs",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "3d44d862b7df7dbb112434b4ce75ebc134adf7b9",
+     "short": "3d44d86",
+     "date": "2026-07-09",
+     "subject": "Bump service worker cache version to ship the credits popover JS",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "8d8f2669e651c0279f31aea652c4a2541f6c1899",
+     "short": "8d8f266",
+     "date": "2026-07-09",
+     "subject": "Collapse multiple credited artists/composers into a \"Various\" popover",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "fba0fa9bb720f2623c4f648ac6b3b61d432c5aec",
+     "short": "fba0fa9",
+     "date": "2026-07-09",
+     "subject": "Support multiple artists/composers per song (up to 20 each)",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "73f434c29dda4229d61743fa1a2fe917eabbed53",
+     "short": "73f434c",
+     "date": "2026-07-09",
+     "subject": "Update local dev secrets and wrangler.toml docs for JWT_SECRET",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "e56480fd5bbcf7c8a7aa3feabae4986001cb78cf",
+     "short": "e56480f",
+     "date": "2026-07-09",
+     "subject": "Replace single shared ADMIN_TOKEN with a per-account role system",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "455a3b5c57f7701a9ca3c4aedb777f47d67609cb",
+     "short": "455a3b5",
+     "date": "2026-07-09",
+     "subject": "Fix contact/report forms sending on production domain",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "7dbbdd0e22aae3fdf9d86524730195fb5218f885",
+     "short": "7dbbdd0",
+     "date": "2026-07-08",
+     "subject": "Add incremental sync support to /version and /bootstrap",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "e918d73a55265eb1f32d46abd000761d4ec783c9",
+     "short": "e918d73",
+     "date": "2026-07-08",
+     "subject": "Optimize i18n architecture: dedupe strings into common.*, remove dead keys",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "c7e3f02690a580d0ca3c5d117778c72973ffa2a9",
+     "short": "c7e3f02",
+     "date": "2026-07-08",
+     "subject": "Complete i18n coverage across the site (excluding actual content data)",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "4d981dedb1fdf87cd33380b9b84ae35e46305070",
+     "short": "4d981de",
+     "date": "2026-07-08",
+     "subject": "Filter out bot accounts (e.g. GitHub Copilot) from contributors list",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "ac98afe3c0d1014046892547ea7f1a332800059c",
+     "short": "ac98afe",
+     "date": "2026-07-08",
+     "subject": "Proxy GitHub contributors through the worker instead of the browser",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "12842fe6564c3985531c4a92b8d54651c410cf79",
+     "short": "12842fe",
+     "date": "2026-07-08",
+     "subject": "Add professional SEO system: per-page metadata, sitemap, robots.txt",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "02d628e675eea72808fdcee8cf5da28873c16061",
+     "short": "02d628e",
+     "date": "2026-07-08",
+     "subject": "Add \"The Project\" page: live stats and GitHub contributors",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "cac38d7a021c41d9905939a8024f32a68eba8aeb",
+     "short": "cac38d7",
+     "date": "2026-07-08",
+     "subject": "Replace footer Facebook link with Reddit community link",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "596959f28c6506b127e345055eaf3b8a341abb11",
+     "short": "596959f",
+     "date": "2026-07-08",
+     "subject": "Update footer tagline to \"Proudly Made in Maraland\"",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "a3dedcec086ef26eaa81ac991ee3f178461638e1",
+     "short": "a3dedce",
+     "date": "2026-07-08",
+     "subject": "Further increase Go Home button spacing (previous bump was too subtle)",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "5307ca04ee9d4b6568e46844af5855473e9cb94d",
+     "short": "5307ca0",
+     "date": "2026-07-08",
+     "subject": "Increase spacing above Go Home button in empty states",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "8dd751a03af3b1bd646ed2c25c5cd722d0ba009c",
+     "short": "8dd751a",
+     "date": "2026-07-08",
+     "subject": "Modernize view page UI: fix broken copyright card, SVG icons, copy/share",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "d86c24296cf22d9504c419224e479006eb3cd574",
+     "short": "d86c242",
+     "date": "2026-07-08",
+     "subject": "Add versioned REST API worker with admin auth, and safe D1 migrations",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "9ba7710e7b1d80c82d98f0c0d6f0677bafcf94d9",
+     "short": "9ba7710",
+     "date": "2026-07-04",
+     "subject": "Moved admin to public",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "0693325745edc74bec85294c5793e54bd71d54fc",
+     "short": "0693325",
+     "date": "2026-07-04",
+     "subject": "Deleted worker.js",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "87cd82ed28821931c4c05a024458eae11f4339c4",
+     "short": "87cd82e",
+     "date": "2026-07-04",
+     "subject": "Moved Admin site out if the Public directory.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "4632f45d21df42830bfc3f7ab8e79b2f50ce2534",
+     "short": "4632f45",
+     "date": "2026-07-04",
+     "subject": "Updated the admin page.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "4353afbfb4ea628f71265f92a7ab51bca25a9acc",
+     "short": "4353afb",
+     "date": "2026-07-04",
+     "subject": "Updated Admin Dashbard.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "fdddcfa5b85f6f9eace29f76d7ee9798b87c49b7",
+     "short": "fdddcfa",
+     "date": "2026-07-04",
+     "subject": "Updated wrangler.toml",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "11224500a9c8a2ae8f10068ff8ebfa4b87118b5f",
+     "short": "1122450",
+     "date": "2026-06-22",
+     "subject": "Update transifex.yml",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8d9317bb989b49cd2a8170594c05c4f058ebf630",
+     "short": "8d9317b",
+     "date": "2026-06-22",
+     "subject": "Add Transifex configuration for translations",
+     "author": "Laitei"
+    },
+    {
+     "sha": "823f9e2e828453bff66c854b15373e53504a82c2",
+     "short": "823f9e2",
+     "date": "2026-06-19",
+     "subject": "Updated README.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "1da9e7203bad605d0f8bf144d3c0d51eba1ebdb2",
+     "short": "1da9e72",
+     "date": "2026-06-19",
+     "subject": "Added LICENSE file.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "4737d3a2f24f878a1b1e57d88dea340ae51c9c75",
+     "short": "4737d3a",
+     "date": "2026-05-14",
+     "subject": "Added Clean data.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "0e5e5c0e9c46f216f200552cf1c5c8ba488f599f",
+     "short": "0e5e5c0",
+     "date": "2026-05-14",
+     "subject": "Dateleted some data.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "80c1e0aaeaded4f084e6e1e872269bf410e0ba7c",
+     "short": "80c1e0a",
+     "date": "2026-05-14",
+     "subject": "A parohpa eima so.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "3013f1188d0a290c4afa5f843c9c740f55b4f207",
+     "short": "3013f11",
+     "date": "2026-05-14",
+     "subject": "Crowding data eima pathlai.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "4f0d2c773c8ce24f0a89dee600c9a79dd2e3cb45",
+     "short": "4f0d2c7",
+     "date": "2026-05-14",
+     "subject": "Functions folder liata ypazy panano.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "1619ef9f028d9e1ff739941d5df2dac98700969b",
+     "short": "1619ef9",
+     "date": "2026-05-14",
+     "subject": "Rolled back.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "001f91eaae5fc5cb13026f218f78a07222e76ba7",
+     "short": "001f91e",
+     "date": "2026-05-14",
+     "subject": "Fixed bug.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "47a77c9fdb3a216d2e444fd56fde0105ee23f688",
+     "short": "47a77c9",
+     "date": "2026-05-14",
+     "subject": "Fixed Artist, and Composer route.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "7711cff0198280dbf81834312772d5d087d3e10a",
+     "short": "7711cff",
+     "date": "2026-05-14",
+     "subject": "Fixed bug.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "377f43e2ffc83d87bcaaffe930a1ae8c323d70b3",
+     "short": "377f43e",
+     "date": "2026-05-14",
+     "subject": "Route updated.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "83022a8ecdce16923b497805495f8e24bb8eee1c",
+     "short": "83022a8",
+     "date": "2026-05-14",
+     "subject": "Updated route features.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "9d570122aef1370a7f9c6d0b40ffd2747ccac47f",
+     "short": "9d57012",
+     "date": "2026-05-14",
+     "subject": "Fixed bug.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "380e0293c2784233e0c5e73dfe1250acab191e39",
+     "short": "380e029",
+     "date": "2026-05-14",
+     "subject": "Addded schema.sql",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "1abcf7454f70acf14cf9ca94ecd23bbafb698911",
+     "short": "1abcf74",
+     "date": "2026-05-14",
+     "subject": "Updated features.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "a4d6dcdac060293db8ac233a28cc63fa0b79ec86",
+     "short": "a4d6dcd",
+     "date": "2026-05-14",
+     "subject": "Modify footer brand link for internationalization",
+     "author": "Laitei"
+    },
+    {
+     "sha": "19317aa98844c821c15c21ac134523f0641991fd",
+     "short": "19317aa",
+     "date": "2026-05-14",
+     "subject": "New translations en.json (Burmese) (#27)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "3d003a2e1a95580d39cf532d5ec77d8f631970d8",
+     "short": "3d003a2",
+     "date": "2026-05-14",
+     "subject": "Updated features.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "f43a46ad2a4988a9fe1a3134712247b990905821",
+     "short": "f43a46a",
+     "date": "2026-05-14",
+     "subject": "Updated route system.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "100b6a558a7dfae743eb2fa17fe282d97125235c",
+     "short": "100b6a5",
+     "date": "2026-05-14",
+     "subject": "Fixed Bugs.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "26ea520e143fc35dc6620bceacad996bf1e78ae9",
+     "short": "26ea520",
+     "date": "2026-05-14",
+     "subject": "Updated Route.json",
+     "author": "laitei40"
+    },
+    {
+     "sha": "b4e5ff49f2fa07fb79371f663d20996dd4ce7b05",
+     "short": "b4e5ff4",
+     "date": "2026-05-14",
+     "subject": "Bugs fixed.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "705e8aaea3ae22fd8f83b1b6a3b7574ce33185ec",
+     "short": "705e8aa",
+     "date": "2026-05-14",
+     "subject": "Updated routing.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "148cae9ea6e54d1d7e6bf8a1c0c782f88a52f0f4",
+     "short": "148cae9",
+     "date": "2026-05-14",
+     "subject": "New Crowdin updates (#26)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4eb2e1e20bc52758a491b2432860b6231d7bed1a",
+     "short": "4eb2e1e",
+     "date": "2026-05-14",
+     "subject": "Updated redirects.",
+     "author": "laitei40"
+    },
+    {
+     "sha": "62e9c851fc59d8f6ca558f33d35b2e8d12391edd",
+     "short": "62e9c85",
+     "date": "2026-05-14",
+     "subject": "Updated redirects, and workers.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "8307ada2c7eb2df0ecfcd46120d185f750fce53a",
+     "short": "8307ada",
+     "date": "2026-05-14",
+     "subject": "New Crowdin updates (#25)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "218bf0c34282c7787e963543817530ac84548011",
+     "short": "218bf0c",
+     "date": "2026-05-14",
+     "subject": "Updated Localization.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "0f5362d931f2e85b2043672aaeec022dbeb8dd68",
+     "short": "0f5362d",
+     "date": "2026-05-14",
+     "subject": "fix(locales): repair en.json syntax; add brand.name",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "be0e79041d98dab1b3026baa9c4c3afe74411f18",
+     "short": "be0e790",
+     "date": "2026-05-14",
+     "subject": "i18n: add brand.name and clean locale files; use brand.name in header/meta",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "9c311a8b11b2d70e03b5215b69c58376d3cec8d7",
+     "short": "9c311a8",
+     "date": "2026-05-14",
+     "subject": "Improved Localization system.",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "f29bd5040ecc6de8a721e7afac72c2a8a465ee20",
+     "short": "f29bd50",
+     "date": "2026-05-14",
+     "subject": "New translations en.json (Burmese) (#24)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b7677bf0dfe2565332c6b28f7ee87f0d8ee4f342",
+     "short": "b7677bf",
+     "date": "2026-05-09",
+     "subject": "New translations en.json (Burmese) (#23)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "85dbbec77bc46518a392e19b2f52d7c50d1208c5",
+     "short": "85dbbec",
+     "date": "2026-05-09",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "fd5d5efe48a591d5e7dcd08c9677674228ff0be0",
+     "short": "fd5d5ef",
+     "date": "2026-05-08",
+     "subject": "Update issue templates",
+     "author": "Laitei"
+    },
+    {
+     "sha": "eec0995196226fe5e5b39896927b24bb02ce104a",
+     "short": "eec0995",
+     "date": "2026-05-09",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "956a6bafdfb0c29239ba33e1401556e3bf048bc5",
+     "short": "956a6ba",
+     "date": "2026-05-09",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "50ea7e8b336514e1dc6882365aa5b33503af6672",
+     "short": "50ea7e8",
+     "date": "2026-05-08",
+     "subject": "Delete public/locales/my-MM.json",
+     "author": "Laitei"
+    },
+    {
+     "sha": "56a1a8b6f4d0f1ae2d708344cd9a0932b36c4cfe",
+     "short": "56a1a8b",
+     "date": "2026-05-08",
+     "subject": "Delete public/locales/mrh-MM.json",
+     "author": "Laitei"
+    },
+    {
+     "sha": "5f9637319ef0b1214171f57010044c0865d98550",
+     "short": "5f96373",
+     "date": "2026-05-09",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6b07b8a88d8a6387c8adfe92a837d2839e5f821f",
+     "short": "6b07b8a",
+     "date": "2026-05-08",
+     "subject": "Update language mapping in crowdin.yml",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b9360582c12a1adda40a621aa9cb11458266b5f1",
+     "short": "b936058",
+     "date": "2026-05-08",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f19cfcdf2422d33d3f15a3bf4d00062ff49edd9b",
+     "short": "f19cfcd",
+     "date": "2026-05-08",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "9bc0e620a0d4aeff274a032a288dd56cec7ab4bf",
+     "short": "9bc0e62",
+     "date": "2026-05-08",
+     "subject": "Remove live settings and Transifex script",
+     "author": "Laitei"
+    },
+    {
+     "sha": "1e0e458bd607dd708f39acfeb030366f8e714587",
+     "short": "1e0e458",
+     "date": "2026-05-02",
+     "subject": "Add live settings script to index.html",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2ee4ec12dd3e8854a3b3ffd3cd76f73516eb45c1",
+     "short": "2ee4ec1",
+     "date": "2026-03-22",
+     "subject": "Fix page scrolling and simplify mobile drawer",
+     "author": "Laitei"
+    },
+    {
+     "sha": "bfd7e7f11c42de8d22278cef29f4aa4e88151ff5",
+     "short": "bfd7e7f",
+     "date": "2026-03-22",
+     "subject": "Fix blocked page scrolling on mobile drawer",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4de3690028627815b72414b1ebfc5779056953d1",
+     "short": "4de3690",
+     "date": "2026-03-22",
+     "subject": "fix: replace overflow:hidden with overflow:clip on .mobile-drawer to fix page scroll",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "0492c5f10d3a07beb40d84067cf548ce6e670b3d",
+     "short": "0492c5f",
+     "date": "2026-03-22",
+     "subject": "Initial plan",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "13b39428bbb2b9906fddd51610a3c671c34f62a0",
+     "short": "13b3942",
+     "date": "2026-03-22",
+     "subject": "fix: move mobile drawer outside header to fix full-screen display and scroll issues",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "001b28a67b4dca873f975dc2ac6c08839fa5f49c",
+     "short": "001b28a",
+     "date": "2026-03-22",
+     "subject": "Initial plan",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "29f2ef89da812ed7a4f135c6042c9ece929b1144",
+     "short": "29f2ef8",
+     "date": "2026-03-22",
+     "subject": "fix: cookie consent banner too wide on mobile devices",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "0effea43f225c8d4444e072845091acccf4d4937",
+     "short": "0effea4",
+     "date": "2026-03-22",
+     "subject": "Initial plan",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "23aba6352183f2adce1661fb74122065a89bad90",
+     "short": "23aba63",
+     "date": "2026-03-22",
+     "subject": "Fix drawer theme adaptation and prevent overscroll reveal",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "f8781bf45d444d0830c91757114138dd0922a017",
+     "short": "f8781bf",
+     "date": "2026-03-22",
+     "subject": "Initial plan",
+     "author": "copilot-swe-agent[bot]"
+    },
+    {
+     "sha": "f3deac7fa7a037265b19fb5652bf506524acdbdb",
+     "short": "f3deac7",
+     "date": "2026-03-07",
+     "subject": "Update sitemap.xml.js",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2eeaae5437658b36325ba3c62f8d3520ec0f8cff",
+     "short": "2eeaae5",
+     "date": "2026-03-06",
+     "subject": "Update sitemap.xml.js",
+     "author": "Laitei"
+    },
+    {
+     "sha": "02ca64ddb76745b4ee717f80d6ee639f385f4217",
+     "short": "02ca64d",
+     "date": "2026-03-06",
+     "subject": "Update wrangler.toml",
+     "author": "Laitei"
+    },
+    {
+     "sha": "0a551b6af5ec214c9266fb6b019bfa84dddccdeb",
+     "short": "0a551b6",
+     "date": "2026-03-07",
+     "subject": "Improve dynamic sitemap lastmod and song SEO metadata",
+     "author": "Laitei"
+    },
+    {
+     "sha": "7984266a6fbddbd5e03f5c292256216c2dd9c390",
+     "short": "7984266",
+     "date": "2026-03-06",
+     "subject": "Create sitemap.xml.js",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8bc4dd5d1a4c0223796395c8dc1c20d31f10e2ad",
+     "short": "8bc4dd5",
+     "date": "2026-03-06",
+     "subject": "Delete public/sitemap.xml",
+     "author": "Laitei"
+    },
+    {
+     "sha": "812682daadc7a26e69b1202237746d09e051a34b",
+     "short": "812682d",
+     "date": "2026-03-07",
+     "subject": "Add dynamic D1-backed sitemap XML endpoint",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d3d9c205547deda430d6e8008ba36a0aad2434b0",
+     "short": "d3d9c20",
+     "date": "2026-03-07",
+     "subject": "Add files via upload",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2052a2fe0794edacae82df83c1e83acd10685d15",
+     "short": "2052a2f",
+     "date": "2026-02-28",
+     "subject": "Update my.json",
+     "author": "Laitei"
+    },
+    {
+     "sha": "bdcbc0d9ba6f1180b3923e1714742e2ee905d564",
+     "short": "bdcbc0d",
+     "date": "2026-02-28",
+     "subject": "Update my.json",
+     "author": "Laitei"
+    },
+    {
+     "sha": "a869828bae4f7366e8b3d6c86d0429669d453cd3",
+     "short": "a869828",
+     "date": "2026-02-26",
+     "subject": "Fix admin dropdown contrast and add glass drawer panel",
+     "author": "Laitei"
+    },
+    {
+     "sha": "a7a1cd1630337c2cae3accc8f2555341bb5b0c4f",
+     "short": "a7a1cd1",
+     "date": "2026-02-26",
+     "subject": "Revert \"Merge branch 'Laitei40'\"",
+     "author": "Laitei"
+    },
+    {
+     "sha": "a65ac5f60d2b645f7fc987a81919caa863a9af97",
+     "short": "a65ac5f",
+     "date": "2026-02-26",
+     "subject": "Revert \"Support up to 40 song associations and fix admin dropdown contrast\"",
+     "author": "Laitei"
+    },
+    {
+     "sha": "1c21cca462b1fb14acb2bcc238abc3af8bb8ed9c",
+     "short": "1c21cca",
+     "date": "2026-02-26",
+     "subject": "Support up to 40 song associations and fix admin select contrast",
+     "author": "Laitei"
+    },
+    {
+     "sha": "47419929d5eb26dd1d42cdf8bf551b1dee5d4f88",
+     "short": "4741992",
+     "date": "2026-02-26",
+     "subject": "Fix admin select dropdown colors for dark theme",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "c06f6864a8dd706c92784d19da3f2775a461cacd",
+     "short": "c06f686",
+     "date": "2026-02-26",
+     "subject": "Support multi associations (artists/composers/copyright owners) up to 40: DB junction tables, API helpers, admin multi-select UI",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "619d5b5b134d2c7703805be82f3bbc38043edc57",
+     "short": "619d5b5",
+     "date": "2026-02-26",
+     "subject": "Allow multi-artist/composer/copyright associations (up to 40); add junction tables; admin multi-select UI",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "18c40294a2d4b914c06e59a7ea721283f1bd21c6",
+     "short": "18c4029",
+     "date": "2026-02-26",
+     "subject": "Move settings-toggle into mobile drawer on small screens; preserve language & theme controls for mobile",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "8350270230d994b3ea0cbd53dcf0938de83a357a",
+     "short": "8350270",
+     "date": "2026-02-26",
+     "subject": "Fix mobile drawer variable redeclaration conflict",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8cf7f56319c17375866f9502e96ca5049a9ab9ed",
+     "short": "8cf7f56",
+     "date": "2026-02-26",
+     "subject": "Use settings button inside mobile drawer and support multiple toggles",
+     "author": "Laitei"
+    },
+    {
+     "sha": "72c6590acb390d3b1411c6561259d9e8838570b9",
+     "short": "72c6590",
+     "date": "2026-02-26",
+     "subject": "Add language and theme controls to mobile drawer",
+     "author": "Laitei"
+    },
+    {
+     "sha": "45b621fbefbf6826d9ac5dfdb02e5b928cf15b99",
+     "short": "45b621f",
+     "date": "2026-02-26",
+     "subject": "Add modern mobile drawer navigation for Home and Popular",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e0fb19908e501e8698f1daf5e0b3f18cea7d7e5f",
+     "short": "e0fb199",
+     "date": "2026-02-25",
+     "subject": "feat: optimistic delete, session persistence, auto-draft for songs/artists/composers",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "4d411cff29676828c70961bed3e921544227c878",
+     "short": "4d411cf",
+     "date": "2026-02-25",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4f106b0989334d2cdda809411cc28aff49676d23",
+     "short": "4f106b0",
+     "date": "2026-02-25",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2bda9e5137a17863d30e66531f74dc9a2aa9b650",
+     "short": "2bda9e5",
+     "date": "2026-02-24",
+     "subject": "fix(i18n): always persist language to localStorage, not gated by cookie consent",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "abdf674d019bc0c58813f5450f2a657118b43eb9",
+     "short": "abdf674",
+     "date": "2026-02-24",
+     "subject": "chore(i18n): remove -MM locale duplicates, map mrh-MM/my-MM to mrh/my in Crowdin",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "8ec9d0eca40c7ab948339024d768c6d6deb279b1",
+     "short": "8ec9d0e",
+     "date": "2026-02-24",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "74b3b15ccc766ca4c54d3335ded0cff997211127",
+     "short": "74b3b15",
+     "date": "2026-02-24",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6028e632257f08efec51f0ad589f74d4442ae726",
+     "short": "6028e63",
+     "date": "2026-02-24",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2ed2536ea6ca224ef65ae9e9141365a7bddf5347",
+     "short": "2ed2536",
+     "date": "2026-02-16",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "9f090a35a4bfbdfedcaa961731fca931abb64c2f",
+     "short": "9f090a3",
+     "date": "2026-02-16",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ca8845d2fa6ce3c6ef6e7ca5575122a36c540629",
+     "short": "ca8845d",
+     "date": "2026-02-16",
+     "subject": "Convert all hardcoded strings to I18n",
+     "author": "Laitei"
+    },
+    {
+     "sha": "8bc2b191bb5de572952d2206eb8abeb7273659ed",
+     "short": "8bc2b19",
+     "date": "2026-02-16",
+     "subject": "Add reusable toast system, header offline badge, and UI feedback toasts",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2a616b5712284fbe285dfbe3343fba6bae02130a",
+     "short": "2a616b5",
+     "date": "2026-02-16",
+     "subject": "Fix SW ERR_FAILED on song pages + save search history on result click",
+     "author": "Laitei"
+    },
+    {
+     "sha": "a3fe7f6651657f3b74a736377c5265b3726a3c86",
+     "short": "a3fe7f6",
+     "date": "2026-02-16",
+     "subject": "Fix search history: z-index and intermediate keystroke saving",
+     "author": "Laitei"
+    },
+    {
+     "sha": "9f932e3e1cc8f897ebaacecdf00aad32335d4b70",
+     "short": "9f932e3",
+     "date": "2026-02-16",
+     "subject": "Fix SW ERR_FAILED: add missing await on caches.match fallbacks",
+     "author": "Laitei"
+    },
+    {
+     "sha": "9e544654433ae196e877989926474fa20ac39f1a",
+     "short": "9e54465",
+     "date": "2026-02-16",
+     "subject": "Add search history and cookie consent banner",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d18691016aa7e23c0f9a80a7c4248d5260d6abfc",
+     "short": "d186910",
+     "date": "2026-02-16",
+     "subject": "Add Service Worker for smart offline caching",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ed51d1aae38ec6c2741e185310e3a4cc5924e601",
+     "short": "ed51d1a",
+     "date": "2026-02-16",
+     "subject": "Fix all admin view links to use absolute main site URLs",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6751d1c979c02f30eaf415cf13bb5fc859fe038f",
+     "short": "6751d1c",
+     "date": "2026-02-16",
+     "subject": "Fix admin View Song links to use absolute main site URL",
+     "author": "Laitei"
+    },
+    {
+     "sha": "218214b46032cd20de0babc6b796a91c0dd0da6e",
+     "short": "218214b",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "5bf7919bf9b57398c7a7e9cf27afb93b0d8b0ca0",
+     "short": "5bf7919",
+     "date": "2026-02-15",
+     "subject": "Support custom domains (maralyrics.com, admin.maralyrics.com)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "0cb92724ba46b5b8fe62d7cb1223647988401cf4",
+     "short": "0cb9272",
+     "date": "2026-02-15",
+     "subject": "Add lyrics search, fuzzy matching, and song suggestions",
+     "author": "Laitei"
+    },
+    {
+     "sha": "855554c5ae6c4079bf03c45e9cac329b254bfad6",
+     "short": "855554c",
+     "date": "2026-02-15",
+     "subject": "Lyrics+fuzzy search, debounce, and suggestions for no results",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e23edc2afd320e37c23221df09ca329e285125ea",
+     "short": "e23edc2",
+     "date": "2026-02-15",
+     "subject": "Move copyright owner to footer row beside Feedback button",
+     "author": "Laitei"
+    },
+    {
+     "sha": "0471a27b5119eea3f2545077f0f04e617cf8e316",
+     "short": "0471a27",
+     "date": "2026-02-15",
+     "subject": "Simplify copyright owner display on song page",
+     "author": "Laitei"
+    },
+    {
+     "sha": "9467021ad05e9f6cc81f2db678fe45db40934591",
+     "short": "9467021",
+     "date": "2026-02-15",
+     "subject": "Fix copyright owner slug extraction in getSlugFromUrl regex",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2423043cf8964364105389bd22558d11ef592895",
+     "short": "2423043",
+     "date": "2026-02-15",
+     "subject": "Fix copyright owner 404 on Pages, move copyright to song footer",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b50fc6f9742061d012126a5c03d7fae074e23883",
+     "short": "b50fc6f",
+     "date": "2026-02-15",
+     "subject": "Added copyright features",
+     "author": "Laitei"
+    },
+    {
+     "sha": "c4c4aead41041325a882359c3c91e533051a39ab",
+     "short": "c4c4aea",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2754ca34b0af955804b6def426f981d3f1fdf4a5",
+     "short": "2754ca3",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "49f9c1aa8e23fb07879c5758678ab0315c8232b1",
+     "short": "49f9c1a",
+     "date": "2026-02-15",
+     "subject": "Update email addresses: contact@ → info@ for general, copyright@ → contact@ for copyright claims",
+     "author": "Laitei"
+    },
+    {
+     "sha": "47a29d6fdac8bdf03f106e7c99a8686133e92d81",
+     "short": "47a29d6",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6014adfade599afd8e8bae37ea44b6e8e12c3270",
+     "short": "6014adf",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "c6979ed707737560972e51114018c1a3a9bf5c8e",
+     "short": "c6979ed",
+     "date": "2026-02-15",
+     "subject": "Add i18n support to static pages, update all locale files, remove (Lai) references",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4aa16a6e43f3f14d4028c4204d52a74e9bad4a33",
+     "short": "4aa16a6",
+     "date": "2026-02-15",
+     "subject": "Add YouTube and Facebook social icons to footer",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2803b0e9782ecdc88c7258a584caefd8387524d4",
+     "short": "2803b0e",
+     "date": "2026-02-15",
+     "subject": "Footer bottom: horizontal on desktop, stacked on mobile",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e420b59521978005861a87242c7d491c725aa288",
+     "short": "e420b59",
+     "date": "2026-02-15",
+     "subject": "Add static pages (privacy, terms, copyright), new footer, /api/contact endpoint",
+     "author": "Laitei"
+    },
+    {
+     "sha": "3c23a074f046bb9d76934a2821af6a932559fa07",
+     "short": "3c23a07",
+     "date": "2026-02-15",
+     "subject": "Fix active category text color in light mode",
+     "author": "Laitei"
+    },
+    {
+     "sha": "70ef67e0854b30dec168993d67fb5069a18b81ec",
+     "short": "70ef67e",
+     "date": "2026-02-15",
+     "subject": "Improve light theme: proper text/bg contrast across all components",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d4e3b7448724539f43f54dacfde5c4b0bd983d97",
+     "short": "d4e3b74",
+     "date": "2026-02-15",
+     "subject": "Add settings dropdown with theme system (Dark/Light/System/Time)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b015e3281b834b7319638c252fa5049910bedaee",
+     "short": "b015e32",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Mara)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "bbe8b6a1bb34c4496a165fe8a37ac788bf344c64",
+     "short": "bbe8b6a",
+     "date": "2026-02-15",
+     "subject": "New translations en.json (Burmese)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e4f32ab725544bdc71ed5682cd0527089d6f8953",
+     "short": "e4f32ab",
+     "date": "2026-02-15",
+     "subject": "fix: use correct ISO 639-3 code mrh for Mara language",
+     "author": "Laitei"
+    },
+    {
+     "sha": "81f06e65e03c6cb1abf54a41630cfe7997e80632",
+     "short": "81f06e6",
+     "date": "2026-02-15",
+     "subject": "feat: add i18n support for Mara and Burmese with Crowdin integration",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f8e465a2a9c425aa7b4b6b2d87bd05b12050b5cb",
+     "short": "f8e465a",
+     "date": "2026-02-15",
+     "subject": "Remove Turnstile secret from wrangler.toml, use Worker secret instead",
+     "author": "Laitei"
+    },
+    {
+     "sha": "933f898afacc899891e4830478af6ceeb36ce8ed",
+     "short": "933f898",
+     "date": "2026-02-15",
+     "subject": "Professional Send Feedback button with gradient and hover effects",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4075efd4b69b9e61da2df4470b95fca1cbf4bbf0",
+     "short": "4075efd",
+     "date": "2026-02-15",
+     "subject": "Add Cloudflare Turnstile to feedback form, add feedback detail modal to admin",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e2b5d53eb208936cbc03c19eae61a45a197ccea6",
+     "short": "e2b5d53",
+     "date": "2026-02-15",
+     "subject": "Rename Report Error to Feedback",
+     "author": "Laitei"
+    },
+    {
+     "sha": "26b3b0270108bd218383da58592b852aa9915124",
+     "short": "26b3b02",
+     "date": "2026-02-15",
+     "subject": "Fix reports API response format",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4bd5f0f22ad9503519b4c16f996e0767a88e586b",
+     "short": "4bd5f0f",
+     "date": "2026-02-15",
+     "subject": "Remove MailChannels, add Reports tab to admin dashboard",
+     "author": "Laitei"
+    },
+    {
+     "sha": "3308332daea1d7357110a520a812e52ce71093cc",
+     "short": "3308332",
+     "date": "2026-02-15",
+     "subject": "Add /report route to serve report.html",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d819d84d7d2b1efe90592ee40b1cd05e80916087",
+     "short": "d819d84",
+     "date": "2026-02-15",
+     "subject": "Fix report email sending via MailChannels",
+     "author": "Laitei"
+    },
+    {
+     "sha": "a2f2614a13be46a194c9b7e3aad5aad4e6363c58",
+     "short": "a2f2614",
+     "date": "2026-02-15",
+     "subject": "Polish report button + MailChannels email",
+     "author": "Laitei"
+    },
+    {
+     "sha": "da36e1f513086ae3d15ddfa05eae78c040e9f6c7",
+     "short": "da36e1f",
+     "date": "2026-02-15",
+     "subject": "Add Report Error feature with form + API + D1 storage",
+     "author": "Laitei"
+    },
+    {
+     "sha": "5a754eddf3ea56ff94127dce6137a9647f2b7d7f",
+     "short": "5a754ed",
+     "date": "2026-02-15",
+     "subject": "Add social links + image upload/crop for artists & composers",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b8feac0600da71cc9fa63be7c829a3a44fd95237",
+     "short": "b8feac0",
+     "date": "2026-02-15",
+     "subject": "Updated UI, Backend, and System",
+     "author": "Laitei"
+    },
+    {
+     "sha": "9deed77b647a1af3de7fa0f934016813ed400608",
+     "short": "9deed77",
+     "date": "2026-02-14",
+     "subject": "Add Pages Function for /song/* routing instead of _redirects",
+     "author": "Laitei"
+    },
+    {
+     "sha": "3f90661cec0dc9ab6501bf537a5cc18c36b6752e",
+     "short": "3f90661",
+     "date": "2026-02-14",
+     "subject": "Rename song page to songview.html to avoid Pages /song/ path conflict",
+     "author": "Laitei"
+    },
+    {
+     "sha": "146406e4dd028746788de418af36924caa0a9964",
+     "short": "146406e",
+     "date": "2026-02-14",
+     "subject": "Fix song page: move to song/index.html to prevent Pages 308 redirect",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b4e0525458cfad087d0d87fd6351bbb53d02ffe4",
+     "short": "b4e0525",
+     "date": "2026-02-14",
+     "subject": "Add _redirects for Pages SPA routing on /song/* URLs",
+     "author": "Laitei"
+    },
+    {
+     "sha": "79c6e589e4493a9f1fcf3061c351a93c8ac61b29",
+     "short": "79c6e58",
+     "date": "2026-02-14",
+     "subject": "Fix admin Pages: copy style.css + icon.svg, update paths for separate domain",
+     "author": "Laitei"
+    },
+    {
+     "sha": "1317a3bd0c3e0c8300e242362ff1329eebd6f3ef",
+     "short": "1317a3b",
+     "date": "2026-02-13",
+     "subject": "Updated Admin page",
+     "author": "Laitei"
+    },
+    {
+     "sha": "0cb0c78aed81c33c9792772a0e9c4fcb174b79b0",
+     "short": "0cb0c78",
+     "date": "2026-02-13",
+     "subject": "Fix API base URL for production deployment on Cloudflare Pages",
+     "author": "Laitei"
+    },
+    {
+     "sha": "6ed01510a486ebd928ae384b8fe90045a4a37fb9",
+     "short": "6ed0151",
+     "date": "2026-02-13",
+     "subject": "Update wrangler.toml",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2c9dbcade2082040b613112387d3b38722d71ab5",
+     "short": "2c9dbca",
+     "date": "2026-02-13",
+     "subject": "chore: move admin assets into admin folder",
+     "author": "Laitei"
+    },
+    {
+     "sha": "71fac51dc65c8032fb2d153553176c763bc6f6af",
+     "short": "71fac51",
+     "date": "2026-02-13",
+     "subject": "feat: add admin dashboard with full CRUD for songs",
+     "author": "Laitei"
+    },
+    {
+     "sha": "a9a58038c8d156cf2cacd9eafea759671288e13f",
+     "short": "a9a5803",
+     "date": "2026-02-13",
+     "subject": "Initial commit: MaraLyrics - Cloudflare Workers + D1 lyrics website",
+     "author": "Laitei"
     }
    ]
   }
