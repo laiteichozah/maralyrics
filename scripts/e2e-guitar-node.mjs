@@ -59,19 +59,20 @@ song('Intro Song', 'intro-song', '\nFirst line\nSecond line', 'G', { v: 1, lines
 song('Burmese Song', 'burmese-song', 'မြန်မာနိုင်ငံ\nနောက်ဆုံး', 'D', { v: 1, lines: { 0: [[0, 'D'], [3, 'A']] } });
 
 const MIME = { '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml' };
+let adminCssMarker = '';  // changed by the test to play "a new version was deployed"
 const server = http.createServer((q, r) => {
   let p = q.url.split('?')[0];
   if (p.startsWith('/song/')) p = '/songview.html';
   else if (p === '/' ) p = '/index.html';
   else if (p === '/admin' || p === '/admin/') p = '/admin/index.html';
   else if (!path.extname(p)) p += '.html';
-  fs.readFile(path.join(PUB, p), (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'text/html' }); r.end(d); } });
+  fs.readFile(path.join(PUB, p), (e, d) => { if (e) { r.writeHead(404); r.end(); } else { r.writeHead(200, { 'content-type': MIME[path.extname(p)] || 'text/html' }); r.end(p === '/admin/index.css' && adminCssMarker ? Buffer.concat([d, Buffer.from(adminCssMarker)]) : d); } });
 }).listen(0);
 const SITE = `http://localhost:${server.address().port}`;
 
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-async function openPage({ viewport = { width: 1100, height: 900 }, admin = false, token = '' } = {}) {
-  const ctx = await browser.newContext({ serviceWorkers: 'block', viewport, permissions: [] });
+async function openPage({ viewport = { width: 1100, height: 900 }, admin = false, token = '', serviceWorkers = 'block' } = {}) {
+  const ctx = await browser.newContext({ serviceWorkers, viewport, permissions: [] });
   await ctx.addInitScript(([admin, token]) => {
     try { localStorage.setItem('ml_cookie_consent', 'accepted'); localStorage.setItem('ml_calendar_pref_prompted', '1'); localStorage.setItem('ml_app_promo_seen', '1'); if (!localStorage.getItem('ml_lang')) localStorage.setItem('ml_lang', 'en'); } catch {}
     window.__copied = [];
@@ -281,10 +282,13 @@ try {
   ok((await A.textContent('#songsTableBody')).includes('🎸'), 'the song list marks songs that have chords (🎸 and the key)');
   await A.click('#btnNewSong');
   await A.waitForSelector('#songModal', { state: 'visible' });
-  ok(await A.locator('#gnAdminBody').isHidden(), 'a new song starts without chords');
+  ok(await A.locator('#gnAdminBody').isHidden() && await A.locator('#formLyricsChordNote').isHidden(), 'a new song starts without chords: no chord sheet, and no "lyrics are written in the chord sheet" note');
+  ok(await A.evaluate(() => getComputedStyle(document.getElementById('gnAdmin')).borderTopStyle === 'solid' && getComputedStyle(document.getElementById('gnAdmin')).borderTopWidth === '1px'), 'the Guitar Node box is styled by the dashboard stylesheet (not the browser default)');
+  ok((await A.locator('#formOriginalKey option').count()) === 25, 'the key list holds Unknown + 12 major + 12 minor keys');
   await A.fill('#formTitle', 'Test Hymn');
   await A.selectOption('#formOriginalKey', 'G');
   await A.check('#formChordsOn');
+  ok(await A.locator('#formLyricsChordNote').isVisible(), 'the note about where the lyrics are written appears once chords are on');
   ok(await A.locator('#gnAdminBody').isVisible() && await A.locator('#formLyrics').evaluate((el) => el.readOnly), 'ticking "has guitar chords" opens the chord sheet; the Lyrics box becomes read-only');
   const palette = await A.locator('#gnPalette button').allTextContents();
   ok(palette.join(' ') === 'G Am Bm C D D7 Em F#dim', `the palette offers the chords of the key (${palette.join(' ')})`);
@@ -358,6 +362,25 @@ try {
   await A.waitForFunction(() => document.getElementById('formMessage').textContent.includes('updated'), null, { timeout: 8000 });
   const kept2 = row(`SELECT chords, lyrics, original_key FROM songs WHERE id = ?`, fid);
   ok(JSON.stringify(JSON.parse(kept2.chords)) === JSON.stringify(FALLING_CHORDS) && kept2.lyrics === FALLING && kept2.original_key === 'C', 'saving an edit that only changes the title keeps the chords and lyrics byte for byte');
+
+  // ═══ The dashboard's offline copy must never be older than the page ═════════
+  section('Admin: a new deploy is picked up at once (offline cache)');
+  const { page: W, ctx: WC } = await openPage({ admin: true, token: adminToken, serviceWorkers: 'allow' });
+  await W.goto(`${SITE}/admin/`);
+  await W.waitForSelector('#songsTableBody tr[data-id]', { timeout: 10000 });
+  await W.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller, null, { timeout: 8000 }).catch(async () => { await W.reload(); await W.waitForFunction(() => navigator.serviceWorker.controller, null, { timeout: 8000 }); });
+  ok(await W.evaluate(() => !!navigator.serviceWorker.controller), 'the dashboard\'s service worker is running');
+  adminCssMarker = '\n/* deployed-v2 */';
+  const served = await W.evaluate(() => fetch('/admin/index.css').then((r) => r.text()));
+  ok(served.includes('deployed-v2'), 'after a deploy the dashboard gets the NEW stylesheet straight away (not last version\'s copy from the cache)');
+  await W.reload();
+  await W.waitForSelector('#songsTableBody tr[data-id]', { timeout: 10000 });
+  ok((await W.evaluate(() => fetch('/admin/index.js').then((r) => r.text()))).includes('wireGuitarNodeAdmin'), 'and the new script');
+  await WC.setOffline(true);
+  const offline = await W.evaluate(() => Promise.all(['/admin/index.css', '/admin/index.js', '/chords.js'].map((u) => fetch(u).then((r) => r.status).catch(() => 'failed'))));
+  ok(offline.every((st) => st === 200), `offline, the dashboard still has its files from the cache (${offline.join(', ')})`);
+  await WC.setOffline(false);
+  adminCssMarker = '';
 } catch (err) {
   fail++;
   console.error(`  ✗ the test stopped early: ${String(err && err.message || err).split('\n').slice(0, 6).join('\n    ')}`);

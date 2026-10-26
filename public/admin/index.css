@@ -1572,7 +1572,7 @@ button.is-busy::after {
 .gn-admin__previewbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: var(--space-xs); }
 .gn-admin__previewbar select { width: auto; min-width: 130px; }
 .gn-admin__preview { max-height: 360px; overflow: auto; padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md, 10px); background: rgba(255,255,255,0.02); font-family: 'Georgia', 'Noto Serif', serif; font-size: 1.05rem; line-height: 1.35; }
-.gn-admin [hidden] { display: none !important; }
+.gn-admin [hidden], .form-hint[hidden] { display: none !important; }  /* .form-hint sets display, which would otherwise win over the hidden attribute */
 .gn-line { display: flex; flex-wrap: wrap; align-items: flex-end; min-height: 1.35em; margin-top: 0.15em; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gn-line--plain { display: block; padding-top: 0.1em; }
 .gn-line--blank { min-height: 1.1em; }
