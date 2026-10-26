@@ -2198,9 +2198,15 @@ const SongPage = {
     if (breadcrumbTitle) breadcrumbTitle.textContent = song.title;
 
     if (lyricsEl) {
-      // Replace literal \n with actual newlines (D1 may store escaped newlines)
-      const cleanLyrics = (song.lyrics || '').replace(/\\n/g, '\n');
-      lyricsEl.textContent = cleanLyrics;
+      // A song with guitar chords is drawn by Guitar Node (public/guitar-node.js); any other song, or a page where that
+      // script is missing, shows the plain lyrics exactly as before.
+      const withChords = typeof GuitarNode !== 'undefined' && GuitarNode.mount(song, lyricsEl);
+      if (!withChords) {
+        if (typeof GuitarNode !== 'undefined') GuitarNode.unmount();
+        // Replace literal \n with actual newlines (D1 may store escaped newlines)
+        const cleanLyrics = (song.lyrics || '').replace(/\\n/g, '\n');
+        lyricsEl.textContent = cleanLyrics;
+      }
     }
 
     // Feedback button — build link with song context
@@ -2248,7 +2254,8 @@ const SongPage = {
       copyBtn.addEventListener('click', async () => {
         const song = this._currentSong;
         if (!song) return;
-        const lyrics = (song.lyrics || '').replace(/\\n/g, '\n');
+        // With chords showing, Copy gives the lyrics with the chords above them, in the key being shown.
+        const lyrics = (typeof GuitarNode !== 'undefined' && GuitarNode.copyText()) || (song.lyrics || '').replace(/\\n/g, '\n');
         try {
           await navigator.clipboard.writeText(lyrics);
           if (typeof Toast !== 'undefined') Toast.show(I18n.t('song.copy_success'), { type: 'success' });

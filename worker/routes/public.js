@@ -5,6 +5,7 @@ import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 import { attachBadges } from '../lib/badges.js';
 import { attachGreen } from '../lib/green.js';
 import { shapeBio } from '../lib/richText.js';
+import { shapeChords } from '../lib/guitarNode.js';
 import idolRoutes from './publicIdol.js';
 
 const SONG_COLUMNS = `
@@ -269,13 +270,14 @@ app.get('/songs', async (c) => {
 });
 
 app.get('/songs/:slug', async (c) => {
+  // The key and chords (Guitar Node) are only part of a single song's page, not of the lists, which stay small.
   const song = await c.env.DB
-    .prepare(`SELECT ${SONG_COLUMNS} ${SONG_JOINS} WHERE s.slug = ? AND s.status = 'published'`)
+    .prepare(`SELECT ${SONG_COLUMNS}, s.original_key, s.chords ${SONG_JOINS} WHERE s.slug = ? AND s.status = 'published'`)
     .bind(c.req.param('slug'))
     .first();
 
   if (!song) return c.json({ error: 'Song not found' }, 404);
-  return c.json(parseSongPeople(song));
+  return c.json(shapeChords(parseSongPeople(song)));
 });
 
 // The songs just before / after this one in the default list (title A–Z, same order as GET /songs), for the Previous /

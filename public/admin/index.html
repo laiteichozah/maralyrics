@@ -828,7 +828,51 @@
         <div class="form-group">
           <label class="form-label" for="formLyrics">Lyrics <span class="required">*</span></label>
           <textarea id="formLyrics" class="form-input form-textarea" required placeholder="Enter song lyrics here...&#10;&#10;Each line on a new line.&#10;&#10;Blank line separates verses."></textarea>
+          <span class="form-hint" id="formLyricsChordNote" hidden>The lyrics are being written in the chord sheet below; this box shows the words only.</span>
         </div>
+
+        <!-- Guitar Node: the song's original key and its guitar chords -->
+        <fieldset class="gn-admin" id="gnAdmin">
+          <legend class="gn-admin__legend">🎸 Guitar Node <span class="form-hint">— original key and guitar chords (optional)</span></legend>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="formOriginalKey">Original key</label>
+              <select id="formOriginalKey" class="form-input">
+                <option value="">Unknown / not set</option>
+                <optgroup label="Major keys" id="gnMajorKeys"></optgroup>
+                <optgroup label="Minor keys" id="gnMinorKeys"></optgroup>
+              </select>
+              <span class="form-hint">Leave it unknown unless you are sure. It is never guessed; visitors can still move the chords up or down by semitones.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="formChordsOn">Guitar chords</label>
+              <label class="gn-admin__check"><input type="checkbox" id="formChordsOn" /> This song has guitar chords</label>
+              <span class="form-hint">Turning it off removes the chords and keeps the lyrics.</span>
+            </div>
+          </div>
+          <div id="gnAdminBody" hidden>
+            <div class="form-group">
+              <label class="form-label" for="formChordSheet">Chord sheet</label>
+              <div class="gn-admin__palette" id="gnPalette" role="group" aria-label="Chords of the key — click one to put it in the sheet"></div>
+              <textarea id="formChordSheet" class="form-input form-textarea gn-admin__sheet" spellcheck="false" autocapitalize="off" placeholder="[C]Wise men [Em]say only [Am]fools rush in&#10;[F]But I can't [C]help falling in [G7]love with you"></textarea>
+              <span class="form-hint">Type a chord in [brackets] right before the syllable it belongs to, like <code>[C]Wise men [Em]say</code>. A line of only chords (an intro or solo): <code>[C] [G] [Am] [F]</code>. Words like <code>[Chorus]</code> or <code>[x2]</code> stay in the lyrics.</span>
+            </div>
+            <div class="gn-admin__tools">
+              <button type="button" class="btn btn--sm btn--ghost" id="gnConvert" title="Turns a sheet that has each line of chords printed above the words into [bracket] chords">Convert "chords above the words" text</button>
+              <span class="form-hint">Paste a sheet where the chords are printed above the words, then press this to move them into place.</span>
+            </div>
+            <div id="gnAdminErrors" class="form-message form-message--error" role="alert" hidden></div>
+            <div class="form-group">
+              <span class="form-label">Preview</span>
+              <div class="gn-admin__previewbar">
+                <label for="gnPreviewKey">Show in key</label>
+                <select id="gnPreviewKey" class="form-input form-input--sm"></select>
+                <span class="form-hint">(only for this preview — nothing is saved)</span>
+              </div>
+              <div id="gnAdminPreview" class="gn-admin__preview" aria-live="polite"></div>
+            </div>
+          </div>
+        </fieldset>
 
         <!-- Status message -->
         <div id="formMessage" class="form-message" style="display:none;"></div>
@@ -1791,6 +1835,7 @@
   <script src="offline-sync.js"></script>
   <script src="/social-icons.js"></script>
   <script src="/rich-text.js"></script>
+  <script type="module" src="/chords.js"></script>
   <script src="index.js"></script>
 </body>
 </html>
