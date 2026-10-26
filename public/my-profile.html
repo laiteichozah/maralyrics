@@ -26,7 +26,7 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/account.css?v=1" />
+  <link rel="stylesheet" href="/account.css?v=5" />
 
   <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
@@ -200,6 +200,10 @@
 
           <div class="acct-google" id="googleBlock" hidden>
             <div id="googleBtn" class="acct-google__btn"></div>
+            <div id="googleChallenge" class="acct-challenge" hidden>
+              <p class="acct-hint" data-i18n="account.google_challenge">One quick security check, then your account is created.</p>
+              <div id="googleTurnstile"></div>
+            </div>
             <div class="acct-or" aria-hidden="true"><span data-i18n="account.or_email">or use your email</span></div>
           </div>
 
@@ -215,6 +219,7 @@
               </div>
               <input type="password" id="signinPass" autocomplete="current-password" required />
             </div>
+            <div id="signinTurnstile"></div>
             <p class="acct-message" id="signinMsg" role="alert" hidden></p>
             <button type="submit" class="acct-btn acct-btn--block" id="signinBtn" data-i18n="account.signin_btn">Sign in</button>
           </form>
@@ -550,6 +555,7 @@
   <script src="/social-icons.js"></script>
   <script src="/rich-text.js"></script>
   <script src="/app.js"></script>
-  <script src="/my-profile.js?v=4"></script>
+  <script src="/photo-cropper.js"></script>
+  <script src="/my-profile.js?v=7"></script>
 </body>
 </html>

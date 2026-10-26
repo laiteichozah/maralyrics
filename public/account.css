@@ -1,5 +1,5 @@
 /* ┌────────────────────────────────────────────────────────┐
-   │  MaraLyrics — artist & composer account (/my-profile)   │
+   │  MaraLyrics — accounts: /my-profile (artists & composers) and /account (readers)   │
    │  Plain and calm: the site's own colours and font, flat  │
    │  surfaces, thin borders, one accent colour. Scoped to   │
    │  .acct / body.acct-page; the rest of the site is        │
@@ -212,6 +212,31 @@
 .acct .rte-editor blockquote, .acct .acct-preview__bio blockquote { margin: 0 0 0.7em; padding: 2px 0 2px 12px; border-left: 3px solid var(--a-line); color: var(--a-muted); }
 .acct .rte-editor a, .acct .acct-preview__bio a { color: var(--accent-light); text-decoration: underline; }
 
+/* ── Sync status (the reader's /account page) ── */
+.sync-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 18px; }
+.sync-stats > div { padding: 12px 14px; border: 1px solid var(--a-line); border-radius: 10px; }
+.sync-stats dt { color: var(--a-muted); font-size: 0.8125rem; }
+.sync-stats dd { margin: 2px 0 0; font-size: 1.5rem; font-weight: 650; line-height: 1.2; }
+.sync-check { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+.sync-check input { flex: none; width: 18px; height: 18px; margin-top: 3px; accent-color: var(--a-btn); }
+.sync-check strong { display: block; font-weight: 600; }
+.sync-check small { display: block; margin-top: 4px; color: var(--a-muted); font-size: 0.875rem; line-height: 1.5; }
+.acct-about .acct-hint { margin-top: 14px; }
+
+/* Account page: preferences, danger zone, Cloudflare challenge */
+.acct-chips--tight { margin-top: 0; }
+.acct-chip[aria-pressed="true"] { border-color: var(--accent); color: var(--a-text); background: rgba(139, 92, 246, 0.12); }
+.acct-panel .acct-field + .acct-field { margin-top: 16px; }
+.acct-card--danger { border-color: rgba(248, 113, 113, 0.5); }
+.acct-btn--danger { background: #b42318; }
+.acct-btn--danger:hover { background: #912018; }
+.acct-google__btn--left { justify-content: flex-start; }
+.acct-message + .acct-actions, .acct-google__btn + .acct-message, .acct-actions + .acct-message { margin-top: 12px; }
+.acct-chips + .acct-hint, .acct-field + .acct-hint { display: block; margin-top: 14px; }
+.acct-challenge { margin-top: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.acct-challenge .acct-hint { text-align: center; }
+#signinTurnstile:not(:empty), #regTurnstile:not(:empty), #forgotTurnstile:not(:empty) { min-height: 65px; }
+
 /* ── Small screens ── */
 @media (max-width: 720px) {
   .acct { padding: 20px 16px 64px; }
@@ -222,3 +247,37 @@
   .acct-card { padding: 16px; }
   .acct-auth { margin-top: 8px; }
 }
+
+/* ── Photo cropper (photo-cropper.js): shown when a profile photo is chosen ── */
+body.crop-open { overflow: hidden; }
+/* the dialog is attached to <body>, outside .acct, so it brings the colours the .acct-btn buttons use */
+.crop { --a-text: var(--text-primary); --a-line: rgba(255, 255, 255, 0.16); --a-btn: #6d28d9; --a-btn-hover: #5b21b6; }
+[data-theme="light"] .crop { --a-line: rgba(15, 23, 42, 0.2); }
+.crop *, .crop *::before, .crop *::after { box-sizing: border-box; }
+.crop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; }
+.crop__backdrop { position: absolute; inset: 0; background: rgba(5, 8, 20, 0.72); }
+.crop__panel {
+  position: relative; width: min(100%, 380px); max-height: 100%; overflow-y: auto; padding: 20px;
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.16)); border-radius: 14px;
+  background: var(--bg-secondary, #0f1424); color: var(--text-primary, #fff); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.crop__panel:focus { outline: none; }
+.crop__title { margin: 0 0 4px; font-size: 1.125rem; font-weight: 650; }
+.crop__hint { margin: 0 0 14px; color: var(--text-secondary, #aab); font-size: 0.875rem; line-height: 1.45; }
+.crop__stage {
+  position: relative; width: min(100%, 320px); aspect-ratio: 1; margin: 0 auto; overflow: hidden; border-radius: 8px;
+  background: #000; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.crop__stage.is-dragging { cursor: grabbing; }
+.crop__stage:focus-visible { outline: 2px solid var(--accent, #8b5cf6); outline-offset: 2px; }
+.crop__img { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; pointer-events: none; }
+/* the photo is shown round in the site; the corners outside the circle are dimmed so the framing is clear */
+.crop__mask { position: absolute; inset: 0; pointer-events: none; border-radius: 50%; box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.55); outline: 2px solid rgba(255, 255, 255, 0.85); outline-offset: -2px; }
+.crop__zoom { display: flex; align-items: center; gap: 10px; margin: 14px auto 0; width: min(100%, 320px); }
+.crop__range { flex: 1; min-width: 0; accent-color: var(--accent, #8b5cf6); }
+.crop__step {
+  flex: none; width: 36px; height: 36px; border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.2)); border-radius: 8px;
+  background: transparent; color: inherit; font: inherit; font-size: 1.25rem; line-height: 1; cursor: pointer;
+}
+.crop__step:hover { background: var(--bg-glass, rgba(255, 255, 255, 0.08)); }
+.crop__actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }

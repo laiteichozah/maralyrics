@@ -10,12 +10,20 @@ import { validateOwnerEdit, validateContact } from '../lib/profile.js';
 import { logAudit } from '../lib/audit.js';
 import { bioToHtml, bioPlain } from '../lib/richText.js';
 import { loadOffer, validateOrderInput } from '../lib/green.js';
+import { normalizeOps, syncAccount } from '../lib/sync.js';
+import { validateDisplayName, validateAvatar } from '../lib/accountProfile.js';
 
 // Artist / composer accounts, mounted at /api/v1/account. Anyone can register an account, but an account can
 // change nothing until a Manager / Super Admin approves a claim on a profile (see adminClaims.js).
 //   POST   /register  /login               → { token, account }
 //   GET    /me                             → the account and its claims
 //   POST   /change-password
+//   POST   /sync                           → favourites, pins, downloads and preferences shared by every device of the account
+//   PUT    /profile                        → display name, username, photo
+//   POST   /google/link  /google/unlink    → connect / disconnect a Google account
+//   POST   /logout-all                     → sign out of every device (this one stays signed in)
+//   GET    /export                         → everything we hold about the account, as JSON
+//   POST   /delete-account                 → delete the account and its data (after a password / Google confirmation)
 //   POST   /claims                         → ask to claim an artist / composer profile (pending review)
 //   DELETE /claims/:id                     → withdraw a pending claim
 //   GET    /claims/:id/profile  PUT …      → read / edit an APPROVED claim's profile (bio, photo, social links)
@@ -33,19 +41,22 @@ const MAX_NEW_CLAIMS_PER_DAY = 5;
 
 const LOCKOUT_WINDOW_MINUTES = 15;
 const LOCKOUT_THRESHOLD = 5;
+const CHALLENGE_AFTER = 2;       // failed sign-ins for one name before a Cloudflare challenge is demanded too
 // Same shape as a real hash, so a login for an unknown username costs the same as a wrong password.
 const DUMMY_PASSWORD_HASH = 'pbkdf2$100000$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 const TYPES = { artist: { table: 'artists', fk: 'artist_id' }, composer: { table: 'composers', fk: 'composer_id' } };
 const ip = (c) => c.req.header('CF-Connecting-IP');
+// The page an emailed link opens: the Artist Court (default) or the reader's Account page.
+const linkPage = (data) => (data && data.page === 'account' ? 'account' : 'my-profile');
 
 // 'password_hash' of an account that has no password (it only signs in with Google). Not a valid hash, so no password matches it.
 const NO_PASSWORD = '!';
 const hasPassword = (a) => !!a.password_hash && a.password_hash !== NO_PASSWORD;
-const ACCOUNT_COLS = 'id, username, password_hash, contact_email, contact_phone, email_verified_at, google_sub, session_epoch';
+const ACCOUNT_COLS = 'id, username, password_hash, contact_email, contact_phone, email_verified_at, google_sub, session_epoch, display_name';
 
 const publicAccount = (a) => ({
-  id: a.id, username: a.username, contact_email: a.contact_email ?? null, contact_phone: a.contact_phone ?? null,
+  id: a.id, username: a.username, display_name: a.display_name ?? null, contact_email: a.contact_email ?? null, contact_phone: a.contact_phone ?? null,
   contact_complete: !!(a.contact_email && a.contact_phone),
   email_verified: !!a.email_verified_at,
   has_password: hasPassword(a),
@@ -74,13 +85,13 @@ const verifiedEmailTaken = (db, email, exceptId = 0) => db
  * Emails a confirmation link for the account's current address. → 'sent' | 'limited' | 'failed' | 'off'.
  * Never throws: a mail problem must not break registration.
  */
-async function sendVerification(c, account) {
+async function sendVerification(c, account, page = 'my-profile') {
   if (!mailEnabled(c.env)) return 'off';
   if (!account.contact_email) return 'failed';
   const db = c.env.DB;
   if ((await recentCount(db, { accountId: account.id, email: account.contact_email, kind: 'verify' })) >= MAX_EMAILS_PER_HOUR) return 'limited';
   const token = await createToken(db, { accountId: account.id, email: account.contact_email, kind: 'verify' });
-  const msg = verifyEmailMessage({ link: `${siteOrigin(c.env)}/my-profile?verify=${encodeURIComponent(token)}` });
+  const msg = verifyEmailMessage({ link: `${siteOrigin(c.env)}/${page}?verify=${encodeURIComponent(token)}` });
   return (await sendMail(c.env, { to: account.contact_email, ...msg })).ok ? 'sent' : 'failed';
 }
 
@@ -96,8 +107,10 @@ app.post('/register', async (c) => {
   const password = String(data.password || '');
   if (password.length < PASSWORD_MIN) return c.json({ error: `Password must be at least ${PASSWORD_MIN} characters` }, 400);
   if (password.length > PASSWORD_MAX) return c.json({ error: 'Password is too long' }, 400);
-  // Real identity: email AND phone are compulsory.
-  const contact = validateContact({ contact_email: data.email ?? data.contact_email, contact_phone: data.contact_phone });
+  // Artists and composers (claiming a profile is a real-identity step): email AND phone are compulsory.
+  // A reader signing up to sync favourites and downloads (reader: true) needs only an email; the phone can be added later.
+  const reader = data.reader === true;
+  const contact = validateContact({ contact_email: data.email ?? data.contact_email, contact_phone: data.contact_phone }, { phoneOptional: reader });
   if (!contact.ok) return c.json({ error: contact.error }, 400);
   // The username is optional now (people sign in with their email); one is made from the email when it is left out.
   const wanted = String(data.username || '').trim().toLowerCase();
@@ -123,7 +136,7 @@ app.post('/register', async (c) => {
     throw err;
   }
   const account = await loadAccount(db, result.meta.last_row_id);
-  const verification = await sendVerification(c, account);
+  const verification = await sendVerification(c, account, linkPage(data));
   return c.json({ token: await signPersonToken(account, c.env), account: publicAccount(account), verification }, 201);
 });
 
@@ -140,6 +153,10 @@ app.post('/login', async (c) => {
   await db.prepare(`DELETE FROM login_attempts WHERE username = ? AND created_at < datetime('now', ?)`).bind(key, `-${LOCKOUT_WINDOW_MINUTES} minutes`).run();
   const { count } = await db.prepare('SELECT COUNT(*) AS count FROM login_attempts WHERE username = ?').bind(key).first();
   if (count >= LOCKOUT_THRESHOLD) return c.json({ error: `Too many failed attempts. Try again in ${LOCKOUT_WINDOW_MINUTES} minutes.` }, 429);
+  // After a couple of wrong passwords the sign-in form has to pass a Cloudflare challenge as well (it appears on its own).
+  if (count >= CHALLENGE_AFTER && !(await verifyTurnstile(body.turnstile_token, c.env, ip(c)))) {
+    return c.json({ error: 'Please complete the security check, then try again.', code: 'challenge_required' }, 403);
+  }
 
   const candidates = identifier.includes('@')
     ? (await db.prepare(`SELECT ${ACCOUNT_COLS} FROM person_accounts WHERE lower(contact_email) = ? ORDER BY (email_verified_at IS NULL), id LIMIT 3`).bind(identifier).all()).results
@@ -153,7 +170,7 @@ app.post('/login', async (c) => {
   if (!account && !candidates.some(hasPassword)) await verifyPassword(String(password), DUMMY_PASSWORD_HASH);
   if (!account) {
     await db.prepare('INSERT INTO login_attempts (username) VALUES (?)').bind(key).run();
-    return c.json({ error: 'Invalid email or password' }, 401);
+    return c.json({ error: 'Invalid email or password', ...(count + 1 >= CHALLENGE_AFTER ? { code: 'challenge_required' } : {}) }, 401);
   }
   await db.prepare('DELETE FROM login_attempts WHERE username = ?').bind(key).run();
   return c.json({ token: await signPersonToken(account, c.env), account: publicAccount(account) });
@@ -161,7 +178,7 @@ app.post('/login', async (c) => {
 
 // Sign in / sign up with Google. The page sends the ID token Google gave it; see worker/lib/google.js.
 app.post('/google', async (c) => {
-  const { credential } = await c.req.json().catch(() => ({}));
+  const { credential, turnstile_token } = await c.req.json().catch(() => ({}));
   const g = await verifyGoogleIdToken(credential, c.env);
   if (!g.ok) return c.json({ error: g.error }, 400);
   const db = c.env.DB;
@@ -187,11 +204,15 @@ app.post('/google', async (c) => {
         .run();
       account = await loadAccount(db, byEmail.id);
     } else {
+      // Creating an account needs the same Cloudflare challenge as the email sign-up form (signing in to an existing one does not).
+      if (!(await verifyTurnstile(turnstile_token, c.env, ip(c)))) {
+        return c.json({ error: 'Please complete the security check to create your account.', code: 'challenge_required' }, 403);
+      }
       const username = await freeUsername(db, g.email);
       try {
         const r = await db
-          .prepare(`INSERT INTO person_accounts (username, password_hash, contact_email, email_verified_at, google_sub) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?)`)
-          .bind(username, NO_PASSWORD, g.email, g.sub)
+          .prepare(`INSERT INTO person_accounts (username, password_hash, contact_email, email_verified_at, google_sub, display_name) VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?)`)
+          .bind(username, NO_PASSWORD, g.email, g.sub, String(g.name || '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 50) || null)
           .run();
         account = await loadAccount(db, r.meta.last_row_id);
         created = true;
@@ -235,7 +256,7 @@ app.post('/forgot-password', async (c) => {
   const account = await db.prepare(`SELECT ${ACCOUNT_COLS} FROM person_accounts WHERE lower(contact_email) = ? ORDER BY (email_verified_at IS NULL), id LIMIT 1`).bind(email).first();
   if (account && (await recentCount(db, { accountId: account.id, email, kind: 'reset' })) < MAX_EMAILS_PER_HOUR) {
     const token = await createToken(db, { accountId: account.id, email, kind: 'reset' });
-    await sendMail(c.env, { to: account.contact_email, ...resetPasswordMessage({ link: `${siteOrigin(c.env)}/my-profile?reset=${encodeURIComponent(token)}` }) });
+    await sendMail(c.env, { to: account.contact_email, ...resetPasswordMessage({ link: `${siteOrigin(c.env)}/${linkPage(data)}?reset=${encodeURIComponent(token)}` }) });
   }
   // The same answer whether or not an account exists, so this can't be used to find out who is registered.
   return c.json({ ok: true });
@@ -270,6 +291,12 @@ app.use('/claims', requirePerson);
 app.use('/claims/*', requirePerson);
 app.use('/green', requirePerson);
 app.use('/green/*', requirePerson);
+app.use('/sync', requirePerson);
+app.use('/profile', requirePerson);
+app.use('/google/*', requirePerson);
+app.use('/logout-all', requirePerson);
+app.use('/export', requirePerson);
+app.use('/delete-account', requirePerson);
 
 async function loadClaims(db, accountId) {
   const rows = await db
@@ -287,9 +314,135 @@ async function loadClaims(db, accountId) {
   return rows.results;
 }
 
+// Catch up with the account's other devices: send this device's changes since its last sync, get everyone else's.
+app.post('/sync', async (c) => {
+  const data = await c.req.json().catch(() => ({}));
+  const parsed = normalizeOps(data.ops);
+  if (parsed.error) return c.json({ error: parsed.error }, 400);
+  return c.json(await syncAccount(c.env.DB, c.get('person').id, { since: data.since, ops: parsed.ops }));
+});
+
+const loadAvatar = async (db, id) => (await db.prepare('SELECT avatar FROM person_accounts WHERE id = ?').bind(id).first())?.avatar ?? null;
+
 app.get('/me', async (c) => {
   const person = c.get('person');
-  return c.json({ account: publicAccount(await loadAccount(c.env.DB, person.id)), claims: await loadClaims(c.env.DB, person.id) });
+  const account = publicAccount(await loadAccount(c.env.DB, person.id));
+  return c.json({ account: { ...account, avatar: await loadAvatar(c.env.DB, person.id) }, claims: await loadClaims(c.env.DB, person.id) });
+});
+
+// Display name, username and photo. Send only what changes; avatar '' removes the photo.
+app.put('/profile', async (c) => {
+  const person = c.get('person');
+  const data = await c.req.json().catch(() => ({}));
+  const db = c.env.DB;
+  const sets = [];
+  const vals = [];
+  if ('display_name' in data) {
+    const name = validateDisplayName(data.display_name);
+    if (!name.ok) return c.json({ error: name.error }, 400);
+    sets.push('display_name = ?'); vals.push(name.value);
+  }
+  if ('username' in data) {
+    const wanted = String(data.username || '').trim().toLowerCase();
+    if (!USERNAME_RE.test(wanted)) return c.json({ error: 'Username must be 3–30 characters: letters, numbers, dot, dash or underscore' }, 400);
+    if (wanted !== person.username.toLowerCase() && (await db.prepare('SELECT 1 FROM person_accounts WHERE username = ? AND id != ?').bind(wanted, person.id).first())) {
+      return c.json({ error: 'That username is already taken' }, 409);
+    }
+    sets.push('username = ?'); vals.push(wanted);
+  }
+  if ('avatar' in data) {
+    const avatar = validateAvatar(data.avatar);
+    if (!avatar.ok) return c.json({ error: avatar.error }, 400);
+    sets.push('avatar = ?'); vals.push(avatar.value);
+  }
+  if (!sets.length) return c.json({ error: 'Nothing to change' }, 400);
+  try {
+    await db.prepare(`UPDATE person_accounts SET ${sets.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).bind(...vals, person.id).run();
+  } catch (err) {
+    if (/UNIQUE/i.test(String(err.message))) return c.json({ error: 'That username is already taken' }, 409);
+    throw err;
+  }
+  const account = await loadAccount(db, person.id);
+  // The username is inside the session token: hand back a fresh one so this device keeps its (now correct) session.
+  return c.json({ account: { ...publicAccount(account), avatar: await loadAvatar(db, person.id) }, token: await signPersonToken(account, c.env) });
+});
+
+// Connect a Google account to this (email + password) account, so it can also sign in with Google.
+app.post('/google/link', async (c) => {
+  const person = c.get('person');
+  const { credential } = await c.req.json().catch(() => ({}));
+  const g = await verifyGoogleIdToken(credential, c.env);
+  if (!g.ok) return c.json({ error: g.error }, 400);
+  const db = c.env.DB;
+  const account = await loadAccount(db, person.id);
+  if (account.google_sub && account.google_sub !== g.sub) return c.json({ error: 'A different Google account is already connected. Disconnect it first.' }, 409);
+  const other = await db.prepare('SELECT id FROM person_accounts WHERE google_sub = ? AND id != ?').bind(g.sub, person.id).first();
+  if (other) return c.json({ error: 'That Google account is already connected to another MaraLyrics account.' }, 409);
+  await db.prepare('UPDATE person_accounts SET google_sub = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(g.sub, person.id).run();
+  return c.json({ account: publicAccount(await loadAccount(db, person.id)) });
+});
+
+// Disconnect Google. Only possible while there is a password to sign in with instead.
+app.post('/google/unlink', async (c) => {
+  const person = c.get('person');
+  const { password } = await c.req.json().catch(() => ({}));
+  const db = c.env.DB;
+  const account = await loadAccount(db, person.id);
+  if (!account.google_sub) return c.json({ error: 'No Google account is connected.' }, 400);
+  if (!hasPassword(account)) return c.json({ error: 'Set a password first, so you can still sign in.' }, 400);
+  if (!password || !(await verifyPassword(String(password), account.password_hash))) return c.json({ error: 'Password is incorrect' }, 401);
+  await db.prepare('UPDATE person_accounts SET google_sub = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(person.id).run();
+  return c.json({ account: publicAccount(await loadAccount(db, person.id)) });
+});
+
+// Ends every session of the account (every device) except the one asking, which gets a fresh token.
+app.post('/logout-all', async (c) => {
+  const person = c.get('person');
+  await c.env.DB.prepare('UPDATE person_accounts SET session_epoch = session_epoch + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').bind(person.id).run();
+  return c.json({ success: true, token: await signPersonToken(await loadAccount(c.env.DB, person.id), c.env) });
+});
+
+// A copy of everything stored about the account: the details, claims and the synced favourites / downloads / preferences.
+app.get('/export', async (c) => {
+  const person = c.get('person');
+  const db = c.env.DB;
+  const account = await loadAccount(db, person.id);
+  const created = await db.prepare('SELECT created_at FROM person_accounts WHERE id = ?').bind(person.id).first();
+  const items = (await db.prepare('SELECT kind, key, value, deleted, updated_at FROM person_sync_items WHERE account_id = ? ORDER BY kind, key').bind(person.id).all()).results;
+  const orders = (await db.prepare('SELECT id, months, amount_cents, currency, status, created_at FROM green_orders WHERE account_id = ? ORDER BY id').bind(person.id).all()).results;
+  const body = {
+    exported_at: new Date().toISOString(),
+    account: { ...publicAccount(account), avatar: (await loadAvatar(db, person.id)) ? '(photo stored)' : null, created_at: created?.created_at ?? null },
+    claims: await loadClaims(db, person.id),
+    green_orders: orders,
+    synced: {
+      favorites: items.filter((i) => i.kind === 'favorite' && !i.deleted).map((i) => i.key),
+      pinned: items.filter((i) => i.kind === 'pin' && !i.deleted).map((i) => i.key),
+      downloads: items.filter((i) => i.kind === 'download' && !i.deleted).map((i) => i.key),
+      preferences: Object.fromEntries(items.filter((i) => i.kind === 'pref' && !i.deleted).map((i) => [i.key, i.value])),
+    },
+  };
+  return new Response(JSON.stringify(body, null, 2), { headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'attachment; filename="maralyrics-account.json"', 'Cache-Control': 'no-store' } });
+});
+
+// Deletes the account for good: its sync data, pending claims and orders go with it. Needs the password (or, for an account
+// that only signs in with Google, a fresh Google sign-in), and is refused while the account owns an artist / composer profile.
+app.post('/delete-account', async (c) => {
+  const person = c.get('person');
+  const data = await c.req.json().catch(() => ({}));
+  const db = c.env.DB;
+  const account = await loadAccount(db, person.id);
+  if (hasPassword(account)) {
+    if (!data.password || !(await verifyPassword(String(data.password), account.password_hash))) return c.json({ error: 'Password is incorrect' }, 401);
+  } else {
+    const g = await verifyGoogleIdToken(data.credential, c.env);
+    if (!g.ok || g.sub !== account.google_sub) return c.json({ error: 'Please confirm with the Google account connected to this account.' }, 401);
+  }
+  const owns = await db.prepare(`SELECT 1 FROM person_claims WHERE account_id = ? AND status = 'approved'`).bind(person.id).first();
+  if (owns) return c.json({ error: 'This account manages an artist or composer page. Please contact us to release the page first, then delete the account.', code: 'owns_profile' }, 409);
+  await db.prepare('DELETE FROM person_accounts WHERE id = ?').bind(person.id).run();
+  await db.prepare('DELETE FROM login_attempts WHERE username IN (?, ?)').bind(`person:${account.username}`, `person:${normEmail(account.contact_email)}`).run().catch(() => {});
+  return c.json({ success: true });
 });
 
 app.post('/verify-email/send', async (c) => {
@@ -303,7 +456,9 @@ app.post('/verify-email/send', async (c) => {
 });
 
 app.put('/contact', async (c) => {
-  const contact = validateContact(await c.req.json().catch(() => ({})));
+  const data = await c.req.json().catch(() => ({}));
+  // The account page lets a reader leave the phone empty (it is only needed to claim a profile); the Artist Court never does.
+  const contact = validateContact(data, { phoneOptional: data.phone_optional === true });
   if (!contact.ok) return c.json({ error: contact.error }, 400);
   const db = c.env.DB;
   const before = await loadAccount(db, c.get('person').id);

@@ -12,6 +12,11 @@ Merged after the latest version; it ships with the next one.
 - hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)
 - .gitignore now also keeps keystores and .env files out of git
 - The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)
+- GitHub Releases for every version, published from the same notes by the "Publish releases" workflow (scripts/publish-releases.mjs); the Project page links to them
+- Reader accounts: sign in on /account with Google or email + password to keep favorites, pinned songs, downloads, theme and language in step on every device (migration 0019; run `npm run db:migrate` then `npm run deploy`)
+- Account page: Profile (name, photo, username, optional phone), Preferences (language, theme, list view, default calendar — synced), Security (password, Google, sign out everywhere) and Your data (download, delete); Cloudflare challenges on every way to create an account and on sign-in after repeated failures (migration 0020)
+- Profile photos open a crop dialog (drag, zoom, wheel, keyboard) on the account page and in the artist editor; `npm run test:e2e` is a browser test of every account feature
+- Guitar Node: songs can carry an original key and guitar chords, shown above the lyrics; visitors change the key on the page (key list, semitone buttons, reset) and the chords transpose with correct sharps / flats; editors write the chords in the admin song form (chord sheet, palette, live preview, converter for chords-above-words text) (migration 0021: run `npm run db:migrate` then `npm run deploy`)
 
 ## v1.9.0 — Reading flow (2026-10-24)
 

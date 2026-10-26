@@ -374,7 +374,8 @@ body::before {
 }
 
 /* ─── My Downloads nav button (icon + count badge) ───────────── */
-.downloads-toggle__btn {
+.downloads-toggle__btn,
+.account-toggle__btn {
   position: relative;
   display: flex;
   align-items: center;
@@ -389,11 +390,31 @@ body::before {
   transition: all var(--transition-fast);
 }
 .downloads-toggle__btn:hover,
-.downloads-toggle__btn.active {
+.downloads-toggle__btn.active,
+.account-toggle__btn:hover,
+.account-toggle__btn.active {
   color: var(--text-primary);
   background: rgba(255, 255, 255, 0.08);
   border-color: #2f80ed;
 }
+/* The header's Account button: a small green dot shows that this device is signed in and syncing. */
+.account-toggle__dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid var(--bg-primary);
+  display: none;
+}
+.account-toggle__btn.is-signed-in .account-toggle__dot { display: block; }
+/* With a photo, the person icon is replaced by the photo. */
+.account-toggle__avatar { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.account-toggle__avatar[hidden] { display: none; }
+.account-toggle__btn.has-avatar { overflow: visible; padding: 0; }
+.account-toggle__btn.has-avatar svg { display: none; }
 .downloads-toggle__badge {
   position: absolute;
   top: -6px;
@@ -4262,6 +4283,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   .settings-toggle__btn,
   .notif-toggle__btn,
   .downloads-toggle__btn,
+  .account-toggle__btn,
   .calendar-toggle__btn {
     width: 32px;
     height: 32px;
@@ -5800,3 +5822,62 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 .release__subject { color: var(--text-primary); overflow-wrap: anywhere; }
 .release__by { display: block; font-size: var(--text-xs); color: var(--text-muted); }
 @media (max-width: 480px) { .release__summary { padding: var(--space-sm); } .release__body { padding: 0 var(--space-sm) var(--space-sm); } }
+
+
+/* ─── Guitar Node: guitar chords above the lyrics, and the key controls (song page) ───────────────────────── */
+.guitar-node {
+  margin: 0 0 var(--space-lg, 1.5rem);
+  padding: 14px 16px;
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.14));
+  border-radius: var(--radius-md, 12px);
+  background: var(--bg-glass, rgba(255, 255, 255, 0.04));
+}
+.guitar-node[hidden], .guitar-node [hidden] { display: none !important; }
+.guitar-node__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.guitar-node__title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+.guitar-node__title svg { color: var(--accent-light, #a78bfa); }
+.guitar-node__controls { display: flex; align-items: flex-end; gap: 12px 18px; flex-wrap: wrap; margin-top: 12px; }
+.guitar-node__field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.guitar-node__label { color: var(--text-muted); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+.guitar-node__value { font-size: 1rem; color: var(--text-primary); min-height: 44px; display: flex; align-items: center; }
+.guitar-node__select {
+  min-height: 44px; padding: 0 12px; border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.2)); border-radius: 10px;
+  background: var(--bg-secondary, #0f1424); color: var(--text-primary); font: inherit; font-size: 1rem; cursor: pointer;
+}
+.guitar-node__steps { display: flex; gap: 8px; flex-wrap: wrap; }
+.guitar-node__btn {
+  min-height: 44px; min-width: 44px; padding: 0 14px; border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.2)); border-radius: 10px;
+  background: var(--bg-secondary, #0f1424); color: var(--text-primary); font: inherit; font-size: 0.9375rem; font-weight: 600; cursor: pointer;
+}
+.guitar-node__btn:hover:not(:disabled) { border-color: var(--accent, #8b5cf6); }
+.guitar-node__btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.guitar-node__btn--quiet { background: transparent; font-weight: 500; }
+.guitar-node__btn[aria-pressed="false"] { opacity: 0.85; }
+.guitar-node__select:focus-visible, .guitar-node__btn:focus-visible { outline: 2px solid var(--accent, #8b5cf6); outline-offset: 2px; }
+.guitar-node__status { flex-basis: 100%; margin: 0; color: var(--text-secondary); font-size: 0.875rem; }
+
+/* The song with its chords: every line is a row of columns, each column a chord over the words it belongs to, so the
+   chord stays above its syllable at any width (a long line wraps between columns, never through the middle of one). */
+.song-page__lyrics--chords { white-space: normal; line-height: 1.35; }
+.gn-line { display: flex; flex-wrap: wrap; align-items: flex-end; min-height: 1.35em; margin-top: 0.6em; white-space: pre-wrap; overflow-wrap: anywhere; }  /* a gap above each chord row, so it clearly belongs to the line under it */
+.gn-line--plain { display: block; margin-top: 0.15em; padding-top: 0.1em; }
+.gn-line--blank { min-height: 1.1em; }
+.gn-seg { display: inline-flex; flex-direction: column; justify-content: flex-end; min-width: 0; max-width: 100%; }
+.gn-chord {
+  min-height: 1.4em; padding-right: 0.7em;
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 0.82em; font-weight: 700; line-height: 1.4;
+  letter-spacing: 0; color: var(--accent-light, #a78bfa); white-space: pre;
+}
+[data-theme="light"] .gn-chord { color: #5b21b6; }
+.gn-text { white-space: pre-wrap; min-width: 0; }
+.gn-line--chords .gn-chord { padding-right: 1em; }
+@media (max-width: 600px) {
+  .guitar-node { padding: 12px; }
+  .guitar-node__controls { align-items: stretch; }
+  .guitar-node__field { flex: 1 1 140px; }
+  .guitar-node__select { width: 100%; }
+  .guitar-node__steps { flex: 1 1 100%; }
+  .guitar-node__steps .guitar-node__btn { flex: 1 1 calc(50% - 4px); white-space: nowrap; }  /* − / + side by side … */
+  .guitar-node__steps .guitar-node__btn--quiet { flex-basis: 100%; }                            /* … and Reset on its own row */
+  .gn-chord { font-size: 0.78em; padding-right: 0.55em; }
+}

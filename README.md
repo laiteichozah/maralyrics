@@ -120,6 +120,35 @@ Artists and composers sign in on `/my-profile` ("For Artists") with **Google** o
 - When a Manager approves, rejects or revokes a claim, the claimant gets an email with the decision and the team's note (only to a confirmed address; rivals closed by an approval are told too). The admin toast says whether it was sent.
 - Tests: `npm run test:auth`.
 
+#### Reader accounts: sync across devices
+
+Anyone can create an account on `/account` ("Sign in & sync" in the header) with **Google** or **email + password** (it is the same account system as the artists' one — no phone number is needed to read). Signed-in devices share their **favorites, pinned songs, downloaded songs, theme and language**: changes are queued on the device, sent to `POST /api/v1/account/sync`, and the account's other devices are pulled in (the newest change to an item wins; removals are kept as tombstones). Downloaded songs are copied to the other devices in the background (a switch on `/account` turns that off per device). The code is the `Sync` module in `public/app.js`, `worker/lib/sync.js` and `public/account-page.js`.
+
+- Run `npm run db:migrate` **before** `npm run deploy` (migration `0019` adds `person_sync_items` and `person_sync_state`).
+- Tests: `npm run test:sync`.
+
+#### Guitar Node: chords above the lyrics, and instant transposing
+
+A song can carry an **original key** and **guitar chords**. On its page, Guitar Node draws each chord directly above the word or syllable it belongs to, and the visitor can move the whole song to another key (a key list of the 12 keys of the song's mode, − / + Semitone buttons, Reset, Show / Hide chords) without a reload. The choice is remembered per song in the browser only; the song itself is never changed. Songs without chords look exactly as before.
+
+- **Data** (migration `0021`): `songs.original_key` (`'C'`, `'F#'`, `'Bb'` for major, `'Am'`, `'F#m'` for minor; `NULL` = unknown — never guessed) and `songs.chords` (JSON `{"v":1,"lines":{"<lyric line index>":[[<character offset>,"<chord>"],…]}}`; `NULL` = none). `song_revisions` carries the same two columns plus `has_chord_data`. The lyrics column is untouched, so search, SEO and every other page are unchanged; song lists do not include the chords (only a single song's page API does).
+- **Chord engine** `public/chords.js` (pure, no dependency; shared by the browser, the Worker and the tests): parses chords (root with # / b, quality and extensions from a known token set — `m maj7 sus4 add9 dim aug 7 9 b5 #11 (b9) 6/9 …` — and a bass note `C/E`), transposes them **by interval with correct spelling** (borrowed chords too: bVI of C is Bb in D, not A#), keeps everything but the root and the bass note as written, and never touches text that is not a chord. Unknown / malformed notation is shown as written and refused when saving.
+- **Editing** (admin dashboard → song form → *Guitar Node*): choose the original key (or leave it unknown), tick *This song has guitar chords* and write the **chord sheet**: `[C]Wise men [Em]say only [Am]fools rush in` (a line of only chords is an intro / solo: `[C] [G] [Am] [F]`; `[Chorus]` / `[x2]` stay in the lyrics). A palette of the key's chords, a live preview (with a try-it-in-another-key list) and a *Convert "chords above the words" text* button for sheets that have the chords printed above each line are included. The chord sheet is the one place the lyrics are typed while chords are on; saving splits it into plain lyrics + structured positions. Translators send the same data through the revision queue. A request that does not mention the key / chords keeps the stored ones; if it changes the lyrics without sending chords, the chords are dropped (their positions would no longer fit) and the response says `chords_cleared`.
+- **Copy** gives the lyrics with the chords above them, in the key being shown (and the lyrics alone when the chords are hidden).
+- **Tests**: `npm run test:chords` (engine: parsing, every key to every key, qualities, slash chords, minor keys, malformed input, validation, chord sheet), `npm run test:guitar` (server: save / validate / revisions / backward compatibility); both are part of `npm test`. `npm run test:e2e:guitar` is the browser test (real Chromium): chords measured above their words, transposing, reset, remembered key, minor and unknown keys, songs without chords, copy, keyboard, phone, and the admin editor.
+- **Deploy**: `npm run db:migrate` (migration `0021`) **before** `npm run deploy`; the site files deploy with Pages. Nothing has to be converted: existing songs keep both columns `NULL`.
+
+#### Account page: profile, preferences, security, your data, Cloudflare challenges
+
+Signed in, `/account` has five tabs: **Overview** (sync status), **Profile** (name, photo, username, email, optional phone), **Preferences** (language, theme, card/list view — and the default calendar in Settings — all synced), **Security** (change or set a password, connect / disconnect Google, sign out of all devices) and **Your data** (download everything we hold as JSON; delete the account, which needs the password or a fresh Google sign-in and is refused while the account manages an artist/composer page).
+
+**Cloudflare Turnstile** protects every way to create an account (email sign-up, and a *new* account created through Google), "Forgot password", claims, and sign-in after two wrong passwords (on both `/account` and `/my-profile`). It is checked only when the `TURNSTILE_SECRET_KEY` secret exists (`npx wrangler secret put TURNSTILE_SECRET_KEY`); without it the check is skipped, which is meant for local development only.
+
+- Run `npm run db:migrate` **before** `npm run deploy` (migration `0020` adds `display_name` and `avatar`).
+- Tests: `npm run test:account`.
+- **Photo cropper** (`public/photo-cropper.js`): choosing a profile photo — on `/account` and in the artist / composer editor on `/my-profile` — opens a dialog where the person drags the picture to frame it and zooms with a slider, the mouse wheel, the +/- buttons or the keys (arrows move, `+`/`-` zoom, Enter/Escape use/cancel). The result is a square JPEG (256 px for accounts, 400 px for artist pages).
+- **Browser test of every account feature**: `npm run test:e2e` drives a real Chromium through sign-up, the Cloudflare challenges, two-device sync (also offline), profile and the photo crop (pixel-checked), preferences, security, data download / deletion and a phone screen, against the real Worker with Google and Turnstile stubbed. It needs Playwright with Chromium (it skips with a message when there is none) and is not part of `npm test`. `E2E_SHOTS=dir` saves screenshots of the crop dialog; `E2E_DEBUG=dir` saves every page if the test stops early.
+
 ---
 
 ## Scripts
@@ -131,8 +160,8 @@ The important npm scripts are defined in `package.json`:
 - `npm run db:create` — create a D1 database (`wrangler d1 create`)
 - `npm run db:schema` / `db:schema:local` — apply `schema.sql` (idempotent; safe on a fresh or existing DB)
 - `npm run db:seed:local` — load `seed.sql` sample data (local only — never run against prod)
-- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
-- `npm run changelog` — regenerates [CHANGELOG.md](CHANGELOG.md) (every version with its full commit log) and `public/releases.json` (the "Version history" on the Project page, with GitHub links) from `scripts/releases.json`; `npm test` fails if either is out of date; add `-- --tag` to create the annotated release tags (`vX.Y.Z`), or `-- --notes 1.4.0` to print one version's notes. See the header of `scripts/changelog.mjs` for how to cut a release.
+- `npm test` — runs every check: the integration suites (`test:claims`, `test:green`, `test:social`, `test:idol`, `test:badges`, `test:richtext`, `test:auth`, `test:songnav`, `test:sync`, `test:account`, `test:chords`, `test:guitar`), then `seo:check` and `i18n:check`. They run the real Worker against an in-memory SQLite database; no network or Cloudflare account needed.
+- `npm run changelog` — regenerates [CHANGELOG.md](CHANGELOG.md) (every version with its full commit log) and `public/releases.json` (the "Version history" on the Project page, with GitHub links) from `scripts/releases.json`; `npm test` fails if either is out of date; add `-- --tag` to create the annotated release tags (`vX.Y.Z`), or `-- --notes 1.4.0` to print one version's notes. GitHub Releases are published from the same notes by `.github/workflows/release.yml` (`scripts/publish-releases.mjs`): pushing a `vX.Y.Z` tag creates its release, and Actions → *Publish releases* → *Run workflow* back-fills the missing ones (tick *update* to rewrite existing ones). See the header of `scripts/changelog.mjs` for how to cut a release.
 - `npm run db:migrate` / `db:migrate:local` — apply any pending files in `migrations/` via `wrangler d1 migrations apply` (tracked, runs each migration once)
 
 ---

@@ -269,6 +269,33 @@
         <!-- Divider -->
         <div class="song-page__divider"></div>
 
+        <!-- Guitar Node: chords above the lyrics, and a key selector (shown only for songs that have chords) -->
+        <section class="guitar-node" id="guitarNode" aria-labelledby="gnTitle" hidden>
+          <div class="guitar-node__head">
+            <h2 class="guitar-node__title" id="gnTitle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <span data-i18n="guitar.title">Guitar Node</span>
+            </h2>
+            <button type="button" class="guitar-node__btn" id="gnToggle" aria-pressed="true" data-i18n="guitar.hide">Hide chords</button>
+          </div>
+          <div class="guitar-node__controls" id="gnControls">
+            <div class="guitar-node__field">
+              <span class="guitar-node__label" data-i18n="guitar.original_key">Original key</span>
+              <strong class="guitar-node__value" id="gnOriginal">—</strong>
+            </div>
+            <div class="guitar-node__field" id="gnKeyField">
+              <label class="guitar-node__label" for="gnKey" data-i18n="guitar.display_key">Display key</label>
+              <select class="guitar-node__select" id="gnKey"></select>
+            </div>
+            <div class="guitar-node__steps" role="group" data-i18n-aria="guitar.transpose_group" aria-label="Transpose">
+              <button type="button" class="guitar-node__btn" id="gnDown" data-i18n="guitar.semitone_down" data-i18n-aria="guitar.semitone_down_aria" aria-label="Down one semitone">− Semitone</button>
+              <button type="button" class="guitar-node__btn" id="gnUp" data-i18n="guitar.semitone_up" data-i18n-aria="guitar.semitone_up_aria" aria-label="Up one semitone">+ Semitone</button>
+              <button type="button" class="guitar-node__btn guitar-node__btn--quiet" id="gnReset" data-i18n="guitar.reset">Reset to original key</button>
+            </div>
+            <p class="guitar-node__status" id="gnStatus" role="status" aria-live="polite"></p>
+          </div>
+        </section>
+
         <!-- Lyrics -->
         <div class="song-page__lyrics" id="songLyrics"></div>
 
@@ -365,5 +392,8 @@
   <script src="/theme.js"></script>
   <!-- App Script -->
   <script src="/app.js"></script>
+  <!-- Guitar Node: the chord engine (a module that also puts MaraChords on window) and the song-page controls -->
+  <script type="module" src="/chords.js"></script>
+  <script src="/guitar-node.js"></script>
 </body>
 </html>

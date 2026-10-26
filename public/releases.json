@@ -2,7 +2,7 @@
  "repo": "laiteichozah/maralyrics",
  "github_url": "https://github.com/laiteichozah/maralyrics",
  "changelog_url": "https://github.com/laiteichozah/maralyrics/blob/main/CHANGELOG.md",
- "tags_url": "https://github.com/laiteichozah/maralyrics/tags",
+ "releases_url": "https://github.com/laiteichozah/maralyrics/releases",
  "releases": [
   {
    "version": "1.9.0",

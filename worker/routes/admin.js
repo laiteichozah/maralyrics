@@ -30,6 +30,7 @@ import greenApp from './adminGreen.js';
 import { AVATARS } from '../lib/avatars.js';
 import { isSafeLinkUrl, isSafeImageUrl, validateSocialLinks } from '../lib/profile.js';
 import { normalizeBio } from '../lib/richText.js';
+import { readChordFields, resolveChordColumns, shapeChords } from '../lib/guitarNode.js';
 import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
@@ -728,7 +729,7 @@ async function getSongWithPeople(db, id) {
        WHERE sc.song_id = ? ORDER BY sc.position`
     ).bind(id).all(),
   ]);
-  return { ...song, artists: artists.results, composers: composers.results };
+  return { ...shapeChords(song), artists: artists.results, composers: composers.results };
 }
 
 const songsApp = new Hono();
@@ -768,7 +769,9 @@ songsApp.get('/', async (c) => {
   ]);
 
   const total = countRow.total;
-  return c.json({ songs: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
+  // The chords of every song are not needed to list them (they can be large): only whether a song has any.
+  const songs = rows.results.map(({ chords, ...song }) => ({ ...song, has_chords: !!chords, original_key: song.original_key || null }));
+  return c.json({ songs, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
 });
 
 songsApp.get('/:id', async (c) => {
@@ -788,6 +791,9 @@ songsApp.post('/', requireRole(...CAN_CREATE_SONG), async (c) => {
     return c.json({ error: `category must be one of: ${CATEGORIES.join(', ')}` }, 400);
   }
   const slug = data.slug?.trim() || slugify(title);
+  const guitar = readChordFields(data, lyrics);
+  if (!guitar.ok) return c.json({ error: guitar.error }, 400);
+  const chordColumns = resolveChordColumns(null, guitar, lyrics);
 
   try {
     const db = c.env.DB;
@@ -802,10 +808,10 @@ songsApp.post('/', requireRole(...CAN_CREATE_SONG), async (c) => {
     // publishing is always a separate, explicit action gated by CAN_PUBLISH_UNPUBLISH.
     const result = await db
       .prepare(
-        `INSERT INTO songs (title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`
+        `INSERT INTO songs (title, slug, artist_id, composer_id, copyright_owner_id, category, lyrics, original_key, chords, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`
       )
-      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics)
+      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics, chordColumns.original_key, chordColumns.chords)
       .run();
     const songId = result.meta.last_row_id;
 
@@ -831,6 +837,8 @@ songsApp.put('/:id', requireRole(...CAN_EDIT_SONG_DIRECT), async (c) => {
     return c.json({ error: `category must be one of: ${CATEGORIES.join(', ')}` }, 400);
   }
   const slug = data.slug?.trim() || slugify(title);
+  const guitar = readChordFields(data, lyrics);
+  if (!guitar.ok) return c.json({ error: guitar.error }, 400);
 
   try {
     const db = c.env.DB;
@@ -841,7 +849,7 @@ songsApp.put('/:id', requireRole(...CAN_EDIT_SONG_DIRECT), async (c) => {
     if (!artistsOk) return c.json({ error: 'One or more selected artists do not exist' }, 400);
     if (!composersOk) return c.json({ error: 'One or more selected composers do not exist' }, 400);
 
-    const existing = await db.prepare('SELECT id, updated_at FROM songs WHERE id = ?').bind(id).first();
+    const existing = await db.prepare('SELECT id, updated_at, lyrics, original_key, chords FROM songs WHERE id = ?').bind(id).first();
     if (!existing) return c.json({ error: 'Not found' }, 404);
 
     // Optimistic concurrency check: the client sends back the updated_at it loaded (e.g.
@@ -855,12 +863,14 @@ songsApp.put('/:id', requireRole(...CAN_EDIT_SONG_DIRECT), async (c) => {
     // status is deliberately never touched here — status changes go through PUT /:id/status.
     // The song row write and both junction-table rewrites run as one atomic batch so a
     // failure partway through can't leave the song out of sync with its credited people.
+    const chordColumns = resolveChordColumns(existing, guitar, lyrics);
     const updateStmt = db
       .prepare(
-        `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?
+        `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?,
+                original_key = ?, chords = ?
          WHERE id = ?`
       )
-      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics, id);
+      .bind(title, slug, artist_ids[0] || null, composer_ids[0] || null, copyright_owner_id || null, category || null, lyrics, chordColumns.original_key, chordColumns.chords, id);
     await db.batch([
       updateStmt,
       ...songPeopleStmts(db, id, 'song_artists', 'artist_id', artist_ids),
@@ -869,7 +879,8 @@ songsApp.put('/:id', requireRole(...CAN_EDIT_SONG_DIRECT), async (c) => {
     await logAudit(db, c.get('admin'), 'song.edit', 'song', Number(id), title);
 
     const row = await getSongWithPeople(db, id);
-    return c.json(row);
+    // chords_cleared tells the editor that changed lyrics (without sending chords) made the old chord positions meaningless.
+    return c.json(chordColumns.cleared ? { ...row, chords_cleared: true } : row);
   } catch (err) {
     return fail(c, err);
   }
@@ -939,6 +950,8 @@ songsApp.post('/:id/revisions', requireRole(...CAN_SUBMIT_REVISION), async (c) =
   if (pending) return c.json({ error: 'A revision for this song is already pending review' }, 409);
 
   const slug = data.slug?.trim() || slugify(title);
+  const guitar = readChordFields(data, lyrics);
+  if (!guitar.ok) return c.json({ error: guitar.error }, 400);
 
   try {
     const [artistsOk, composersOk] = await Promise.all([
@@ -951,12 +964,14 @@ songsApp.post('/:id/revisions', requireRole(...CAN_SUBMIT_REVISION), async (c) =
     const admin = c.get('admin');
     const result = await db
       .prepare(
-        `INSERT INTO song_revisions (song_id, title, slug, lyrics, category, copyright_owner_id, artist_ids, composer_ids, submitted_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO song_revisions (song_id, title, slug, lyrics, category, copyright_owner_id, artist_ids, composer_ids, submitted_by,
+                                     original_key, chords, has_chord_data)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         songId, title, slug, lyrics, category || null, copyright_owner_id || null,
-        JSON.stringify(artist_ids), JSON.stringify(composer_ids), admin.sub
+        JSON.stringify(artist_ids), JSON.stringify(composer_ids), admin.sub,
+        guitar.original_key, guitar.chords, guitar.has ? 1 : 0
       )
       .run();
 
@@ -1039,14 +1054,22 @@ revisionsApp.put('/:id/approve', async (c) => {
     if (!composersOk) return c.json({ error: 'One or more selected composers no longer exist' }, 400);
 
     const admin = c.get('admin');
+    // The key / chords the revision carries are applied (a revision made before Guitar Node carries none, and then the
+    // song keeps its own — unless the lyrics changed, which makes the old chord positions meaningless).
+    const current = await db.prepare('SELECT lyrics, original_key, chords FROM songs WHERE id = ?').bind(revision.song_id).first();
+    const chordColumns = resolveChordColumns(current, {
+      hasKey: !!revision.has_chord_data, hasChords: !!revision.has_chord_data,
+      original_key: revision.original_key || null, chords: revision.chords || null,
+    }, revision.lyrics);
     const songUpdateStmt = db
       .prepare(
-        `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?
+        `UPDATE songs SET title = ?, slug = ?, artist_id = ?, composer_id = ?, copyright_owner_id = ?, category = ?, lyrics = ?,
+                original_key = ?, chords = ?
          WHERE id = ?`
       )
       .bind(
         revision.title, revision.slug, artist_ids[0] || null, composer_ids[0] || null,
-        revision.copyright_owner_id, revision.category, revision.lyrics, revision.song_id
+        revision.copyright_owner_id, revision.category, revision.lyrics, chordColumns.original_key, chordColumns.chords, revision.song_id
       );
     const revisionUpdateStmt = db
       .prepare(

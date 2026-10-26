@@ -445,6 +445,9 @@ function autoSaveSongDraft() {
       copyright_owner_id: document.getElementById('formCopyrightOwner')?.value || '',
       slug: document.getElementById('formSlug')?.value || '',
       lyrics: document.getElementById('formLyrics')?.value || '',
+      original_key: document.getElementById('formOriginalKey')?.value || '',
+      chords_on: !!document.getElementById('formChordsOn')?.checked,
+      chord_sheet: document.getElementById('formChordSheet')?.value || '',
     };
     if (data.title || data.lyrics) {
       saveDraft('song', id, data);
@@ -464,6 +467,9 @@ function restoreSongDraftData(draft) {
     if (draft.slug) document.getElementById('formSlug').dataset.manual = '1';
   }
   if (draft.lyrics !== undefined) document.getElementById('formLyrics').value = draft.lyrics;
+  if (draft.original_key !== undefined) document.getElementById('formOriginalKey').value = draft.original_key;
+  if (draft.chords_on) gnSetChordsOn(true, draft.chord_sheet || '');
+  gnSongHasChordData = true; // a restored draft carries what the form shows, key and chords included
 }
 
 // ─── Person Draft ────────────────────────────────
@@ -894,7 +900,7 @@ function renderSongsTable(songs) {
     return `
     <tr data-id="${song.id}">
       <td>
-        <div class="admin-table__title">${escapeHtml(song.title)}</div>
+        <div class="admin-table__title">${escapeHtml(song.title)}${song.has_chords ? `<span class="gn-badge" title="Has guitar chords${song.original_key ? ` (original key ${escapeHtml(song.original_key)})` : ''}">🎸${song.original_key ? ` ${escapeHtml(song.original_key)}` : ''}</span>` : ''}</div>
         <div class="admin-table__slug">/song/${escapeHtml(song.slug)}</div>
       </td>
       <td>${escapeHtml(song.artist_name || song.artist || '—')}</td>
@@ -958,6 +964,7 @@ function clearSongForm() {
   // silently block auto-slug generation for every song created/edited after.
   document.getElementById('formSlug').dataset.manual = '';
   currentSongLoadedUpdatedAt = null;
+  gnReset();
   hideDraftBanner('songDraftBanner', 'songDraftIndicator');
 }
 function showFormMessage(text, isError = false) {
@@ -971,10 +978,11 @@ function showFormMessage(text, isError = false) {
 // applySongModalPermissions so a role that can only view or only change status never gets
 // a form it can silently edit and lose.
 function setSongFieldsDisabled(disabled) {
-  ['formTitle', 'formCopyrightOwner', 'formCategory', 'formSlug', 'formLyrics'].forEach((id) => {
+  ['formTitle', 'formCopyrightOwner', 'formCategory', 'formSlug', 'formLyrics', 'formOriginalKey', 'formChordsOn', 'formChordSheet', 'gnPreviewKey', 'gnConvert'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.disabled = disabled;
   });
+  document.querySelectorAll('#gnPalette button').forEach((b) => { b.disabled = disabled; });
   ['formArtist', 'formComposer'].forEach((id) => {
     const container = document.getElementById(id);
     if (!container) return;
@@ -1077,6 +1085,7 @@ function populateSongForm(song) {
   document.getElementById('formCopyrightOwner').value = song.copyright_owner_id || '';
   document.getElementById('formSlug').value = song.slug || '';
   document.getElementById('formLyrics').value = song.lyrics || '';
+  gnLoadSong(song);
   currentSongLoadedUpdatedAt = song.updated_at || null;
   applySongModalPermissions('edit', getAdminInfo()?.role, song);
 }
@@ -1126,7 +1135,7 @@ async function _editSong(id) {
 }
 
 function gatherSongFormData() {
-  return {
+  const body = {
     title: document.getElementById('formTitle').value.trim(),
     artist_ids: getSelectedIds(document.getElementById('formArtist')),
     composer_ids: getSelectedIds(document.getElementById('formComposer')),
@@ -1135,14 +1144,234 @@ function gatherSongFormData() {
     slug: document.getElementById('formSlug').value.trim(),
     lyrics: document.getElementById('formLyrics').value.trim(),
   };
+  // Guitar Node: the key and the chords go with the lyrics (the chord sheet, when it is on, is where the lyrics are written).
+  // A song loaded from an old offline cache that never had these fields sends neither, so the server keeps what it has.
+  const gn = gnCollect();
+  if (gn.include) {
+    body.original_key = gn.original_key;
+    body.chords = gn.chords;
+    if (gn.lyrics !== null) body.lyrics = gn.lyrics;
+  }
+  if (gn.errors.length) body.chord_errors = gn.errors;
+  return body;
 }
 
 function validateSongFormData(body) {
+  if (body.chord_errors && body.chord_errors.length) return `Fix the guitar chords first: ${body.chord_errors.slice(0, 3).join('; ')}.`;
   if (!body.title) return 'Title is required.';
   if (!body.lyrics) return 'Lyrics are required.';
   if (body.artist_ids.length > 20) return 'A song can have at most 20 artists.';
   if (body.composer_ids.length > 20) return 'A song can have at most 20 composers.';
   return null;
+}
+
+// ═══ Guitar Node (song form) ════════════════════════════════════════════════════════════════
+// The song's original key, and its chords written as a "chord sheet" ([C]Wise men [Em]say). While the sheet is on it is where
+// the lyrics are typed; saving splits it into plain lyrics + structured chord positions (see public/chords.js).
+let gnSongHasChordData = true;   // false when the song came from an old cache without key / chords: then neither is sent back
+let gnPreviewTimer = null;
+
+const gnEl = (id) => document.getElementById(id);
+const gnApi = () => (typeof MaraChords !== 'undefined' ? MaraChords : null);
+
+function gnFillKeys() {
+  const C = gnApi();
+  const major = gnEl('gnMajorKeys');
+  if (!C || !major || major.children.length) return;
+  for (const [minor, group] of [[false, major], [true, gnEl('gnMinorKeys')]]) {
+    for (const k of C.keyOptions(minor)) { const o = document.createElement('option'); o.value = k.name; o.textContent = k.label; group.appendChild(o); }
+  }
+}
+
+/** Clears the Guitar Node part of the form (a new song, or the form closing). */
+function gnReset() {
+  gnSongHasChordData = true;
+  const key = gnEl('formOriginalKey');
+  if (key) { key.value = ''; key.querySelectorAll('option[data-extra]').forEach((o) => o.remove()); }
+  gnSetChordsOn(false, '');
+  const lyrics = gnEl('formLyrics');
+  if (lyrics) lyrics.readOnly = false;
+}
+
+/** Shows / hides the chord sheet editor. Turning it on fills the sheet from the lyrics (and the stored chords). */
+function gnSetChordsOn(on, sheet) {
+  const box = gnEl('formChordsOn');
+  if (!box) return;
+  box.checked = on;
+  gnEl('gnAdminBody').hidden = !on;
+  const lyrics = gnEl('formLyrics');
+  lyrics.readOnly = on;
+  gnEl('formLyricsChordNote').hidden = !on;
+  if (on) {
+    gnFillKeys();
+    gnEl('formChordSheet').value = sheet;
+    gnRefresh();
+  } else {
+    gnEl('formChordSheet').value = '';
+    gnEl('gnAdminErrors').hidden = true;
+  }
+}
+
+/** Loads a song into the Guitar Node fields. */
+function gnLoadSong(song) {
+  const C = gnApi();
+  gnFillKeys();
+  gnSongHasChordData = 'chords' in song; // a cached summary (no chords field) must not wipe the song's chords when saved
+  const select = gnEl('formOriginalKey');
+  select.value = song.original_key || '';
+  // A key that is not one of the 24 offered (written Gb, C#, D#m …) is kept as it is, as an extra choice.
+  if (song.original_key && select.value !== song.original_key) {
+    const extra = document.createElement('option');
+    extra.dataset.extra = '1';
+    extra.value = song.original_key;
+    extra.textContent = `${song.original_key} (as stored)`;
+    select.appendChild(extra);
+    select.value = song.original_key;
+  }
+  gnEl('gnPreviewKey').dataset.mode = '';
+  const data = C ? C.readChordData(song.chords) : null;
+  gnSetChordsOn(!!data, data ? C.formatSheet(song.lyrics || '', data) : '');
+  gnDrawPalette();
+}
+
+/** What the form holds for the key and chords: { include, original_key, chords, lyrics, errors }. */
+function gnCollect() {
+  const C = gnApi();
+  const out = { include: gnSongHasChordData, original_key: gnEl('formOriginalKey').value || null, chords: null, lyrics: null, errors: [] };
+  if (!gnEl('formChordsOn').checked) return out;
+  if (!C) { out.errors.push('the chord engine did not load — reload the page'); return out; }
+  const parsed = C.parseSheet(gnEl('formChordSheet').value);
+  out.errors = parsed.errors.map((e) => e.message);
+  out.lyrics = parsed.lyrics;
+  out.chords = parsed.chords;
+  if (!out.errors.length && parsed.chords) {
+    const checked = C.validateChordData(parsed.chords, parsed.lyrics);
+    if (!checked.ok) out.errors = checked.errors.map((e) => e.message);
+  }
+  return out;
+}
+
+/** The chords of the key as buttons that put [chord] into the sheet at the cursor. */
+function gnDrawPalette() {
+  const C = gnApi();
+  const box = gnEl('gnPalette');
+  box.textContent = '';
+  const key = C && C.parseKey(gnEl('formOriginalKey').value);
+  const names = key ? C.spellingFor(key) : ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+  // a key we know: its seven chords (and V7); otherwise the common major and minor chords from C
+  const steps = key
+    ? (key.minor
+      ? [[0, 'm'], [2, 'dim'], [3, ''], [5, 'm'], [7, 'm'], [7, ''], [7, '7'], [8, ''], [10, '']]
+      : [[0, ''], [2, 'm'], [4, 'm'], [5, ''], [7, ''], [7, '7'], [9, 'm'], [11, 'dim']])
+    : [[0, ''], [2, 'm'], [4, 'm'], [5, ''], [7, ''], [7, '7'], [9, 'm'], [0, 'm']];
+  const base = key ? key.pc : 0;
+  const seen = new Set();
+  for (const [step, q] of steps) {
+    const chord = names[(base + step) % 12] + q;
+    if (seen.has(chord)) continue;
+    seen.add(chord);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = chord;
+    b.addEventListener('click', () => gnInsert(`[${chord}]`));
+    box.appendChild(b);
+  }
+}
+
+function gnInsert(text) {
+  const area = gnEl('formChordSheet');
+  if (area.disabled) return;
+  const start = area.selectionStart ?? area.value.length;
+  const end = area.selectionEnd ?? start;
+  area.value = area.value.slice(0, start) + text + area.value.slice(end);
+  area.focus();
+  area.selectionStart = area.selectionEnd = start + text.length;
+  gnRefresh();
+}
+
+/** Re-reads the sheet: mirrors the words into the Lyrics box, lists mistakes and redraws the preview. */
+function gnRefresh() {
+  const C = gnApi();
+  if (!C || !gnEl('formChordsOn').checked) return;
+  const parsed = C.parseSheet(gnEl('formChordSheet').value);
+  gnEl('formLyrics').value = parsed.lyrics;
+  const errors = parsed.errors.map((e) => e.message);
+  if (!errors.length && parsed.chords) { const checked = C.validateChordData(parsed.chords, parsed.lyrics); if (!checked.ok) checked.errors.forEach((e) => errors.push(e.message)); }
+  const errBox = gnEl('gnAdminErrors');
+  errBox.hidden = !errors.length;
+  errBox.textContent = errors.slice(0, 5).join(' · ');
+  gnDrawPreview(parsed);
+}
+
+function gnDrawPreview(parsed) {
+  const C = gnApi();
+  const preview = gnEl('gnAdminPreview');
+  const select = gnEl('gnPreviewKey');
+  const key = C.parseKey(gnEl('formOriginalKey').value);
+  // The preview-key list follows the song's key (12 keys of its mode); with no key set it is hidden.
+  const wanted = key ? (key.minor ? 'minor' : 'major') : 'none';
+  if (select.dataset.mode !== wanted) {
+    select.dataset.mode = wanted;
+    select.textContent = '';
+    if (key) for (const k of C.keyOptions(key.minor)) { const o = document.createElement('option'); o.value = k.name; o.textContent = k.label + (k.pc === key.pc ? ' (original)' : ''); select.appendChild(o); }
+    select.value = key ? key.name : '';
+  }
+  select.closest('.gn-admin__previewbar').hidden = !key;
+  const target = key ? (select.value || key.name) : null;
+  const map = key && target && C.parseKey(target) && C.parseKey(target).pc !== key.pc ? (c) => C.transposeToKey(c, key.name, target) : (c) => c;
+  preview.textContent = '';
+  const frag = document.createDocumentFragment();
+  for (const line of C.buildSongLines(parsed.lyrics, parsed.chords, map)) {
+    const row = document.createElement('div');
+    if (line.segments.length === 1 && line.segments[0].chord === null) { row.className = line.text.trim() === '' ? 'gn-line gn-line--blank' : 'gn-line gn-line--plain'; row.textContent = line.text; }
+    else {
+      row.className = `gn-line${line.chordOnly ? ' gn-line--chords' : ''}`;
+      for (const seg of line.segments) {
+        const col = document.createElement('span'); col.className = 'gn-seg';
+        const chord = document.createElement('span'); chord.className = 'gn-chord'; if (seg.chord !== null) chord.textContent = seg.chord;
+        const text = document.createElement('span'); text.className = 'gn-text'; text.textContent = seg.text;
+        col.append(chord, text); row.appendChild(col);
+      }
+    }
+    frag.appendChild(row);
+  }
+  preview.appendChild(frag);
+}
+
+function wireGuitarNodeAdmin() {
+  gnFillKeys();
+  gnEl('formChordsOn').addEventListener('change', (e) => {
+    const C = gnApi();
+    if (e.target.checked) {
+      if (!C) { e.target.checked = false; alert('The chord engine did not load. Reload the page and try again.'); return; }
+      gnSetChordsOn(true, gnEl('formLyrics').value);
+      gnDrawPalette();
+    } else {
+      const has = C && C.parseSheet(gnEl('formChordSheet').value).count > 0;
+      if (has && !window.confirm('Remove all the guitar chords from this song? The lyrics stay as they are.')) { e.target.checked = true; return; }
+      // the words stay: the Lyrics box already holds them
+      gnSetChordsOn(false, '');
+    }
+    autoSaveSongDraft();
+  });
+  gnEl('formChordSheet').addEventListener('input', () => {
+    clearTimeout(gnPreviewTimer);
+    gnPreviewTimer = setTimeout(gnRefresh, 120);
+    autoSaveSongDraft();
+  });
+  gnEl('formOriginalKey').addEventListener('change', () => { gnDrawPalette(); if (gnEl('formChordsOn').checked) { gnEl('gnPreviewKey').dataset.mode = ''; gnRefresh(); } autoSaveSongDraft(); });
+  gnEl('gnPreviewKey').addEventListener('change', gnRefresh);
+  gnEl('gnConvert').addEventListener('click', () => {
+    const C = gnApi();
+    const area = gnEl('formChordSheet');
+    if (!C || area.disabled) return;
+    const converted = C.overLyricsToSheet(area.value);
+    if (converted === area.value) { AdminUI.notify('Nothing to convert: no line of chords above words was found.', 'info'); return; }
+    area.value = converted; // the browser's undo (Ctrl+Z) can bring the old text back
+    gnRefresh();
+    autoSaveSongDraft();
+  });
+  gnDrawPalette();
 }
 
 // Direct save — creates a new song, or applies an edit immediately for roles allowed to
@@ -2974,6 +3203,7 @@ function initDashboard() {
   document.getElementById('btnNewSong').addEventListener('click', openNewSong);
   document.getElementById('songForm').addEventListener('submit', saveSongDirect);
   document.getElementById('btnSubmitRevision').addEventListener('click', submitSongRevision);
+  wireGuitarNodeAdmin();
   document.getElementById('modalClose').addEventListener('click', closeSongModal);
   document.getElementById('modalBackdrop').addEventListener('click', closeSongModal);
   document.getElementById('btnCancel').addEventListener('click', closeSongModal);
@@ -3939,7 +4169,17 @@ function describeSongFields(song) {
   const co = song.copyright_owner_id
     ? (allCopyrightOwners.find(c => c.id === song.copyright_owner_id)?.name || `#${song.copyright_owner_id}`)
     : '—';
-  return `Title: ${song.title || '—'}\nSlug: ${song.slug || '—'}\nCategory: ${song.category || '—'}\nCopyright Owner: ${co}\nArtists: ${artists}\nComposers: ${composers}\n\nLyrics:\n${song.lyrics || '—'}`;
+  // Guitar Node: the original key, and the chords written out as a chord sheet (or a note when a revision does not touch them).
+  let guitar = '';
+  const C = typeof MaraChords !== 'undefined' ? MaraChords : null;
+  if (song.has_chord_data === 0) guitar = '\nOriginal key: (not part of this revision)\nGuitar chords: (not part of this revision)\n';
+  else {
+    const data = C ? C.readChordData(song.chords) : null;
+    guitar = `\nOriginal key: ${song.original_key || 'not set'}\nGuitar chords: ${data ? `${C.allChords(data).length} chords` : 'none'}\n`;
+  }
+  const data = C ? C.readChordData(song.chords) : null;
+  const body = data && C ? C.formatSheet(song.lyrics || '', data) : (song.lyrics || '—');
+  return `Title: ${song.title || '—'}\nSlug: ${song.slug || '—'}\nCategory: ${song.category || '—'}\nCopyright Owner: ${co}\nArtists: ${artists}\nComposers: ${composers}${guitar}\nLyrics${data ? ' (with chords in [brackets])' : ''}:\n${body}`;
 }
 
 async function openRevisionModal(id) {
@@ -3969,6 +4209,9 @@ async function _openRevisionModal(id) {
       slug: revision.slug,
       category: revision.category,
       lyrics: revision.lyrics,
+      original_key: revision.original_key,
+      chords: revision.chords,
+      has_chord_data: revision.has_chord_data,
       copyright_owner_id: revision.copyright_owner_id,
       artists: proposedArtistIds.map(aid => ({ name: allArtists.find(a => a.id === aid)?.name || `#${aid}` })),
       composers: proposedComposerIds.map(cid => ({ name: allComposers.find(c => c.id === cid)?.name || `#${cid}` })),

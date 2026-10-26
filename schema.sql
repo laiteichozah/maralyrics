@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS songs (
     copyright_owner_id  INTEGER,
     category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
     lyrics              TEXT NOT NULL,
+    original_key        TEXT,   -- Guitar Node: the key the song was written in ('C', 'Bb', 'Am', 'F#m'); NULL = unknown (migration 0021)
+    chords              TEXT,   -- Guitar Node: JSON { v: 1, lines: { "<line>": [[offset, "chord"], …] } }; NULL = no chords (migration 0021)
     views               INTEGER DEFAULT 0,
     status              TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'published', 'archived')),
     created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -185,6 +187,9 @@ CREATE TABLE IF NOT EXISTS song_revisions (
     title               TEXT NOT NULL,
     slug                TEXT NOT NULL,
     lyrics              TEXT NOT NULL,
+    original_key        TEXT,   -- Guitar Node (migration 0021)
+    chords              TEXT,   -- Guitar Node (migration 0021)
+    has_chord_data      INTEGER NOT NULL DEFAULT 0,   -- 1 when the submitter sent the key / chords (so approving applies them)
     category            TEXT CHECK (category IS NULL OR category IN ('Gospel', 'Love', 'Traditional', 'Patriotic')),
     copyright_owner_id  INTEGER REFERENCES copyright_owners(id) ON DELETE SET NULL,
     artist_ids          TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(artist_ids)),
@@ -283,6 +288,8 @@ CREATE TABLE IF NOT EXISTS person_accounts (
     email_verified_at DATETIME,                    -- NULL until the owner proves control of contact_email (migration 0018)
     google_sub    TEXT,                            -- Google's account id, for "Sign in with Google" (migration 0018)
     session_epoch INTEGER NOT NULL DEFAULT 0,      -- bumped on password change/reset → older session tokens stop working
+    display_name  TEXT,                            -- shown on the owner's account page (migration 0020)
+    avatar        TEXT,                            -- the owner's photo, a small data:image URL (migration 0020)
     created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -303,6 +310,27 @@ CREATE TABLE IF NOT EXISTS person_email_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_person_email_tokens_account ON person_email_tokens(account_id, kind, created_at);
 CREATE INDEX IF NOT EXISTS idx_person_email_tokens_email ON person_email_tokens(lower(email), kind, created_at);
+
+-- Sync for reader accounts: favourites, pins, downloads and a few preferences follow the account to every device (migration 0019).
+-- One row per (account, kind, key). `deleted` rows are kept (a tombstone) so a removal on one device reaches the others;
+-- the newest `updated_at` (the device's clock, clamped by the server) wins. `rev` is the account's change counter at the
+-- time of the write: devices ask for "everything after the rev I last saw".
+CREATE TABLE IF NOT EXISTS person_sync_items (
+    account_id INTEGER NOT NULL REFERENCES person_accounts(id) ON DELETE CASCADE,
+    kind       TEXT NOT NULL CHECK (kind IN ('favorite', 'pin', 'download', 'pref')),
+    key        TEXT NOT NULL,          -- a song slug, or the preference name
+    value      TEXT,                   -- pin position / preference value; NULL for favourites and downloads
+    deleted    INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,       -- milliseconds since 1970
+    rev        INTEGER NOT NULL,
+    PRIMARY KEY (account_id, kind, key)
+);
+CREATE INDEX IF NOT EXISTS idx_person_sync_items_rev ON person_sync_items(account_id, rev);
+
+CREATE TABLE IF NOT EXISTS person_sync_state (
+    account_id INTEGER PRIMARY KEY REFERENCES person_accounts(id) ON DELETE CASCADE,
+    rev        INTEGER NOT NULL DEFAULT 0
+);
 
 CREATE TABLE IF NOT EXISTS person_claims (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,

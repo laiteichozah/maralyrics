@@ -12,7 +12,7 @@
   const API = `${CONFIG.API_BASE}/account`;
   const TOKEN_KEY = 'ml_account_token';
   const TURNSTILE_SITEKEY = '0x4AAAAAABjildkegfR6T0sd'; // same public site key as the feedback forms
-  const PHOTO_SIZE = 400; // uploaded photos are centre-cropped to a square this size (JPEG)
+  const PHOTO_SIZE = 400; // uploaded photos are cropped (by the person, in the cropper) to a square this size (JPEG)
   const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
   const MAX_LINKS = 10;
   const TABS = ['profile', 'green', 'claims', 'account'];
@@ -49,6 +49,7 @@
     if (!res.ok) {
       const err = new Error(data.error || t('common.err_generic'));
       err.status = res.status;
+      err.code = data.code;
       throw err;
     }
     return data;
@@ -56,10 +57,15 @@
 
   // ── Cloudflare Turnstile (rendered explicitly, once per form) ──
   const widgets = {};
-  function renderTurnstile(boxId, tries = 0) {
+  function renderTurnstile(boxId, tries = 0, extra = {}) {
     if (widgets[boxId] !== undefined) return;
-    if (!window.turnstile) { if (tries < 40) setTimeout(() => renderTurnstile(boxId, tries + 1), 250); return; }
-    widgets[boxId] = window.turnstile.render(`#${boxId}`, { sitekey: TURNSTILE_SITEKEY, theme: 'dark' });
+    if (!window.turnstile) { if (tries < 40) setTimeout(() => renderTurnstile(boxId, tries + 1, extra), 250); return; }
+    widgets[boxId] = window.turnstile.render(`#${boxId}`, { sitekey: TURNSTILE_SITEKEY, theme: 'auto', ...extra });
+  }
+  /** Removes a widget (so a later challenge starts from a clean one). */
+  function removeTurnstile(boxId) {
+    if (widgets[boxId] !== undefined && window.turnstile) { try { window.turnstile.remove(widgets[boxId]); } catch { /* already gone */ } }
+    delete widgets[boxId];
   }
   const turnstileToken = (boxId) => (widgets[boxId] !== undefined && window.turnstile ? window.turnstile.getResponse(widgets[boxId]) : '') || '';
   const turnstileReset = (boxId) => { if (widgets[boxId] !== undefined && window.turnstile) window.turnstile.reset(widgets[boxId]); };
@@ -135,9 +141,13 @@
     say('signinMsg', '');
     await busy($('signinBtn'), async () => {
       try {
-        await enter(await api('POST', '/login', { identifier: $('signinUser').value, password: $('signinPass').value }));
+        await enter(await api('POST', '/login', { identifier: $('signinUser').value, password: $('signinPass').value, turnstile_token: turnstileToken('signinTurnstile') }));
         $('signinPass').value = '';
-      } catch (err) { say('signinMsg', err.message); }
+      } catch (err) {
+        say('signinMsg', err.message);
+        // After a couple of wrong passwords the server wants a Cloudflare challenge too: show it, and use a fresh one each time.
+        if (err.code === 'challenge_required') { renderTurnstile('signinTurnstile'); turnstileReset('signinTurnstile'); }
+      }
     });
   });
 
@@ -205,14 +215,23 @@
     window.google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: onGoogle, use_fedcm_for_prompt: true });
     window.google.accounts.id.renderButton($('googleBtn'), { type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text: 'continue_with', logo_alignment: 'left', width: Math.min(400, $('googleBtn').parentElement.clientWidth || 320) });
   }
-  async function onGoogle(response) {
+  async function onGoogle(response, challengeToken = '') {
     say('signinMsg', '');
     say('regMsg', '');
     try {
-      const data = await api('POST', '/google', { credential: response.credential });
+      const data = await api('POST', '/google', { credential: response.credential, turnstile_token: challengeToken });
+      $('googleChallenge').hidden = true;
+      removeTurnstile('googleTurnstile');
       await enter(data);
       if (data.password_removed) notice(t('account.google_password_removed'), true);
     } catch (err) {
+      if (err.code === 'challenge_required') {
+        // A NEW account needs the Cloudflare challenge first; solving it sends the same Google sign-in again.
+        $('googleChallenge').hidden = false;
+        removeTurnstile('googleTurnstile');
+        renderTurnstile('googleTurnstile', 0, { callback: (tok) => onGoogle(response, tok) });
+        return;
+      }
       const box = $('registerForm').hidden ? 'signinMsg' : 'regMsg';
       say(box, err.message);
     }
@@ -227,6 +246,7 @@
     selectedId = null;
     greenState.offer = null;
     store.set('');
+    Sync.signedOut();
     if (window.google && window.google.accounts) window.google.accounts.id.disableAutoSelect();
     showAuth();
   }
@@ -240,6 +260,7 @@
     }
     account = me.account;
     claims = me.claims;
+    Sync.signedIn(account); // the same account keeps favorites and downloads in step (see app.js)
     $('accountAuth').hidden = true;
     $('accountHome').hidden = false;
     fillContact();
@@ -742,21 +763,14 @@
     if (!file) return;
     if (!/^image\//.test(file.type)) { say('editorMsg', t('account.err_image')); return; }
     if (file.size > MAX_PHOTO_FILE_BYTES) { say('editorMsg', t('account.err_image_big')); return; }
-    const url = URL.createObjectURL(file);
     try {
-      const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = reject; i.src = url; });
-      const side = Math.min(img.width, img.height);
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = PHOTO_SIZE;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#fff'; // JPEG has no alpha
-      ctx.fillRect(0, 0, PHOTO_SIZE, PHOTO_SIZE);
-      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, PHOTO_SIZE, PHOTO_SIZE);
-      photo = canvas.toDataURL('image/jpeg', 0.85);
+      const cropped = await PhotoCropper.open(file, { size: PHOTO_SIZE }); // the person frames it; null = cancelled
+      if (cropped === null) return;
+      photo = cropped;
       say('editorMsg', '');
       renderPhoto();
       renderPreview();
-    } catch { say('editorMsg', t('account.err_image')); } finally { URL.revokeObjectURL(url); }
+    } catch { say('editorMsg', t('account.err_image')); }
   });
 
   $('editorForm').addEventListener('submit', async (e) => {

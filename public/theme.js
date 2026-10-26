@@ -117,7 +117,11 @@ const Theme = (() => {
         e.preventDefault();
         e.stopPropagation();
         const mode = btn.dataset.theme;
-        if (mode) setMode(mode);
+        if (mode) {
+          setMode(mode);
+          // A theme the visitor chose follows their account to their other devices.
+          if (typeof Sync !== 'undefined') Sync.record('pref', 'theme', true, mode);
+        }
       });
     });
   }
