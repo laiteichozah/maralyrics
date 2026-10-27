@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { slugify, parsePagination, mapD1Error, CATEGORIES } from '../lib/helpers.js';
-import { hashPassword, verifyPassword, signJWT, requireRole } from '../lib/auth.js';
+import { hashPassword, verifyPassword, signJWT, passwordVersion, requireRole } from '../lib/auth.js';
 import {
   ROLES,
   CAN_CREATE_SONG,
@@ -23,6 +23,7 @@ import {
   statusChangePermission,
 } from '../lib/permissions.js';
 import { logAudit } from '../lib/audit.js';
+import { ipThrottled, recordIpFailure, IP_WINDOW_MINUTES } from '../lib/throttle.js';
 import { validateBadgeInput, attachBadges } from '../lib/badges.js';
 import { idolSeasonsApp, idolContestantsApp } from './adminIdol.js';
 import claimsApp from './adminClaims.js';
@@ -34,6 +35,9 @@ import { readChordFields, resolveChordColumns, shapeChords } from '../lib/guitar
 import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
+
+const ADMIN_USERNAME_MAX = 50;
+const ADMIN_PASSWORD_MAX = 1000;
 
 function fail(c, err, fallbackStatus = 500) {
   const mapped = mapD1Error(err);
@@ -65,10 +69,15 @@ const LOGIN_LOCKOUT_WINDOW_MINUTES = 15;
 const LOGIN_LOCKOUT_THRESHOLD = 5;
 
 app.post('/auth/login', async (c) => {
-  const { username, password } = await c.req.json().catch(() => ({}));
+  const body = await c.req.json().catch(() => ({}));
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
   if (!username || !password) return c.json({ error: 'Username and password are required' }, 400);
+  if (username.length > 100 || password.length > 1000) return c.json({ error: 'Invalid username or password' }, 401);
 
   const db = c.env.DB;
+  const ip = c.req.header('CF-Connecting-IP');
+  if (await ipThrottled(db, 'admin', ip)) return c.json({ error: `Too many failed attempts. Try again in ${IP_WINDOW_MINUTES} minutes.` }, 429);
 
   // Prune this username's expired attempts before counting — keeps the table small
   // without a separate cleanup job, and a legitimate user's lockout clears itself over
@@ -87,13 +96,14 @@ app.post('/auth/login', async (c) => {
   const passwordOk = await verifyPassword(password, user ? user.password_hash : DUMMY_PASSWORD_HASH);
   if (!user || !passwordOk) {
     await db.prepare('INSERT INTO login_attempts (username) VALUES (?)').bind(username).run();
+    await recordIpFailure(db, 'admin', ip);
     return c.json({ error: 'Invalid username or password' }, 401);
   }
 
   // A successful login clears this account's slate, same as any normal lockout scheme.
   await db.prepare('DELETE FROM login_attempts WHERE username = ?').bind(username).run();
 
-  const token = await signJWT({ sub: user.id, username: user.username, role: user.role }, c.env.JWT_SECRET);
+  const token = await signJWT({ sub: user.id, username: user.username, role: user.role, pv: await passwordVersion(user.password_hash) }, c.env.JWT_SECRET);
   return c.json({ token, id: user.id, username: user.username, role: user.role, avatar: user.avatar, photo: user.photo });
 });
 
@@ -107,10 +117,11 @@ app.get('/auth/me', async (c) => {
 app.post('/auth/change-password', async (c) => {
   const admin = c.get('admin');
   const { current_password, new_password } = await c.req.json().catch(() => ({}));
-  if (!current_password || !new_password) {
+  if (typeof current_password !== 'string' || typeof new_password !== 'string' || !current_password || !new_password) {
     return c.json({ error: 'current_password and new_password are required' }, 400);
   }
   if (new_password.length < 8) return c.json({ error: 'New password must be at least 8 characters' }, 400);
+  if (new_password.length > ADMIN_PASSWORD_MAX || current_password.length > ADMIN_PASSWORD_MAX) return c.json({ error: 'Password is too long' }, 400);
 
   const user = await c.env.DB.prepare('SELECT * FROM admin_users WHERE id = ?').bind(admin.sub).first();
   if (!user || !(await verifyPassword(current_password, user.password_hash))) {
@@ -119,7 +130,9 @@ app.post('/auth/change-password', async (c) => {
 
   const password_hash = await hashPassword(new_password);
   await c.env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?').bind(password_hash, admin.sub).run();
-  return c.json({ success: true });
+  // The change ends every older session (see passwordVersion); this one carries on with a fresh token.
+  const token = await signJWT({ sub: user.id, username: user.username, role: user.role, pv: await passwordVersion(password_hash) }, c.env.JWT_SECRET);
+  return c.json({ success: true, token });
 });
 
 // ── Admin account management (Manager + Admin; granting/touching super_admin is Admin-only) ──
@@ -131,10 +144,14 @@ app.get('/admin-users', requireRole(...CAN_VIEW_ADMIN_USERS), async (c) => {
 });
 
 app.post('/admin-users', requireRole(...CAN_MANAGE_ADMIN_USERS), async (c) => {
-  const { username, password, role } = await c.req.json().catch(() => ({}));
-  if (!username || !password || !role) return c.json({ error: 'username, password, and role are required' }, 400);
+  const body = await c.req.json().catch(() => ({}));
+  const { password, role } = body;
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  if (!username || typeof password !== 'string' || !password || !role) return c.json({ error: 'username, password, and role are required' }, 400);
+  if (username.length > ADMIN_USERNAME_MAX) return c.json({ error: `Username is too long (max ${ADMIN_USERNAME_MAX} characters)` }, 400);
   if (!ROLES.includes(role)) return c.json({ error: `role must be one of: ${ROLES.join(', ')}` }, 400);
   if (password.length < 8) return c.json({ error: 'Password must be at least 8 characters' }, 400);
+  if (password.length > ADMIN_PASSWORD_MAX) return c.json({ error: 'Password is too long' }, 400);
 
   const admin = c.get('admin');
   if (role === 'super_admin' && !canGrantSuperAdmin(admin.role)) {
@@ -160,10 +177,16 @@ app.post('/admin-users', requireRole(...CAN_MANAGE_ADMIN_USERS), async (c) => {
 
 app.put('/admin-users/:id', requireRole(...CAN_MANAGE_ADMIN_USERS), async (c) => {
   const id = Number(c.req.param('id'));
-  const { username, password, role } = await c.req.json().catch(() => ({}));
+  const body = await c.req.json().catch(() => ({}));
+  const { role } = body;
+  const username = typeof body.username === 'string' ? body.username.trim() : '';
+  const password = typeof body.password === 'string' ? body.password : '';
+  if (body.password !== undefined && body.password !== null && typeof body.password !== 'string') return c.json({ error: 'Password must be text' }, 400);
   if (!username || !role) return c.json({ error: 'username and role are required' }, 400);
+  if (username.length > ADMIN_USERNAME_MAX) return c.json({ error: `Username is too long (max ${ADMIN_USERNAME_MAX} characters)` }, 400);
   if (!ROLES.includes(role)) return c.json({ error: `role must be one of: ${ROLES.join(', ')}` }, 400);
   if (password && password.length < 8) return c.json({ error: 'Password must be at least 8 characters' }, 400);
+  if (password.length > ADMIN_PASSWORD_MAX) return c.json({ error: 'Password is too long' }, 400);
 
   const admin = c.get('admin');
   const target = await c.env.DB.prepare('SELECT role FROM admin_users WHERE id = ?').bind(id).first();

@@ -141,7 +141,7 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="adminSearch" class="search__input" placeholder="Filter songs..." autocomplete="off" />
+          <input type="text" id="adminSearch" class="search__input" placeholder="Filter songs..." autocomplete="off" aria-label="Filter songs" />
         </div>
       </div>
 
@@ -182,7 +182,7 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="artistSearch" class="search__input" placeholder="Filter artists..." autocomplete="off" />
+          <input type="text" id="artistSearch" class="search__input" placeholder="Filter artists..." autocomplete="off" aria-label="Filter artists" />
         </div>
       </div>
 
@@ -214,7 +214,7 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="composerSearch" class="search__input" placeholder="Filter composers..." autocomplete="off" />
+          <input type="text" id="composerSearch" class="search__input" placeholder="Filter composers..." autocomplete="off" aria-label="Filter composers" />
         </div>
       </div>
 
@@ -246,7 +246,7 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="coSearch" class="search__input" placeholder="Filter copyright owners..." autocomplete="off" />
+          <input type="text" id="coSearch" class="search__input" placeholder="Filter copyright owners..." autocomplete="off" aria-label="Filter copyright owners" />
         </div>
       </div>
 
@@ -302,7 +302,7 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="idolSearch" class="search__input" placeholder="Filter idols..." autocomplete="off" />
+          <input type="text" id="idolSearch" class="search__input" placeholder="Filter idols..." autocomplete="off" aria-label="Filter idols" />
         </div>
         <select id="idolFilterSeason" class="form-input form-input--sm" style="width:auto;" aria-label="Filter by season">
           <option value="">All Seasons</option>
@@ -468,9 +468,9 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="articleSearch" class="search__input" placeholder="Filter articles..." autocomplete="off" />
+          <input type="text" id="articleSearch" class="search__input" placeholder="Filter articles..." autocomplete="off" aria-label="Filter articles" />
         </div>
-        <select id="articleFilterStatus" class="form-input form-input--sm" style="width:auto;">
+        <select id="articleFilterStatus" aria-label="Filter articles by status" class="form-input form-input--sm" style="width:auto;">
           <option value="">All Statuses</option>
           <option value="draft">Draft</option>
           <option value="published">Published</option>
@@ -505,9 +505,9 @@
         <div class="admin__topbar-actions">
           <div class="search" style="max-width:240px;margin:0;">
             <span class="search__icon">🔍</span>
-            <input type="text" id="reportSearch" class="search__input" placeholder="Filter reports..." autocomplete="off" />
+            <input type="text" id="reportSearch" class="search__input" placeholder="Filter reports..." autocomplete="off" aria-label="Filter reports" />
           </div>
-          <select id="reportFilterStatus" class="form-input form-input--sm" style="width:auto;">
+          <select id="reportFilterStatus" aria-label="Filter reports by status" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
             <option value="pending" selected>Pending</option>
             <option value="reviewed">Reviewed</option>
@@ -544,9 +544,9 @@
         <div class="admin__topbar-actions">
           <div class="search" style="max-width:240px;margin:0;">
             <span class="search__icon">🔍</span>
-            <input type="text" id="revisionSearch" class="search__input" placeholder="Filter revisions..." autocomplete="off" />
+            <input type="text" id="revisionSearch" class="search__input" placeholder="Filter revisions..." autocomplete="off" aria-label="Filter revisions" />
           </div>
-          <select id="revisionFilterStatus" class="form-input form-input--sm" style="width:auto;">
+          <select id="revisionFilterStatus" aria-label="Filter revisions by status" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
             <option value="pending" selected>Pending</option>
             <option value="approved">Approved</option>
@@ -581,9 +581,9 @@
         <div class="admin__topbar-actions">
           <div class="search" style="max-width:240px;margin:0;">
             <span class="search__icon">🔍</span>
-            <input type="text" id="auditSearch" class="search__input" placeholder="Filter audit log..." autocomplete="off" />
+            <input type="text" id="auditSearch" class="search__input" placeholder="Filter audit log..." autocomplete="off" aria-label="Filter audit log" />
           </div>
-          <select id="auditFilterTarget" class="form-input form-input--sm" style="width:auto;">
+          <select id="auditFilterTarget" aria-label="Filter the audit log by target" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Targets</option>
             <option value="song">Songs</option>
             <option value="song_revision">Revisions</option>
@@ -621,9 +621,9 @@
         <div class="admin__topbar-actions">
           <div class="search" style="max-width:240px;margin:0;">
             <span class="search__icon">🔍</span>
-            <input type="text" id="contactSearch" class="search__input" placeholder="Filter messages..." autocomplete="off" />
+            <input type="text" id="contactSearch" class="search__input" placeholder="Filter messages..." autocomplete="off" aria-label="Filter messages" />
           </div>
-          <select id="contactFilterStatus" class="form-input form-input--sm" style="width:auto;">
+          <select id="contactFilterStatus" aria-label="Filter messages by status" class="form-input form-input--sm" style="width:auto;">
             <option value="">All Statuses</option>
             <option value="unread" selected>Unread</option>
             <option value="read">Read</option>
@@ -662,7 +662,7 @@
       <div class="admin__toolbar">
         <div class="search" style="max-width:360px;flex:1;">
           <span class="search__icon">🔍</span>
-          <input type="text" id="adminUserSearch" class="search__input" placeholder="Filter admin accounts..." autocomplete="off" />
+          <input type="text" id="adminUserSearch" class="search__input" placeholder="Filter admin accounts..." autocomplete="off" aria-label="Filter admin accounts" />
         </div>
       </div>
 
@@ -725,7 +725,7 @@
       </div>
       <div class="modal__actions">
         <button type="button" id="feedbackBtnClose" class="btn btn--ghost">Close</button>
-        <a href="#" id="feedbackBtnViewSong" class="btn btn--primary" target="_blank" style="display:none;">View Song</a>
+        <a href="#" id="feedbackBtnViewSong" class="btn btn--primary" target="_blank" rel="noopener noreferrer" style="display:none;">View Song</a>
       </div>
     </div>
   </div>
@@ -765,13 +765,13 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Artist(s) <span class="form-hint">(up to 20 — check all that apply)</span></label>
-            <input type="text" id="formArtistFilter" class="form-input form-input--sm" placeholder="Filter artists..." style="margin-bottom:6px;" />
+            <input type="text" id="formArtistFilter" class="form-input form-input--sm" placeholder="Filter artists..." style="margin-bottom:6px;" aria-label="Filter artists" />
             <div id="formArtist" class="checkbox-list"></div>
             <span class="checkbox-list__count">0 / 20 selected</span>
             <div class="quick-add" data-kind="artist" style="display:none;">
               <button type="button" class="btn btn--sm btn--ghost quick-add__toggle">+ New artist</button>
               <div class="quick-add__form" style="display:none;">
-                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New artist name" maxlength="200" />
+                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New artist name" maxlength="200" aria-label="New artist name" />
                 <button type="button" class="btn btn--sm btn--primary quick-add__save">Add</button>
                 <button type="button" class="btn btn--sm btn--ghost quick-add__cancel">Cancel</button>
               </div>
@@ -779,13 +779,13 @@
           </div>
           <div class="form-group">
             <label class="form-label">Composer(s) <span class="form-hint">(up to 20 — check all that apply)</span></label>
-            <input type="text" id="formComposerFilter" class="form-input form-input--sm" placeholder="Filter composers..." style="margin-bottom:6px;" />
+            <input type="text" id="formComposerFilter" class="form-input form-input--sm" placeholder="Filter composers..." style="margin-bottom:6px;" aria-label="Filter composers" />
             <div id="formComposer" class="checkbox-list"></div>
             <span class="checkbox-list__count">0 / 20 selected</span>
             <div class="quick-add" data-kind="composer" style="display:none;">
               <button type="button" class="btn btn--sm btn--ghost quick-add__toggle">+ New composer</button>
               <div class="quick-add__form" style="display:none;">
-                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New composer name" maxlength="200" />
+                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New composer name" maxlength="200" aria-label="New composer name" />
                 <button type="button" class="btn btn--sm btn--primary quick-add__save">Add</button>
                 <button type="button" class="btn btn--sm btn--ghost quick-add__cancel">Cancel</button>
               </div>
@@ -801,7 +801,7 @@
             <div class="quick-add" data-kind="copyright-owner" style="display:none;">
               <button type="button" class="btn btn--sm btn--ghost quick-add__toggle">+ New copyright holder</button>
               <div class="quick-add__form" style="display:none;">
-                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New copyright holder name" maxlength="200" />
+                <input type="text" class="form-input form-input--sm quick-add__input" placeholder="New copyright holder name" maxlength="200" aria-label="New copyright holder name" />
                 <button type="button" class="btn btn--sm btn--primary quick-add__save">Add</button>
                 <button type="button" class="btn btn--sm btn--ghost quick-add__cancel">Cancel</button>
               </div>
@@ -1167,7 +1167,7 @@
                 <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
                 <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" aria-label="https://example.com/image.jpg" />
             </div>
           </div>
           <input type="hidden" id="isFormCover" />
@@ -1186,7 +1186,7 @@
                 <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
                 <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" aria-label="https://example.com/image.jpg" />
             </div>
           </div>
           <input type="hidden" id="isFormPhoto" />
@@ -1283,7 +1283,7 @@
                 <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
                 <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/image.jpg" style="display:none;" aria-label="https://example.com/image.jpg" />
             </div>
           </div>
           <input type="hidden" id="idFormPhoto" />
@@ -1414,7 +1414,7 @@
                 <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
                 <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/logo.png" style="display:none;" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/logo.png" style="display:none;" aria-label="https://example.com/logo.png" />
             </div>
           </div>
           <input type="hidden" id="supFormLogo" />
@@ -1499,7 +1499,7 @@
                 <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
                 <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/photo.jpg" style="display:none;" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/photo.jpg" style="display:none;" aria-label="https://example.com/photo.jpg" />
             </div>
           </div>
           <input type="hidden" id="personFormImage" />
@@ -1618,7 +1618,7 @@
                 <button type="button" class="btn btn--sm btn--ghost image-field__url-btn">Paste URL</button>
                 <button type="button" class="btn btn--sm btn--ghost btn--danger-text image-field__remove">Remove</button>
               </div>
-              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/photo.jpg" style="display:none;" />
+              <input type="url" class="form-input form-input--sm image-field__url" placeholder="https://example.com/photo.jpg" style="display:none;" aria-label="https://example.com/photo.jpg" />
             </div>
           </div>
           <input type="hidden" id="coFormImage" />

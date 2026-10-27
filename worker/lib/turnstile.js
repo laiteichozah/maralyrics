@@ -18,7 +18,12 @@ export async function verifyTurnstile(token, env, ip) {
   body.append('response', token);
   if (ip) body.append('remoteip', ip);
 
-  const res = await fetch(VERIFY_URL, { method: 'POST', body });
-  const data = await res.json();
-  return data.success === true;
+  try {
+    const res = await fetch(VERIFY_URL, { method: 'POST', body });
+    const data = await res.json();
+    return data.success === true;
+  } catch (err) {
+    console.error(`Turnstile verification failed: ${err && err.message}`);
+    return false; // Cloudflare unreachable: the check cannot pass (a person can try again)
+  }
 }

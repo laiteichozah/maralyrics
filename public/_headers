@@ -2,6 +2,14 @@
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  # HTTPS only, for a year (no includeSubDomains / preload: those are a separate, hard-to-undo decision).
+  Strict-Transport-Security: max-age=31536000
+  # Nobody else may put the site in a frame (clickjacking; /admin adds the older X-Frame-Options: DENY below); no plug-ins;
+  # <base> and forms stay on the site.
+  # (A full script-src policy is not set: the pages rely on inline scripts and on AdSense, Turnstile and Google sign-in.)
+  Content-Security-Policy: frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'
+  # The site never asks for these browser features, so no embedded script may either.
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), accelerometer=(), gyroscope=(), magnetometer=()
 
 # Private / non-search pages: keep them out of search results even if a crawler is told the URL.
 /admin/*

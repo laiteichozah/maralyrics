@@ -1,0 +1,31 @@
+name: Tests
+
+# Runs every check (`npm test`: worker, accounts, Guitar Node, security, SEO, translations, changelog) on each pull request and on main,
+# plus a dependency audit. The browser tests (npm run test:e2e, test:e2e:guitar) need Playwright's browsers and are run by hand.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # the changelog check rebuilds every version's commit log from git
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22   # the worker tests use node:sqlite
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

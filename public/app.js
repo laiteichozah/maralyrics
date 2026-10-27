@@ -1530,9 +1530,9 @@ const HomePage = {
         data = { categories: Cache.get('categories') || [] };
       }
 
-      const allBtn = `<button class="category-btn active" data-category="">${I18n.t('common.all')}</button>`;
+      const allBtn = `<button class="category-btn active" data-category="" aria-pressed="true">${I18n.t('common.all')}</button>`;
       const catBtns = data.categories
-        .map((c) => `<button class="category-btn" data-category="${Utils.escapeHtml(c)}">${Utils.escapeHtml(c)}</button>`)
+        .map((c) => `<button class="category-btn" data-category="${Utils.escapeHtml(c)}" aria-pressed="false">${Utils.escapeHtml(c)}</button>`)
         .join('');
 
       this.categoriesEl.innerHTML = allBtn + catBtns;
@@ -1549,6 +1549,7 @@ const HomePage = {
         (!this.currentCategory && cat === '') ||
         cat === this.currentCategory;
       btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
     });
   },
 

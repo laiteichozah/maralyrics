@@ -102,6 +102,16 @@ export async function verifyPassword(password, stored) {
   return timingSafeEqual(base64UrlEncode(new Uint8Array(hash)), expected);
 }
 
+/**
+ * A short fingerprint of an account's current password hash. Sessions carry it (`pv`), and requireAuth compares it with
+ * the account's present hash, so changing or resetting a password ends every session signed before the change.
+ * (It reveals nothing useful: it is a truncated SHA-256 of a salted hash, inside a token only the account's owner holds.)
+ */
+export async function passwordVersion(passwordHash) {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(String(passwordHash || '')));
+  return base64UrlEncode(new Uint8Array(digest)).slice(0, 16);
+}
+
 // ─── Middleware ──────────────────────────────────────
 /** Requires `Authorization: Bearer <jwt>`; on success, `c.get('admin')` is `{ sub, username, role, avatar, iat, exp }`. */
 export async function requireAuth(c, next) {
@@ -123,8 +133,13 @@ export async function requireAuth(c, next) {
   // Re-check against the DB (indexed PK lookup, cheap) so a deleted or role-changed account
   // can't keep acting on a still-valid JWT until it naturally expires (up to 12h) — otherwise
   // e.g. self-deleting your own account wouldn't actually revoke access until token expiry.
-  const user = await c.env.DB.prepare('SELECT username, role, avatar FROM admin_users WHERE id = ?').bind(payload.sub).first();
+  const user = await c.env.DB.prepare('SELECT username, role, avatar, password_hash FROM admin_users WHERE id = ?').bind(payload.sub).first();
   if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  // A password change ends older sessions. (Sessions signed before this check existed have no `pv`; they simply run out
+  // within their 12 hours.)
+  if (payload.pv !== undefined && payload.pv !== (await passwordVersion(user.password_hash))) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 

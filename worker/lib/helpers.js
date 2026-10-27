@@ -36,3 +36,10 @@ export function mapD1Error(err) {
   }
   return null;
 }
+
+/** A trimmed string of at most `max` characters, or '' for anything that is not a string (objects, numbers, null). */
+export function cleanText(value, max) {
+  return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+export const isEmailLike = (s) => typeof s === 'string' && s.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);

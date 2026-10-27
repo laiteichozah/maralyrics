@@ -8,6 +8,7 @@ import { createToken, consumeToken, recentCount, MAX_EMAILS_PER_HOUR } from '../
 import { googleEnabled, verifyGoogleIdToken } from '../lib/google.js';
 import { validateOwnerEdit, validateContact } from '../lib/profile.js';
 import { logAudit } from '../lib/audit.js';
+import { ipThrottled, recordIpFailure, IP_WINDOW_MINUTES } from '../lib/throttle.js';
 import { bioToHtml, bioPlain } from '../lib/richText.js';
 import { loadOffer, validateOrderInput } from '../lib/green.js';
 import { normalizeOps, syncAccount } from '../lib/sync.js';
@@ -146,8 +147,10 @@ app.post('/login', async (c) => {
   const identifier = String(body.identifier ?? body.email ?? body.username ?? '').trim().toLowerCase();
   const password = body.password;
   if (!identifier || !password) return c.json({ error: 'Email and password are required' }, 400);
+  if (identifier.length > 254 || String(password).length > 1000) return c.json({ error: 'Invalid email or password' }, 401);
 
   const db = c.env.DB;
+  if (await ipThrottled(db, 'person', ip(c))) return c.json({ error: `Too many failed attempts. Try again in ${IP_WINDOW_MINUTES} minutes.` }, 429);
   // Brute-force lockout, same scheme as the admin login (own key prefix so the two never share a counter).
   const key = `person:${identifier}`;
   await db.prepare(`DELETE FROM login_attempts WHERE username = ? AND created_at < datetime('now', ?)`).bind(key, `-${LOCKOUT_WINDOW_MINUTES} minutes`).run();
@@ -170,6 +173,7 @@ app.post('/login', async (c) => {
   if (!account && !candidates.some(hasPassword)) await verifyPassword(String(password), DUMMY_PASSWORD_HASH);
   if (!account) {
     await db.prepare('INSERT INTO login_attempts (username) VALUES (?)').bind(key).run();
+    await recordIpFailure(db, 'person', ip(c));
     return c.json({ error: 'Invalid email or password', ...(count + 1 >= CHALLENGE_AFTER ? { code: 'challenge_required' } : {}) }, 401);
   }
   await db.prepare('DELETE FROM login_attempts WHERE username = ?').bind(key).run();
