@@ -155,6 +155,7 @@
     "copy_success": "Lyrics copied to clipboard",
     "copy_error": "Couldn't copy lyrics",
     "share_btn": "Share",
+    "open_in_app": "Open in the Mara Lyrics app",
     "share_success": "Link copied to clipboard",
     "share_error": "Couldn't share song",
     "error_title": "Song not found",

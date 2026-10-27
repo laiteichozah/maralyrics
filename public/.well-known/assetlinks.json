@@ -8,5 +8,15 @@
         "4A:BA:ED:D9:85:AE:68:7A:6C:C3:BD:7B:DE:1C:8B:46:13:C9:D9:A9:2E:FD:56:66:D2:67:F2:1D:BB:69:BB:A6"
       ]
     }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.maralyrics.laitei",
+      "sha256_cert_fingerprints": [
+        "0A:60:AF:5B:2B:AC:16:A4:FC:D1:D7:44:54:49:68:2E:66:A6:95:E2:DE:8A:80:7E:A1:90:8B:EF:82:AA:43:31"
+      ]
+    }
   }
 ]

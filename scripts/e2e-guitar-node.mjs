@@ -74,8 +74,8 @@ const server = http.createServer((q, r) => {
 const SITE = `http://localhost:${server.address().port}`;
 
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-async function openPage({ viewport = { width: 1100, height: 900 }, admin = false, token = '', serviceWorkers = 'block' } = {}) {
-  const ctx = await browser.newContext({ serviceWorkers, viewport, permissions: [] });
+async function openPage({ viewport = { width: 1100, height: 900 }, admin = false, token = '', serviceWorkers = 'block', userAgent } = {}) {
+  const ctx = await browser.newContext({ serviceWorkers, viewport, permissions: [], ...(userAgent ? { userAgent } : {}) });
   await ctx.addInitScript(([admin, token]) => {
     try { localStorage.setItem('ml_cookie_consent', 'accepted'); localStorage.setItem('ml_calendar_pref_prompted', '1'); localStorage.setItem('ml_app_promo_seen', '1'); if (!localStorage.getItem('ml_lang')) localStorage.setItem('ml_lang', 'en'); } catch {}
     window.__copied = [];
@@ -278,6 +278,35 @@ try {
   ok(colour === 'rgb(91, 33, 182)', `light theme: darker chord colour (${colour})`);
 
   // ═══ Admin ═════════════════════════════════════════════════════════════════
+  section('Open in the Android app');
+  const ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36';
+  const FALLBACK = encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei');
+  const intentFor = (slug) => `intent://maralyrics.com/song/${encodeURIComponent(slug)}#Intent;scheme=https;package=com.maralyrics.laitei;S.browser_fallback_url=${FALLBACK};end`;
+  const { page: D } = await openPage();
+  await openSong(D, 'falling');
+  ok(await D.locator('#btnOpenInApp').isHidden(), 'the button is not shown on a desktop browser');
+  const { page: AA } = await openPage({ viewport: { width: 360, height: 740 }, userAgent: ANDROID });
+  let urlBefore = AA.url();
+  await openSong(AA, 'falling');
+  ok(await AA.locator('#btnOpenInApp').isVisible(), 'the button is shown on an Android browser');
+  ok((await AA.getAttribute('#btnOpenInApp', 'href')) === intentFor('falling'), 'its link is the Android intent URL for this song');
+  ok((await AA.textContent('#btnOpenInApp')).trim() === 'Open in the Mara Lyrics app' && await AA.evaluate(() => document.getElementById('btnOpenInApp').tagName === 'A'), 'it is a real link with the English text');
+  if (process.env.E2E_SHOTS) { await AA.locator('#btnOpenInApp').scrollIntoViewIfNeeded(); await AA.screenshot({ path: `${process.env.E2E_SHOTS}/open-in-app.png` }); }
+  await AA.focus('#btnOpenInApp');
+  ok(await AA.evaluate(() => document.activeElement && document.activeElement.id === 'btnOpenInApp'), 'it can be reached with the keyboard');
+  ok(await AA.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no sideways scroll on a phone');
+  ok(AA.url().endsWith('/song/falling'), 'the page does not redirect by itself');
+  // real slugs are plain, but the link must still survive one that is not (space, &, =, ;, an accented letter)
+  const oddHref = await AA.evaluate(() => Utils.androidAppIntentUrl('odd slug&x=1;y é'));
+  ok(oddHref === intentFor('odd slug&x=1;y é') && oddHref.startsWith('intent://maralyrics.com/song/odd%20slug%26x%3D1%3By%20%C3%A9#Intent;'), `a slug that needs escaping is encoded (${oddHref.slice(0, 70)}…)`);
+  await openSong(AA, 'plain-song');
+  ok((await AA.getAttribute('#btnOpenInApp', 'href')) === intentFor('plain-song'), 'another song gets its own link (never the previous one)');
+  const links = JSON.parse(fs.readFileSync(path.join(PUB, '.well-known/assetlinks.json'), 'utf8'));
+  const pkgs = links.map((l) => l.target.package_name);
+  ok(Array.isArray(links) && pkgs.includes('com.maralyrics.admin') && pkgs.includes('com.maralyrics.laitei'), 'assetlinks.json vouches for both apps');
+  const laitei = links.find((l) => l.target.package_name === 'com.maralyrics.laitei');
+  ok(laitei.relation.join() === 'delegate_permission/common.handle_all_urls' && laitei.target.namespace === 'android_app' && laitei.target.sha256_cert_fingerprints.length >= 1 && laitei.target.sha256_cert_fingerprints.every((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)), 'the app\'s statement is well formed (31 colons per fingerprint)');
+
   section('Admin: key and chords in the song form');
   const { page: A } = await openPage({ admin: true, token: adminToken });
   await A.goto(`${SITE}/admin/`);

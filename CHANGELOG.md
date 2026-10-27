@@ -3,6 +3,12 @@
 Every released version of MaraLyrics, newest first, with its full commit log. Versions follow [semantic versioning](https://semver.org) and each one is a git tag (`vX.Y.Z`) on the commit it names.
 This file is generated: edit `scripts/releases.json` and run `npm run changelog`. A version's log lists every commit since the previous version; merge commits are counted, not listed.
 
+## Unreleased
+
+Merged after the latest version; it ships with the next one.
+
+- Song pages show an "Open in the Mara Lyrics app" button on Android browsers (a real link to an Android intent URL for that song; with no app installed it opens the Google Play page); `/.well-known/assetlinks.json` now also vouches for the app `com.maralyrics.laitei` (add the Play App Signing SHA-256 from Play Console to its fingerprint list); the song page action buttons wrap instead of running off the card on phones
+
 ## v1.10.0 — Accounts and Guitar Node (2026-10-27)
 
 Reader accounts that sync across devices, a full account page with Cloudflare challenges, profile photo cropping, and Guitar Node: guitar chords above the lyrics with instant transposing.

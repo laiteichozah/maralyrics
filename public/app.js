@@ -19,6 +19,16 @@ const CONFIG = {
 
 // ─── Utility Module ────────────────────────────────────────────
 const Utils = {
+  /** The Android app (package com.maralyrics.laitei) and its Google Play page. */
+  APP_PACKAGE: 'com.maralyrics.laitei',
+  APP_STORE_URL: 'https://play.google.com/store/apps/details?id=com.maralyrics.laitei',
+
+  /** Chrome for Android intent URL that opens a song in the app, or the Play page when the app is not installed.
+   *  The fallback is encoded because its ';' and '=' would otherwise end the intent's parameter early. */
+  androidAppIntentUrl(slug) {
+    return `intent://maralyrics.com/song/${encodeURIComponent(slug)}#Intent;scheme=https;package=${this.APP_PACKAGE};S.browser_fallback_url=${encodeURIComponent(this.APP_STORE_URL)};end`;
+  },
+
   /** Escape all 5 HTML-significant characters — safe in both text content and quoted
    *  attributes (href=, data-*=). A DOM textContent round-trip only escapes &/</>, which
    *  leaves a double quote free to break out of an attribute value. */
@@ -2166,6 +2176,14 @@ const SongPage = {
     const lyricsEl = document.getElementById('songLyrics');
 
     if (titleEl) titleEl.textContent = song.title;
+    // "Open in the app": only on Android, and a real link (Chrome ignores intent: navigations that are not a tap).
+    // Rebuilt on every render, so it always points at the song shown.
+    const appLink = document.getElementById('btnOpenInApp');
+    if (appLink) {
+      const show = /Android/i.test(navigator.userAgent) && !!song.slug;
+      appLink.hidden = !show;
+      if (show) appLink.href = Utils.androidAppIntentUrl(song.slug); else appLink.removeAttribute('href');
+    }
     if (artistEl) {
       artistEl.innerHTML = song.artists?.length
         ? Utils.renderCreditedPeople(song.artists, 'artist', I18n.t('song.various_artists'))

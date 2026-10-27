@@ -2133,6 +2133,8 @@ body::before {
   padding-top: var(--space-md);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
   align-items: center;
   justify-content: space-between;
 }
@@ -2162,6 +2164,7 @@ body::before {
 .song-page__report {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-sm);
 }
 
@@ -2186,6 +2189,10 @@ body::before {
   background: rgba(139, 92, 246, 0.08);
   border-color: rgba(139, 92, 246, 0.25);
 }
+
+.song-page__action-btn { white-space: nowrap; }
+.song-page__app-btn[hidden] { display: none; }
+.song-page__app-btn:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
 
 .song-page__favorite.active {
   color: #fb7185;
