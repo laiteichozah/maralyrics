@@ -5,6 +5,110 @@
  "releases_url": "https://github.com/laiteichozah/maralyrics/releases",
  "releases": [
   {
+   "version": "1.10.0",
+   "tag": "v1.10.0",
+   "title": "Accounts and Guitar Node",
+   "date": "2026-10-27",
+   "summary": "Reader accounts that sync across devices, a full account page with Cloudflare challenges, profile photo cropping, and Guitar Node: guitar chords above the lyrics with instant transposing.",
+   "highlights": [
+    "Reader accounts: sign in on /account with Google or email + password to keep favorites, pinned songs, downloads, theme and language in step on every device (migration 0019; run `npm run db:migrate` then `npm run deploy`)",
+    "Account page: Profile (name, photo, username, optional phone), Preferences (language, theme, list view, default calendar — synced), Security (password, Google, sign out everywhere) and Your data (download, delete); Cloudflare challenges on every way to create an account and on sign-in after repeated failures (migration 0020)",
+    "Profile photos open a crop dialog (drag, zoom, wheel, keyboard) on the account page and in the artist editor; `npm run test:e2e` is a browser test of every account feature",
+    "Guitar Node: songs can carry an original key and guitar chords, shown above the lyrics; visitors change the key on the page (key list, semitone buttons, reset) and the chords transpose with correct sharps / flats; editors write the chords in the admin song form (chord sheet, palette, live preview, converter for chords-above-words text) (migration 0021: run `npm run db:migrate` then `npm run deploy`)",
+    "Admin song form: adding a chord from the palette no longer throws the cursor to the end or scrolls the sheet and dialog; it goes in at the cursor, the cursor stays after it, and Ctrl+Z takes it back",
+    "The admin dashboard now fetches its scripts and styles from the network first (its offline copy is only a fallback), so a deploy is never half-applied; the note under the Lyrics box in the song form only shows when chords are on",
+    "Dark all the way: the admin dashboard's scrollbars, dropdown lists and checkboxes are drawn dark (no white strips), the Guitar Node box is tidier, and the key list on the song page follows the theme",
+    "The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)",
+    "GitHub Releases for every version, published from the same notes by the \"Publish releases\" workflow (scripts/publish-releases.mjs); the Project page links to them",
+    "This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.10.0, generated with `npm run changelog` (see scripts/changelog.mjs)",
+    "`npm test` runs every check in one go (all test suites, SEO and i18n); a project-wide check found no failures",
+    "hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)",
+    ".gitignore now also keeps keystores and .env files out of git"
+   ],
+   "commit_count": 11,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/f7ab52b7dd33e30392c54c19b414eec5605a2a4f...2f85b3d9124e2fc4be45b22f2df71aa2b754516b",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.10.0",
+   "commits": [
+    {
+     "sha": "2f85b3d9124e2fc4be45b22f2df71aa2b754516b",
+     "short": "2f85b3d",
+     "date": "2026-10-27",
+     "subject": "Admin chord palette: keep the cursor and scroll where they were when a chord is added (#91)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "7642e1328c0e1360153141c0449819f7a825c7f6",
+     "short": "7642e13",
+     "date": "2026-10-27",
+     "subject": "Dark all the way: no white scrollbars, dropdown lists or checkboxes in the admin dialogs; tidier Guitar Node box (#90)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f907cd9c216379dfc47c7fbe82b4184e8cf02225",
+     "short": "f907cd9",
+     "date": "2026-10-26",
+     "subject": "Fix the admin song form showing a half-updated Guitar Node box after a deploy (#89)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "ab8f2e426fde6d596bde01fa6d48a781aba8f6e7",
+     "short": "ab8f2e4",
+     "date": "2026-10-26",
+     "subject": "Fixed bugs. \tmodified:   CHANGELOG.md \tmodified:   public/releases.json",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "5013ec2b6b93ec4428c64ed7caf7773181c25398",
+     "short": "5013ec2",
+     "date": "2026-10-26",
+     "subject": "Guitar Node: guitar chords above the lyrics, with instant transposing (#88)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4d39b60ef094bfcbd88ecd1d70a902a6cbbc6139",
+     "short": "4d39b60",
+     "date": "2026-10-24",
+     "subject": "Photo crop dialog for profile photos, and a browser test of every account feature (#87)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e64abc3a309669e7f4202173ed5a75d81f8eae8e",
+     "short": "e64abc3",
+     "date": "2026-10-24",
+     "subject": "Account page: profile, preferences, security, your data; Cloudflare challenges on account creation and repeated sign-in failures (#86)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f0e773bf12684a0fc4e134bc3d777cb63300a824",
+     "short": "f0e773b",
+     "date": "2026-10-24",
+     "subject": "Reader accounts: sign in with Google or email + password and sync favorites, pins, downloads, theme and language across devices (#85)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "1beda3d622f3630829f55fd11306b1a2b93aed86",
+     "short": "1beda3d",
+     "date": "2026-10-24",
+     "subject": "Publish a GitHub Release for every version tag (#84)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "00448e8dc143324edc7ddd13eeb4cff1070942e8",
+     "short": "00448e8",
+     "date": "2026-10-24",
+     "subject": "Show the version history on the Project page, with full logs and GitHub links (#83)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "02d30574e82428305912b8bb0df7ab0d51687b37",
+     "short": "02d3057",
+     "date": "2026-10-24",
+     "subject": "Add changelog with full logs and release tooling; npm test; patch hono; harden .gitignore (#82)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
    "version": "1.9.0",
    "tag": "v1.9.0",
    "title": "Reading flow",

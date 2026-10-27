@@ -3,23 +3,46 @@
 Every released version of MaraLyrics, newest first, with its full commit log. Versions follow [semantic versioning](https://semver.org) and each one is a git tag (`vX.Y.Z`) on the commit it names.
 This file is generated: edit `scripts/releases.json` and run `npm run changelog`. A version's log lists every commit since the previous version; merge commits are counted, not listed.
 
-## Unreleased
+## v1.10.0 — Accounts and Guitar Node (2026-10-27)
 
-Merged after the latest version; it ships with the next one.
+Reader accounts that sync across devices, a full account page with Cloudflare challenges, profile photo cropping, and Guitar Node: guitar chords above the lyrics with instant transposing.
 
-- Admin song form: adding a chord from the palette no longer throws the cursor to the end or scrolls the sheet and dialog; it goes in at the cursor, the cursor stays after it, and Ctrl+Z takes it back
-- `npm test` runs every check in one go (all test suites, SEO and i18n); a project-wide check found no failures
-- This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.9.0, generated with `npm run changelog` (see scripts/changelog.mjs)
-- hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)
-- .gitignore now also keeps keystores and .env files out of git
-- The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)
-- GitHub Releases for every version, published from the same notes by the "Publish releases" workflow (scripts/publish-releases.mjs); the Project page links to them
+**Highlights**
 - Reader accounts: sign in on /account with Google or email + password to keep favorites, pinned songs, downloads, theme and language in step on every device (migration 0019; run `npm run db:migrate` then `npm run deploy`)
 - Account page: Profile (name, photo, username, optional phone), Preferences (language, theme, list view, default calendar — synced), Security (password, Google, sign out everywhere) and Your data (download, delete); Cloudflare challenges on every way to create an account and on sign-in after repeated failures (migration 0020)
 - Profile photos open a crop dialog (drag, zoom, wheel, keyboard) on the account page and in the artist editor; `npm run test:e2e` is a browser test of every account feature
 - Guitar Node: songs can carry an original key and guitar chords, shown above the lyrics; visitors change the key on the page (key list, semitone buttons, reset) and the chords transpose with correct sharps / flats; editors write the chords in the admin song form (chord sheet, palette, live preview, converter for chords-above-words text) (migration 0021: run `npm run db:migrate` then `npm run deploy`)
+- Admin song form: adding a chord from the palette no longer throws the cursor to the end or scrolls the sheet and dialog; it goes in at the cursor, the cursor stays after it, and Ctrl+Z takes it back
 - The admin dashboard now fetches its scripts and styles from the network first (its offline copy is only a fallback), so a deploy is never half-applied; the note under the Lyrics box in the song form only shows when chords are on
 - Dark all the way: the admin dashboard's scrollbars, dropdown lists and checkboxes are drawn dark (no white strips), the Guitar Node box is tidier, and the key list on the song page follows the theme
+- The Project page (/project) shows the version history: every version with its highlights and full commit log, each linking to GitHub (data generated into public/releases.json by `npm run changelog`)
+- GitHub Releases for every version, published from the same notes by the "Publish releases" workflow (scripts/publish-releases.mjs); the Project page links to them
+- This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.10.0, generated with `npm run changelog` (see scripts/changelog.mjs)
+- `npm test` runs every check in one go (all test suites, SEO and i18n); a project-wide check found no failures
+- hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)
+- .gitignore now also keeps keystores and .env files out of git
+
+**Deploy notes:** Run `npm run db:migrate` (migrations 0019 account sync, 0020 account profile, 0021 Guitar Node) and then `npm run deploy` for the new account and chord endpoints. The Cloudflare Turnstile challenges need the `TURNSTILE_SECRET_KEY` secret.
+
+**Database migrations:** `0019_account_sync.sql`, `0020_account_profile.sql`, `0021_guitar_node.sql`
+
+11 commits (1 merge commits not listed) · 2 authors · 48 files changed, 8463 insertions(+), 96 deletions(-)
+
+<details><summary>Full log — 11 commits</summary>
+
+- `02d3057` 2026-10-24 Add changelog with full logs and release tooling; npm test; patch hono; harden .gitignore (#82) — Laitei
+- `00448e8` 2026-10-24 Show the version history on the Project page, with full logs and GitHub links (#83) — Laitei
+- `1beda3d` 2026-10-24 Publish a GitHub Release for every version tag (#84) — Laitei
+- `f0e773b` 2026-10-24 Reader accounts: sign in with Google or email + password and sync favorites, pins, downloads, theme and language across devices (#85) — Laitei
+- `e64abc3` 2026-10-24 Account page: profile, preferences, security, your data; Cloudflare challenges on account creation and repeated sign-in failures (#86) — Laitei
+- `4d39b60` 2026-10-24 Photo crop dialog for profile photos, and a browser test of every account feature (#87) — Laitei
+- `5013ec2` 2026-10-26 Guitar Node: guitar chords above the lyrics, with instant transposing (#88) — Laitei
+- `ab8f2e4` 2026-10-26 Fixed bugs. 	modified:   CHANGELOG.md 	modified:   public/releases.json — Laitei40
+- `f907cd9` 2026-10-26 Fix the admin song form showing a half-updated Guitar Node box after a deploy (#89) — Laitei
+- `7642e13` 2026-10-27 Dark all the way: no white scrollbars, dropdown lists or checkboxes in the admin dialogs; tidier Guitar Node box (#90) — Laitei
+- `2f85b3d` 2026-10-27 Admin chord palette: keep the cursor and scroll where they were when a chord is added (#91) — Laitei
+
+</details>
 
 ## v1.9.0 — Reading flow (2026-10-24)
 
