@@ -10,6 +10,10 @@
 /downloads
   X-Robots-Tag: noindex, follow
 
+# Digital Asset Links: Android checks this file to let the apps open maralyrics.com links.
+/.well-known/assetlinks.json
+  Content-Type: application/json
+
 # Brand images change rarely — let browsers/CDNs reuse them.
 /og-image.png
   Cache-Control: public, max-age=86400
