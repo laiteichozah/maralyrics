@@ -1,12 +1,5 @@
 {
-  "unreleased": [
-    "Privacy Policy and Terms & Conditions rewritten for what the site now does (accounts and sync, Google sign-in, profile claims, the Green mark, offline downloads, Guitar Node chords, the Android app, the service providers involved, legal bases, retention, international transfers and rights), dated October 27, 2026; sign-in and sign-up now say that continuing means agreeing to both; sign-in attempt records are deleted within 24 hours; the Mara and Burmese copies of the two documents describe the old text, so they are removed until retranslated and the English version shows instead",
-    "Security review of the whole site: the service worker no longer keeps copies of signed-in answers (account, sync, export, Green orders, admin API) and deletes the copies the old one stored; the API marks account and admin answers `no-store`, sends `nosniff`, and no longer sends database error text to callers; the pages gain HSTS, a frame-ancestors policy, `object-src 'none'`, `base-uri` / `form-action` limits and a Permissions-Policy",
-    "Sign-in guards: admin and account sign-in refuse non-text or absurdly long input, and stop one address after 30 failed attempts in 15 minutes (a spray over many names); changing or resetting an admin password now ends that account's older sessions (the change hands back a fresh one; sessions signed before this update keep working until they expire, 12 hours); the feedback and contact forms check types, email addresses and length (5000 characters), and a Cloudflare outage counts as a failed check instead of an error",
-    "Accessibility and UI review: text and link colours raised to WCAG AA contrast in both themes (muted text, the app button, e-mail links), links in legal / about text underlined, category filters are toggle buttons (`aria-pressed`) instead of a tab list, each page's hero is a labelled landmark, decorative logos no longer read twice, admin filter boxes have accessible names, bigger tap areas for footer links, breadcrumbs and category chips on touch screens",
-    "`npm run test:security` (60 checks: headers, private data never cached, no error leaks, form limits, sign-in throttling, admin sessions) is part of `npm test`; a new Tests workflow runs `npm test` and a dependency audit on every pull request, and Dependabot proposes weekly updates",
-    "Song pages show an \"Open in the Mara Lyrics app\" button on Android browsers (a real link to an Android intent URL for that song; with no app installed it opens the Google Play page); `/.well-known/assetlinks.json` now also vouches for the app `com.maralyrics.laitei` (add the Play App Signing SHA-256 from Play Console to its fingerprint list); the song page action buttons wrap instead of running off the card on phones"
-  ],
+  "unreleased": [],
   "releases": [
     {
       "version": "1.0.0",
@@ -151,6 +144,22 @@
         ".gitignore now also keeps keystores and .env files out of git"
       ],
       "deploy": "Run `npm run db:migrate` (migrations 0019 account sync, 0020 account profile, 0021 Guitar Node) and then `npm run deploy` for the new account and chord endpoints. The Cloudflare Turnstile challenges need the `TURNSTILE_SECRET_KEY` secret."
+    },
+    {
+      "version": "1.11.0",
+      "ref": "0122a87",
+      "title": "Android link, security and legal",
+      "summary": "An \"Open in the Mara Lyrics app\" button on Android, a whole-site security and accessibility review, a rewritten Privacy Policy and Terms & Conditions, and updated tooling.",
+      "highlights": [
+        "Song pages show an \"Open in the Mara Lyrics app\" button on Android browsers (a real link to an Android intent URL for that song; with no app installed it opens the Google Play page); `/.well-known/assetlinks.json` now also vouches for the app `com.maralyrics.laitei` (add the Play App Signing SHA-256 from Play Console to its fingerprint list); the song page action buttons wrap instead of running off the card on phones",
+        "Privacy Policy and Terms & Conditions rewritten for what the site now does (accounts and sync, Google sign-in, profile claims, the Green mark, offline downloads, Guitar Node chords, the Android app, the service providers involved, legal bases, retention, international transfers and rights), dated October 27, 2026; sign-in and sign-up now say that continuing means agreeing to both; sign-in attempt records are deleted within 24 hours; the Mara and Burmese copies of the two documents describe the old text, so they are removed until retranslated and the English version shows instead",
+        "Security review of the whole site: the service worker no longer keeps copies of signed-in answers (account, sync, export, Green orders, admin API) and deletes the copies the old one stored; the API marks account and admin answers `no-store`, sends `nosniff`, and no longer sends database error text to callers; the pages gain HSTS, a frame-ancestors policy, `object-src 'none'`, `base-uri` / `form-action` limits and a Permissions-Policy",
+        "Sign-in guards: admin and account sign-in refuse non-text or absurdly long input, and stop one address after 30 failed attempts in 15 minutes (a spray over many names); changing or resetting an admin password now ends that account's older sessions (the change hands back a fresh one; sessions signed before this update keep working until they expire, 12 hours); the feedback and contact forms check types, email addresses and length (5000 characters), and a Cloudflare outage counts as a failed check instead of an error",
+        "Accessibility and UI review: text and link colours raised to WCAG AA contrast in both themes (muted text, the app button, e-mail links), links in legal / about text underlined, category filters are toggle buttons (`aria-pressed`) instead of a tab list, each page's hero is a labelled landmark, decorative logos no longer read twice, admin filter boxes have accessible names, bigger tap areas for footer links, breadcrumbs and category chips on touch screens",
+        "`npm run test:security` (60 checks: headers, private data never cached, no error leaks, form limits, sign-in throttling, admin sessions) is part of `npm test`; a new Tests workflow runs `npm test` and a dependency audit on every pull request, and Dependabot proposes weekly updates",
+        "Tooling: wrangler 4 (the deploy and migration tool), and newer versions of the GitHub Actions used by the Tests, Release and Android build workflows"
+      ],
+      "deploy": "No database migration. Run `git pull`, `npm ci` (installs wrangler 4) and `npm run deploy` for the Worker changes (no-store and nosniff headers, generic error messages, sign-in limits, admin sessions that end when the password changes, the 24-hour clean-up of sign-in records). Reload the site once or twice for the new service worker. To open site links in the Play-installed app, add the App signing key SHA-256 from Play Console to `public/.well-known/assetlinks.json`."
     }
   ]
 }

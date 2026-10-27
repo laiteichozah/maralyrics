@@ -3,16 +3,37 @@
 Every released version of MaraLyrics, newest first, with its full commit log. Versions follow [semantic versioning](https://semver.org) and each one is a git tag (`vX.Y.Z`) on the commit it names.
 This file is generated: edit `scripts/releases.json` and run `npm run changelog`. A version's log lists every commit since the previous version; merge commits are counted, not listed.
 
-## Unreleased
+## v1.11.0 — Android link, security and legal (2026-10-27)
 
-Merged after the latest version; it ships with the next one.
+An "Open in the Mara Lyrics app" button on Android, a whole-site security and accessibility review, a rewritten Privacy Policy and Terms & Conditions, and updated tooling.
 
+**Highlights**
+- Song pages show an "Open in the Mara Lyrics app" button on Android browsers (a real link to an Android intent URL for that song; with no app installed it opens the Google Play page); `/.well-known/assetlinks.json` now also vouches for the app `com.maralyrics.laitei` (add the Play App Signing SHA-256 from Play Console to its fingerprint list); the song page action buttons wrap instead of running off the card on phones
 - Privacy Policy and Terms & Conditions rewritten for what the site now does (accounts and sync, Google sign-in, profile claims, the Green mark, offline downloads, Guitar Node chords, the Android app, the service providers involved, legal bases, retention, international transfers and rights), dated October 27, 2026; sign-in and sign-up now say that continuing means agreeing to both; sign-in attempt records are deleted within 24 hours; the Mara and Burmese copies of the two documents describe the old text, so they are removed until retranslated and the English version shows instead
 - Security review of the whole site: the service worker no longer keeps copies of signed-in answers (account, sync, export, Green orders, admin API) and deletes the copies the old one stored; the API marks account and admin answers `no-store`, sends `nosniff`, and no longer sends database error text to callers; the pages gain HSTS, a frame-ancestors policy, `object-src 'none'`, `base-uri` / `form-action` limits and a Permissions-Policy
 - Sign-in guards: admin and account sign-in refuse non-text or absurdly long input, and stop one address after 30 failed attempts in 15 minutes (a spray over many names); changing or resetting an admin password now ends that account's older sessions (the change hands back a fresh one; sessions signed before this update keep working until they expire, 12 hours); the feedback and contact forms check types, email addresses and length (5000 characters), and a Cloudflare outage counts as a failed check instead of an error
 - Accessibility and UI review: text and link colours raised to WCAG AA contrast in both themes (muted text, the app button, e-mail links), links in legal / about text underlined, category filters are toggle buttons (`aria-pressed`) instead of a tab list, each page's hero is a labelled landmark, decorative logos no longer read twice, admin filter boxes have accessible names, bigger tap areas for footer links, breadcrumbs and category chips on touch screens
 - `npm run test:security` (60 checks: headers, private data never cached, no error leaks, form limits, sign-in throttling, admin sessions) is part of `npm test`; a new Tests workflow runs `npm test` and a dependency audit on every pull request, and Dependabot proposes weekly updates
-- Song pages show an "Open in the Mara Lyrics app" button on Android browsers (a real link to an Android intent URL for that song; with no app installed it opens the Google Play page); `/.well-known/assetlinks.json` now also vouches for the app `com.maralyrics.laitei` (add the Play App Signing SHA-256 from Play Console to its fingerprint list); the song page action buttons wrap instead of running off the card on phones
+- Tooling: wrangler 4 (the deploy and migration tool), and newer versions of the GitHub Actions used by the Tests, Release and Android build workflows
+
+**Deploy notes:** No database migration. Run `git pull`, `npm ci` (installs wrangler 4) and `npm run deploy` for the Worker changes (no-store and nosniff headers, generic error messages, sign-in limits, admin sessions that end when the password changes, the 24-hour clean-up of sign-in records). Reload the site once or twice for the new service worker. To open site links in the Play-installed app, add the App signing key SHA-256 from Play Console to `public/.well-known/assetlinks.json`.
+
+10 commits (0 merge commits not listed) · 2 authors · 53 files changed, 1769 insertions(+), 993 deletions(-)
+
+<details><summary>Full log — 10 commits</summary>
+
+- `e3b3f1b` 2026-10-27 Release v1.10.0 — Accounts and Guitar Node: notes, changelog and version (#92) — Laitei
+- `30bd863` 2026-10-27 Open in the Android app: song-page button (Android only) and assetlinks for com.maralyrics.laitei (#93) — Laitei
+- `c9ec9c8` 2026-10-27 Security, accessibility and UI review fixes; security test suite; CI workflow (#94) — Laitei
+- `3a835c9` 2026-10-27 Privacy Policy and Terms & Conditions updated for accounts, sync, Google sign-in, claims, Green mark, downloads, chords and the Android app (#102) — Laitei
+- `f25e329` 2026-10-27 Bump actions/upload-artifact from 4 to 7 (#95) — dependabot[bot]
+- `efd8a8b` 2026-10-27 Bump actions/checkout from 4 to 7 (#96) — dependabot[bot]
+- `7153cfd` 2026-10-27 Bump actions/setup-node from 4 to 7 (#97) — dependabot[bot]
+- `f35d8bd` 2026-10-27 Bump actions/setup-java from 4 to 6 (#99) — dependabot[bot]
+- `20548ae` 2026-10-27 Bump android-actions/setup-android from 3 to 4 (#100) — dependabot[bot]
+- `0122a87` 2026-10-27 Bump wrangler from 3.114.17 to 4.152.0 (#101) — dependabot[bot]
+
+</details>
 
 ## v1.10.0 — Accounts and Guitar Node (2026-10-27)
 
