@@ -34,7 +34,7 @@
     "changelog:check": "node scripts/changelog.mjs --check"
   },
   "dependencies": {
-    "@cloudflare/kv-asset-handler": "^0.3.4",
+    "@cloudflare/kv-asset-handler": "^0.5.0",
     "hono": "^4.12.28"
   },
   "devDependencies": {
