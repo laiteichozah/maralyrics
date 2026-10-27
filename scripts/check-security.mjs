@@ -12,7 +12,7 @@ import { DatabaseSync } from 'node:sqlite';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href);
 const { default: app } = await load('worker/worker.js');
-const { IP_FAILURE_LIMIT } = await load('worker/lib/throttle.js');
+const { IP_FAILURE_LIMIT, RETENTION_HOURS } = await load('worker/lib/throttle.js');
 const { hashPassword, signJWT } = await load('worker/lib/auth.js');
 
 let passes = 0;
@@ -144,6 +144,10 @@ r = await call('POST', '/api/v1/admin/auth/login', { username: 'a-name-never-tri
 check(r.status === 401, 'the limit lifts by itself after the window');
 r = await call('POST', '/api/v1/admin/auth/login', { username: 'ghost-2', password: 'wrong-password' });
 check(r.status === 401, 'with no address (local development) the limit simply does nothing');
+// The Privacy Policy says sign-in attempt records (names and addresses) are deleted within a day.
+run(`INSERT INTO login_attempts (username, created_at) VALUES ('person:old@example.com', datetime('now', '-30 hours')), ('ip:admin:192.0.2.1', datetime('now', '-30 hours')), ('person:recent@example.com', datetime('now', '-2 hours'))`);
+await call('POST', '/api/v1/account/login', { identifier: 'someone@example.com', password: 'wrong-password' }, fromIp('192.0.2.55'));
+check(get(`SELECT COUNT(*) AS n FROM login_attempts WHERE created_at < datetime('now', '-24 hours')`).n === 0 && get(`SELECT COUNT(*) AS n FROM login_attempts WHERE username = 'person:recent@example.com'`).n === 1, 'sign-in attempt records older than a day are deleted, recent ones kept');
 
 // ─── Admin sessions end when the password changes ────────────────────────────
 console.log('Admin sessions');
@@ -178,6 +182,24 @@ r = await call('POST', '/api/v1/admin/admin-users', { username: { a: 1 }, passwo
 check(r.status === 400, 'creating an admin with a name that is not text is refused (not a server error)');
 r = await call('POST', '/api/v1/admin/admin-users', { username: 'n'.repeat(80), password: 'long-enough-1', role: 'viewer' }, asAdmin(bossNew));
 check(r.status === 400 && /too long/i.test(r.json.error), '…and so is a name that is too long');
+
+// ─── Privacy Policy and Terms say what the code does ─────────────────────────
+console.log('Legal pages');
+const en = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/locales/en.json'), 'utf8'));
+const privacy = Object.values(en.privacy).join(' ');
+const terms = Object.values(en.terms).join(' ');
+const plain = (html) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+for (const [name, text] of [['Privacy Policy', plain(privacy)], ['Terms', plain(terms)]]) {
+  const sections = Object.keys(en[name === 'Terms' ? 'terms' : 'privacy']).filter((k) => /^s\d+_content$/.test(k)).length;
+  const html = fs.readFileSync(path.join(ROOT, `public/${name === 'Terms' ? 'terms' : 'privacy'}.html`), 'utf8');
+  check((html.match(/class="static-page__section"/g) || []).length === sections, `${name}: the page and en.json have the same number of sections (${sections})`);
+  check(en[name === 'Terms' ? 'terms' : 'privacy'].date === (html.match(/data-i18n="[a-z]+\.date">([^<]+)</) || [])[1], `${name}: the date in the page matches en.json`);
+}
+check(/Last updated: \w+ \d+, 20\d\d/.test(en.privacy.date) && en.privacy.date === en.terms.date, 'both documents carry the same "Last updated" date');
+for (const word of ['Google', 'Cloudflare Turnstile', 'Resend', 'AdSense', 'YouTube', 'calendar-api.marareih.org', 'Green mark', 'favorites', 'Android', 'delete your account']) check(plain(privacy).includes(word), `the Privacy Policy covers: ${word}`);
+check(plain(privacy).includes(`within ${RETENTION_HOURS} hours`), `the retention period for sign-in records (${RETENTION_HOURS} hours) matches the code`);
+for (const word of ['Accounts', 'Green Mark', 'Android App', 'Artist & Composer Profiles', 'Limitation of Liability']) check(Object.values(en.terms).some((v) => String(v).replace(/&amp;/g, '&').includes(word)), `the Terms cover: ${word}`);
+check(fs.readFileSync(path.join(ROOT, 'public/account.html'), 'utf8').includes('href="/terms"') && en.account.legal_notice.includes('/privacy'), 'sign-in / sign-up shows the agreement notice with links to both documents');
 
 // ─── Service worker: private answers are never cached ────────────────────────
 console.log('Service worker');
