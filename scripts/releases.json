@@ -1,5 +1,6 @@
 {
   "unreleased": [
+    "Admin song form: adding a chord from the palette no longer throws the cursor to the end or scrolls the sheet and dialog; it goes in at the cursor, the cursor stays after it, and Ctrl+Z takes it back",
     "`npm test` runs every check in one go (all test suites, SEO and i18n); a project-wide check found no failures",
     "This changelog, with the full commit log of every version, and the release tags v1.0.0–v1.9.0, generated with `npm run changelog` (see scripts/changelog.mjs)",
     "hono updated to 4.13.13 (fixes a moderate advisory in a feature this project does not use)",

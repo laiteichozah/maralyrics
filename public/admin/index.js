@@ -1278,15 +1278,32 @@ function gnDrawPalette() {
   }
 }
 
+/** Runs `change` and leaves the sheet and the dialog scrolled exactly where they were (setting a textarea's value, or focusing it, scrolls it). */
+function gnKeepScroll(area, change) {
+  const dialog = area.closest('.modal__content');
+  const top = area.scrollTop;
+  const dialogTop = dialog ? dialog.scrollTop : 0;
+  change();
+  area.scrollTop = top;
+  if (dialog) dialog.scrollTop = dialogTop;
+}
+
 function gnInsert(text) {
   const area = gnEl('formChordSheet');
   if (area.disabled) return;
   const start = area.selectionStart ?? area.value.length;
   const end = area.selectionEnd ?? start;
-  area.value = area.value.slice(0, start) + text + area.value.slice(end);
-  area.focus();
-  area.selectionStart = area.selectionEnd = start + text.length;
+  gnKeepScroll(area, () => {
+    area.focus({ preventScroll: true });
+    area.setSelectionRange(start, end);
+    // typed-in-place, so Ctrl+Z takes the chord back; the browsers without it get a plain replace
+    let done = false;
+    try { done = document.execCommand('insertText', false, text); } catch { done = false; }
+    if (!done || area.value.slice(start, start + text.length) !== text) area.setRangeText(text, start, end, 'end');
+    area.setSelectionRange(start + text.length, start + text.length);
+  });
   gnRefresh();
+  autoSaveSongDraft();
 }
 
 /** Re-reads the sheet: mirrors the words into the Lyrics box, lists mistakes and redraws the preview. */
@@ -1377,7 +1394,7 @@ function wireGuitarNodeAdmin() {
     if (!C || area.disabled) return;
     const converted = C.overLyricsToSheet(area.value);
     if (converted === area.value) { AdminUI.notify('Nothing to convert: no line of chords above words was found.', 'info'); return; }
-    area.value = converted; // the browser's undo (Ctrl+Z) can bring the old text back
+    gnKeepScroll(area, () => { area.value = converted; }); // (the browser's undo is not kept here)
     gnRefresh();
     autoSaveSongDraft();
   });

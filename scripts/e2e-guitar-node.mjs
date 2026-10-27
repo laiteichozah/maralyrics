@@ -320,6 +320,29 @@ try {
   ok(previewA === 'A D E A', `…and can show it in another key without saving anything (${previewA})`);
   await A.click('#gnPalette button:nth-child(5)'); // D inserted at the cursor
   ok((await A.inputValue('#formChordSheet')).includes('[D]') && (await A.inputValue('#formChordSheet')).length > 100, 'a palette button puts the chord into the sheet');
+  // a long sheet, caret in the middle: adding a chord must not throw the caret to the end or scroll the sheet / dialog
+  const long = Array.from({ length: 60 }, (_, i) => `[G]Line ${i} of the [C]song goes on`).join('\n');
+  await A.fill('#formChordSheet', long);
+  await sleep(250);
+  const caretBefore = await A.evaluate(() => {
+    const a = document.getElementById('formChordSheet');
+    const m = a.closest('.modal__content');
+    const pos = a.value.indexOf('Line 30 ') + 4;
+    a.focus(); a.setSelectionRange(pos, pos);
+    a.scrollTop = 200; m.scrollTop = Math.max(0, m.scrollTop);
+    return { pos, area: a.scrollTop, dialog: m.scrollTop, length: a.value.length };
+  });
+  await A.click('#gnPalette button:nth-child(5)');
+  const caretAfter = await A.evaluate(() => {
+    const a = document.getElementById('formChordSheet');
+    return { start: a.selectionStart, end: a.selectionEnd, area: a.scrollTop, dialog: a.closest('.modal__content').scrollTop, value: a.value, active: document.activeElement === a };
+  });
+  ok(caretAfter.value.slice(caretBefore.pos, caretBefore.pos + 3) === '[D]' && caretAfter.value.length === caretBefore.length + 3, 'a palette chord goes in at the caret, not at the end');
+  ok(caretAfter.start === caretBefore.pos + 3 && caretAfter.end === caretAfter.start && caretAfter.active, `the caret stays right after the chord (${caretAfter.start} vs ${caretBefore.pos + 3}), in the sheet`);
+  ok(caretAfter.area === caretBefore.area, `the sheet does not scroll (${caretBefore.area} → ${caretAfter.area})`);
+  ok(Math.abs(caretAfter.dialog - caretBefore.dialog) <= 1, `the dialog does not scroll (${caretBefore.dialog} → ${caretAfter.dialog})`);
+  await A.keyboard.press('Control+z');
+  ok((await A.inputValue('#formChordSheet')).length === caretBefore.length, 'Ctrl+Z takes the chord back');
   await A.fill('#formChordSheet', 'G       C\nAmazing grace how sweet\n\nD   G\nthe sound');
   await A.click('#gnConvert');
   ok((await A.inputValue('#formChordSheet')) === '[G]Amazing [C]grace how sweet\n\n[D]the [G]sound', 'a sheet with the chords printed above the words is converted into bracket chords');
