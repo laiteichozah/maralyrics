@@ -5,6 +5,97 @@
  "releases_url": "https://github.com/laiteichozah/maralyrics/releases",
  "releases": [
   {
+   "version": "1.11.0",
+   "tag": "v1.11.0",
+   "title": "Android link, security and legal",
+   "date": "2026-10-27",
+   "summary": "An \"Open in the Mara Lyrics app\" button on Android, a whole-site security and accessibility review, a rewritten Privacy Policy and Terms & Conditions, and updated tooling.",
+   "highlights": [
+    "Song pages show an \"Open in the Mara Lyrics app\" button on Android browsers (a real link to an Android intent URL for that song; with no app installed it opens the Google Play page); `/.well-known/assetlinks.json` now also vouches for the app `com.maralyrics.laitei` (add the Play App Signing SHA-256 from Play Console to its fingerprint list); the song page action buttons wrap instead of running off the card on phones",
+    "Privacy Policy and Terms & Conditions rewritten for what the site now does (accounts and sync, Google sign-in, profile claims, the Green mark, offline downloads, Guitar Node chords, the Android app, the service providers involved, legal bases, retention, international transfers and rights), dated October 27, 2026; sign-in and sign-up now say that continuing means agreeing to both; sign-in attempt records are deleted within 24 hours; the Mara and Burmese copies of the two documents describe the old text, so they are removed until retranslated and the English version shows instead",
+    "Security review of the whole site: the service worker no longer keeps copies of signed-in answers (account, sync, export, Green orders, admin API) and deletes the copies the old one stored; the API marks account and admin answers `no-store`, sends `nosniff`, and no longer sends database error text to callers; the pages gain HSTS, a frame-ancestors policy, `object-src 'none'`, `base-uri` / `form-action` limits and a Permissions-Policy",
+    "Sign-in guards: admin and account sign-in refuse non-text or absurdly long input, and stop one address after 30 failed attempts in 15 minutes (a spray over many names); changing or resetting an admin password now ends that account's older sessions (the change hands back a fresh one; sessions signed before this update keep working until they expire, 12 hours); the feedback and contact forms check types, email addresses and length (5000 characters), and a Cloudflare outage counts as a failed check instead of an error",
+    "Accessibility and UI review: text and link colours raised to WCAG AA contrast in both themes (muted text, the app button, e-mail links), links in legal / about text underlined, category filters are toggle buttons (`aria-pressed`) instead of a tab list, each page's hero is a labelled landmark, decorative logos no longer read twice, admin filter boxes have accessible names, bigger tap areas for footer links, breadcrumbs and category chips on touch screens",
+    "`npm run test:security` (60 checks: headers, private data never cached, no error leaks, form limits, sign-in throttling, admin sessions) is part of `npm test`; a new Tests workflow runs `npm test` and a dependency audit on every pull request, and Dependabot proposes weekly updates",
+    "Tooling: wrangler 4 (the deploy and migration tool), and newer versions of the GitHub Actions used by the Tests, Release and Android build workflows"
+   ],
+   "commit_count": 10,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/2f85b3d9124e2fc4be45b22f2df71aa2b754516b...0122a87258a57600acf9f71b02f4add7be83656e",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.11.0",
+   "commits": [
+    {
+     "sha": "0122a87258a57600acf9f71b02f4add7be83656e",
+     "short": "0122a87",
+     "date": "2026-10-27",
+     "subject": "Bump wrangler from 3.114.17 to 4.152.0 (#101)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "20548aefa0ff2f0d8cae67a7cd31a763ea4097a8",
+     "short": "20548ae",
+     "date": "2026-10-27",
+     "subject": "Bump android-actions/setup-android from 3 to 4 (#100)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "f35d8bd1d363fa444eeef020406edb6ee2949b26",
+     "short": "f35d8bd",
+     "date": "2026-10-27",
+     "subject": "Bump actions/setup-java from 4 to 6 (#99)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "7153cfd5bfecb6314d4eee920ea2e67748c0d9a8",
+     "short": "7153cfd",
+     "date": "2026-10-27",
+     "subject": "Bump actions/setup-node from 4 to 7 (#97)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "efd8a8b5dda6557e971c565fd28bcc96a426021f",
+     "short": "efd8a8b",
+     "date": "2026-10-27",
+     "subject": "Bump actions/checkout from 4 to 7 (#96)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "f25e329c9ef3173082be8446310e144ad65a109d",
+     "short": "f25e329",
+     "date": "2026-10-27",
+     "subject": "Bump actions/upload-artifact from 4 to 7 (#95)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "3a835c9ff85f0c2405b815e9d0bff305ca13e297",
+     "short": "3a835c9",
+     "date": "2026-10-27",
+     "subject": "Privacy Policy and Terms & Conditions updated for accounts, sync, Google sign-in, claims, Green mark, downloads, chords and the Android app (#102)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "c9ec9c8bf35b18a53162436ca48ae652fdbe6e77",
+     "short": "c9ec9c8",
+     "date": "2026-10-27",
+     "subject": "Security, accessibility and UI review fixes; security test suite; CI workflow (#94)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "30bd86397434f729f3d2dba861ca2fb4ceb59a29",
+     "short": "30bd863",
+     "date": "2026-10-27",
+     "subject": "Open in the Android app: song-page button (Android only) and assetlinks for com.maralyrics.laitei (#93)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "e3b3f1b2acd64f7ed5c961f299b4308b322b10ed",
+     "short": "e3b3f1b",
+     "date": "2026-10-27",
+     "subject": "Release v1.10.0 — Accounts and Guitar Node: notes, changelog and version (#92)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
    "version": "1.10.0",
    "tag": "v1.10.0",
    "title": "Accounts and Guitar Node",

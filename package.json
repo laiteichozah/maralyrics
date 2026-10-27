@@ -1,6 +1,6 @@
 {
   "name": "maralyrics",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
   "description": "MaraLyrics — A modern Mara song lyrics website powered by Cloudflare Workers & D1",
   "scripts": {
