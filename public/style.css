@@ -5833,6 +5833,9 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   background: var(--bg-glass, rgba(255, 255, 255, 0.04));
 }
 .guitar-node[hidden], .guitar-node [hidden] { display: none !important; }
+.guitar-node { color-scheme: dark; }                         /* the key list's dropdown is drawn dark in the dark theme … */
+[data-theme="light"] .guitar-node { color-scheme: light; }    /* … and light in the light theme */
+.guitar-node__select option { background: var(--bg-secondary); color: var(--text-primary); }
 .guitar-node__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .guitar-node__title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
 .guitar-node__title svg { color: var(--accent-light, #a78bfa); }

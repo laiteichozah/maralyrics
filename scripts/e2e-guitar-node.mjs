@@ -6,6 +6,7 @@
 //   remembered per song, minor keys, unknown key, songs without chords, copy, keyboard, a phone screen
 //   admin: set a key, write the chord sheet (palette, live preview, mistakes), save, edit, remove the chords, the song list
 //
+// E2E_SHOTS=dir saves screenshots (song page, admin form); E2E_SCROLLBARS=1 shows classic scrollbars in them; E2E_DEBUG=dir saves pages if it stops early.
 // Needs Playwright with a Chromium; without one it says so and skips (exit 0), unless E2E_REQUIRED=1. Not part of `npm test`.
 import fs from 'node:fs';
 import http from 'node:http';
@@ -25,7 +26,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let browser;
 try {
   const { chromium } = require('playwright');
-  for (const opts of [{}, { executablePath: '/opt/pw-browsers/chromium' }]) { try { browser = await chromium.launch(opts); break; } catch { /* next */ } }
+  // E2E_SCROLLBARS=1 shows real (classic) scrollbars instead of hiding them, to check how the dialogs look on Windows
+  const shown = process.env.E2E_SCROLLBARS ? { ignoreDefaultArgs: ['--hide-scrollbars'] } : {};
+  for (const opts of [shown, { ...shown, executablePath: '/opt/pw-browsers/chromium' }]) { try { browser = await chromium.launch(opts); break; } catch { /* next */ } }
 } catch { /* no playwright */ }
 if (!browser) {
   console.log('e2e: skipped — Playwright with Chromium is not available here (set E2E_REQUIRED=1 to make that an error).');
@@ -304,6 +307,14 @@ try {
   ok((await A.inputValue('#formLyrics')) === 'Amazing grace how sweet the sound\nThat saved a wretch like me\n\n[Chorus]\n', 'the Lyrics box shows the words only (the [Chorus] label stays, the chord-only line is an empty line)');
   const preview = await A.evaluate(() => [...document.querySelectorAll('#gnAdminPreview .gn-chord')].map((c) => c.textContent).filter(Boolean).join(' '));
   ok(preview === 'G C D G Em D G C D G', `the live preview draws the chords (${preview})`);
+  if (process.env.E2E_SHOTS) {
+    await A.evaluate(() => document.getElementById('gnAdmin').scrollIntoView({ block: 'start' }));
+    await A.screenshot({ path: `${process.env.E2E_SHOTS}/gn-admin-form-top.png` });
+    await A.locator('#gnAdmin').scrollIntoViewIfNeeded();
+    await A.screenshot({ path: `${process.env.E2E_SHOTS}/gn-admin-form.png` });
+    await A.evaluate(() => { const m = document.querySelector('#songModal .modal__content'); m.scrollTop = m.scrollHeight; });
+    await A.screenshot({ path: `${process.env.E2E_SHOTS}/gn-admin-form-bottom.png` });
+  }
   await A.selectOption('#gnPreviewKey', 'A');
   const previewA = await A.evaluate(() => [...document.querySelectorAll('#gnAdminPreview .gn-chord')].map((c) => c.textContent).filter(Boolean).slice(0, 4).join(' '));
   ok(previewA === 'A D E A', `…and can show it in another key without saving anything (${previewA})`);

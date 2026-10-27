@@ -26,6 +26,9 @@
   padding: 32px 20px 80px;
   color: var(--a-text);
 }
+/* native scrollbars, dropdown lists and checkboxes follow the theme instead of showing up white on dark */
+.acct, .crop { color-scheme: dark; }
+[data-theme="light"] .acct, [data-theme="light"] .crop { color-scheme: light; }
 [data-theme="light"] .acct {
   --a-line: rgba(15, 23, 42, 0.2);
   --a-field: #ffffff;

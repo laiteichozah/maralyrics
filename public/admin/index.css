@@ -1560,7 +1560,6 @@ button.is-busy::after {
 
 /* ─── Guitar Node (song form): key, chord sheet, palette, preview ───────────────────────────────────────── */
 .gn-admin { margin: 0 0 var(--space-md); padding: var(--space-md); border: 1px solid var(--border-glass); border-radius: var(--radius-md, 10px); }
-.gn-admin__legend { padding: 0 8px; font-weight: 700; font-size: var(--text-sm); }
 .gn-admin__check { display: flex; align-items: center; gap: 8px; min-height: 40px; cursor: pointer; }
 .gn-admin__sheet { font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.7; min-height: 260px; white-space: pre; overflow-x: auto; }
 .gn-admin__palette { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-xs); }
@@ -1583,3 +1582,28 @@ button.is-busy::after {
 .gn-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(139,92,246,0.18); color: var(--accent-light); font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
 
 .gn-admin__tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: var(--space-sm); }
+
+
+/* ─── Dark all the way: no white scrollbars, dropdown lists or form controls (the dashboard is dark-only) ─────── */
+:root { color-scheme: dark; }  /* the browser draws its own scrollbars, dropdown lists, checkboxes and spin buttons dark */
+.modal__content, .form-textarea, .gn-admin__preview, .gn-admin__sheet, .checkbox-list, .admin__table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.55) transparent;
+}
+.modal__content::-webkit-scrollbar, .form-textarea::-webkit-scrollbar, .gn-admin__preview::-webkit-scrollbar { width: 10px; height: 10px; }
+.modal__content::-webkit-scrollbar-track, .form-textarea::-webkit-scrollbar-track, .gn-admin__preview::-webkit-scrollbar-track { background: transparent; }
+.modal__content::-webkit-scrollbar-thumb, .form-textarea::-webkit-scrollbar-thumb, .gn-admin__preview::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.45); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box;
+}
+.modal__content::-webkit-scrollbar-thumb:hover, .form-textarea::-webkit-scrollbar-thumb:hover { background: rgba(167, 139, 250, 0.7); background-clip: padding-box; }
+.form-input optgroup { background: #0f172a; color: var(--accent-light); font-style: normal; font-weight: 700; }
+.form-input option { background: #0f172a; color: #e2e8f0; }
+.gn-admin input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+.gn-admin { background: rgba(255, 255, 255, 0.02); min-width: 0; }
+.gn-admin__legend { padding: 2px 12px; border: 1px solid var(--border-glass); border-radius: 999px; background: var(--bg-secondary); color: var(--text-primary); font-size: var(--text-sm); font-weight: 700; }
+.gn-admin__intro { margin: 4px 0 var(--space-md); color: var(--text-muted); font-size: var(--text-xs); line-height: 1.5; }
+.gn-admin__previewbar label { color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; }
+.gn-admin__previewbar select { background: rgba(255, 255, 255, 0.04); color: var(--text-primary); }
+
+.gn-admin__tools .btn { padding: 8px 14px; border-color: rgba(139, 92, 246, 0.45); color: var(--accent-light); }
+.gn-admin__tools .btn:hover { background: rgba(139, 92, 246, 0.12); }

@@ -18,6 +18,7 @@ Merged after the latest version; it ships with the next one.
 - Profile photos open a crop dialog (drag, zoom, wheel, keyboard) on the account page and in the artist editor; `npm run test:e2e` is a browser test of every account feature
 - Guitar Node: songs can carry an original key and guitar chords, shown above the lyrics; visitors change the key on the page (key list, semitone buttons, reset) and the chords transpose with correct sharps / flats; editors write the chords in the admin song form (chord sheet, palette, live preview, converter for chords-above-words text) (migration 0021: run `npm run db:migrate` then `npm run deploy`)
 - The admin dashboard now fetches its scripts and styles from the network first (its offline copy is only a fallback), so a deploy is never half-applied; the note under the Lyrics box in the song form only shows when chords are on
+- Dark all the way: the admin dashboard's scrollbars, dropdown lists and checkboxes are drawn dark (no white strips), the Guitar Node box is tidier, and the key list on the song page follows the theme
 
 ## v1.9.0 — Reading flow (2026-10-24)
 
