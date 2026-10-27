@@ -14,7 +14,7 @@
 
   --text-primary:   #f1f5f9;
   --text-secondary: #94a3b8;
-  --text-muted:     #64748b;
+  --text-muted:     #8896ab;
 
   --accent:         #8b5cf6;
   --accent-glow:    rgba(139, 92, 246, 0.35);
@@ -3063,7 +3063,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 }
 
 .contact-email a {
-  color: var(--accent);
+  color: var(--accent-light);
   font-weight: 600;
   font-size: var(--text-lg);
   text-decoration: none;
@@ -3071,7 +3071,8 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 }
 
 .contact-email a:hover {
-  color: var(--accent-light);
+  color: var(--text-primary);
+  text-decoration: underline;
 }
 
 /* ─── FAQ Accordion ─────────────────────────────────────────── */
@@ -3290,7 +3291,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--accent-light);
   border-radius: var(--radius-sm);
-  background: var(--accent);
+  background: var(--accent-dark);
   color: #fff;
   font-size: var(--text-sm);
   font-weight: 700;
@@ -3299,7 +3300,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 }
 
 .app-promotion__link:hover {
-  background: var(--accent-dark);
+  background: #6d28d9;
   color: #fff;
   transform: translateY(-1px);
 }
@@ -4606,7 +4607,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
   --text-primary:   #1e293b;
   --text-secondary: #475569;
-  --text-muted:     #64748b;
+  --text-muted:     #566174;
 
   --accent:         #7c3aed;
   --accent-glow:    rgba(124, 58, 237, 0.20);
@@ -5890,4 +5891,21 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   .guitar-node__steps .guitar-node__btn { flex: 1 1 calc(50% - 4px); white-space: nowrap; }  /* − / + side by side … */
   .guitar-node__steps .guitar-node__btn--quiet { flex-basis: 100%; }                            /* … and Reset on its own row */
   .gn-chord { font-size: 0.78em; padding-right: 0.55em; }
+}
+
+
+/* Links inside running text are told apart by more than colour (WCAG 1.4.1). */
+.static-page p a,
+.static-page li a { text-decoration: underline; text-underline-offset: 0.15em; }
+
+/* The light theme's own link colour ([data-theme="light"] a) would beat the button's white text. */
+[data-theme="light"] .app-promotion__link,
+[data-theme="light"] .app-promotion__link:hover { color: #fff; }
+
+/* Touch screens: the small text links and chips get a bigger tap area (WCAG 2.5.8 asks for at least 24 × 24 px), without
+   changing how they look. */
+@media (pointer: coarse) {
+  .footer__links a,
+  .breadcrumb__link { display: inline-block; padding-block: 0.4rem; }
+  .category-btn { min-height: 36px; }
 }

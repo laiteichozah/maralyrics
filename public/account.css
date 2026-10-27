@@ -102,7 +102,7 @@
 .acct-btn--quiet:hover, .acct-btn--ghost:hover { background: var(--bg-glass); color: var(--a-text); }
 .acct-btn--green { background: #15803d; }
 .acct-btn--green:hover { background: #166534; }
-.acct-linkbtn { padding: 0; border: 0; background: none; color: var(--accent-light); font: inherit; font-size: 0.875rem; cursor: pointer; }
+.acct-linkbtn { padding: 4px 0; min-height: 24px; border: 0; background: none; color: var(--accent-light); font: inherit; font-size: 0.875rem; cursor: pointer; }
 .acct-linkbtn:hover { text-decoration: underline; }
 .acct-linkbtn:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
 .acct-switch .acct-linkbtn { font-size: inherit; }

@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { parsePagination } from '../lib/helpers.js';
+import { parsePagination, cleanText, isEmailLike } from '../lib/helpers.js';
 import { verifyTurnstile } from '../lib/turnstile.js';
 import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 import { attachBadges } from '../lib/badges.js';
@@ -496,15 +496,22 @@ app.get('/articles/:slug', async (c) => {
   return c.json(article);
 });
 
+// Longest value stored from the two public forms (the forms are unauthenticated, so nothing else bounds what is saved).
+const FORM_LIMITS = { slug: 200, title: 300, name: 100, email: 254, subject: 200, text: 5000 };
+
 app.post('/reports', async (c) => {
   const data = await c.req.json().catch(() => ({}));
-  const { song_slug, song_title, song_artist, reporter_name, reporter_email, body, turnstile_token } = data;
+  const song_slug = cleanText(data.song_slug, FORM_LIMITS.slug);
+  const body = cleanText(data.body, FORM_LIMITS.text + 1);
+  const reporter_email = cleanText(data.reporter_email, FORM_LIMITS.email + 1);
 
   if (!song_slug || !body) {
     return c.json({ success: false, error: 'Missing required fields' }, 400);
   }
+  if (body.length > FORM_LIMITS.text) return c.json({ success: false, error: `Your message is too long (max ${FORM_LIMITS.text} characters).` }, 400);
+  if (reporter_email && !isEmailLike(reporter_email)) return c.json({ success: false, error: 'Please enter a valid email address.' }, 400);
 
-  const ok = await verifyTurnstile(turnstile_token, c.env, c.req.header('CF-Connecting-IP'));
+  const ok = await verifyTurnstile(data.turnstile_token, c.env, c.req.header('CF-Connecting-IP'));
   if (!ok) return c.json({ success: false, error: 'Security check failed. Please try again.' }, 400);
 
   const song = await c.env.DB.prepare('SELECT id FROM songs WHERE slug = ?').bind(song_slug).first();
@@ -514,7 +521,7 @@ app.post('/reports', async (c) => {
       `INSERT INTO reports (song_id, song_slug, song_title, song_artist, reporter_name, reporter_email, body, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`
     )
-    .bind(song?.id ?? null, song_slug, song_title || '', song_artist || '', reporter_name || '', reporter_email || '', body)
+    .bind(song?.id ?? null, song_slug, cleanText(data.song_title, FORM_LIMITS.title), cleanText(data.song_artist, FORM_LIMITS.title), cleanText(data.reporter_name, FORM_LIMITS.name), reporter_email, body)
     .run();
 
   return c.json({ success: true, message: 'Report submitted successfully' }, 201);
@@ -522,18 +529,22 @@ app.post('/reports', async (c) => {
 
 app.post('/contacts', async (c) => {
   const data = await c.req.json().catch(() => ({}));
-  const { name, email, subject, message, turnstile_token } = data;
+  const name = cleanText(data.name, FORM_LIMITS.name);
+  const email = cleanText(data.email, FORM_LIMITS.email + 1);
+  const message = cleanText(data.message, FORM_LIMITS.text + 1);
 
   if (!name || !email || !message) {
     return c.json({ success: false, error: 'Missing required fields' }, 400);
   }
+  if (message.length > FORM_LIMITS.text) return c.json({ success: false, error: `Your message is too long (max ${FORM_LIMITS.text} characters).` }, 400);
+  if (!isEmailLike(email)) return c.json({ success: false, error: 'Please enter a valid email address.' }, 400);
 
-  const ok = await verifyTurnstile(turnstile_token, c.env, c.req.header('CF-Connecting-IP'));
+  const ok = await verifyTurnstile(data.turnstile_token, c.env, c.req.header('CF-Connecting-IP'));
   if (!ok) return c.json({ success: false, error: 'Security check failed. Please try again.' }, 400);
 
   await c.env.DB
     .prepare(`INSERT INTO contacts (name, email, subject, message, status) VALUES (?, ?, ?, ?, 'unread')`)
-    .bind(name, email, subject || 'General', message)
+    .bind(name, email, cleanText(data.subject, FORM_LIMITS.subject) || 'General', message)
     .run();
 
   return c.json({ success: true, message: 'Message sent successfully' }, 201);

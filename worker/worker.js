@@ -18,6 +18,13 @@ app.use(
   })
 );
 
+// Every response: no MIME sniffing. Account and admin responses are private, so no browser, proxy or CDN may keep a copy.
+app.use('*', async (c, next) => {
+  c.header('X-Content-Type-Options', 'nosniff');
+  if (c.req.path.startsWith('/api/v1/account') || c.req.path.startsWith('/api/v1/admin')) c.header('Cache-Control', 'no-store');
+  await next();
+});
+
 app.use('*', async (c, next) => {
   const country = c.req.raw.cf?.country;
   if (country && BLOCKED_COUNTRIES.has(country)) {
@@ -37,9 +44,10 @@ app.route('/api/v1/admin', adminRoutes);
 
 app.notFound((c) => c.json({ error: 'Not Found' }, 404));
 
+// An unexpected failure: the details (SQL, stack, binding names) go to the log, never to the caller.
 app.onError((err, c) => {
   console.error(err);
-  return c.json({ success: false, error: err.message || 'Internal error' }, 500);
+  return c.json({ success: false, error: 'Something went wrong. Please try again.' }, 500);
 });
 
 export default app;

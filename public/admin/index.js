@@ -112,7 +112,8 @@ async function changePassword() {
   if (!new_password) return;
 
   try {
-    await apiPost(`${ADMIN_API}/auth/change-password`, { current_password, new_password });
+    const changed = await apiPost(`${ADMIN_API}/auth/change-password`, { current_password, new_password });
+    if (changed && changed.token) setAdminToken(changed.token); // the change ended the older sessions; this one carries on
     if (typeof Toast !== 'undefined') Toast.show('Password updated.', { type: 'success' });
     else AdminUI.alertToast('Password updated.');
   } catch (err) {

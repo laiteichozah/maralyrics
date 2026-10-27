@@ -7,7 +7,7 @@
 // i18n.js, theme.js, consent.js, toast.js, or the locale JSON files) — those are served
 // cache-first below, so a returning visitor's browser keeps the exact bytes it first
 // cached forever otherwise, immune even to a hard refresh, until this version changes.
-const CACHE_VERSION = 'ml-v43';
+const CACHE_VERSION = 'ml-v44';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -60,6 +60,12 @@ const PAGE_SHELLS = [
 // visitor downloads them (stored by the app itself), not just because they opened one once.
 const SONG_DETAIL_API = /^\/api\/v1\/songs\/(?!popular$|of-the-day$)[^/]+$/;
 
+// Anything that belongs to a signed-in person (their account, sync data, export, Green orders, the admin API) is never stored
+// here: the cache is keyed by URL only, so a copy would outlive the sign-out and could be served to the next person who uses
+// the same browser while offline. Requests that carry an Authorization header are treated the same, whatever their path.
+const PRIVATE_API = /^\/api\/v1\/(account|admin)(\/|$)/;
+const isPrivateRequest = (request, url) => request.headers.has('Authorization') || PRIVATE_API.test(url.pathname);
+
 // ─── Install: Precache core assets ────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -103,6 +109,7 @@ self.addEventListener('fetch', (event) => {
 
   // ── API requests: Network-first with cache fallback ──
   if (url.pathname.startsWith('/api/')) {
+    if (isPrivateRequest(request, url)) return; // straight to the network, never cached
     if (SONG_DETAIL_API.test(url.pathname)) return; // straight to the network, never cached
     event.respondWith(networkFirstWithCache(request, API_CACHE, 5 * 60 * 1000));
     return;

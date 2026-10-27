@@ -1,0 +1,12 @@
+# Weekly pull requests for out-of-date or vulnerable dependencies (npm packages and the GitHub Actions used by the workflows).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
