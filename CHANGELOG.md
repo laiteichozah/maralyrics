@@ -3,6 +3,12 @@
 Every released version of MaraLyrics, newest first, with its full commit log. Versions follow [semantic versioning](https://semver.org) and each one is a git tag (`vX.Y.Z`) on the commit it names.
 This file is generated: edit `scripts/releases.json` and run `npm run changelog`. A version's log lists every commit since the previous version; merge commits are counted, not listed.
 
+## Unreleased
+
+Merged after the latest version; it ships with the next one.
+
+- App mode on the account page, so the Android app can sign a reader in through the phone's browser: opening /account?app=android&state=… (a state of 16–128 letters, digits, - or _) shows a "You're signed in" panel at the top once the reader has signed in (with Google, email + password or a new account with the Cloudflare check, or when the page loads already signed in) with a "Return to the Mara Lyrics app" button; tapping it hands the session token and the state to the app through an Android intent URL (never an https address, the query string, the hash or a log) and the state is taken out of the address bar at once; any other address behaves exactly as before. Front end only: no migration and no API change. Run `npm run deploy` as usual (the Worker itself is unchanged); the page goes live with the site
+
 ## v1.11.0 — Android link, security and legal (2026-10-27)
 
 An "Open in the Mara Lyrics app" button on Android, a whole-site security and accessibility review, a rewritten Privacy Policy and Terms & Conditions, and updated tooling.

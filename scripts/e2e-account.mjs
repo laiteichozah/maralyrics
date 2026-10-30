@@ -420,6 +420,72 @@ try {
   await signedOutView(P);
   ok(await P.evaluate(() => Favorites.getAll().length) === 0 && synced('favorite').includes('alpha'), '"Sign out and clear this device" empties the device but not the account');
 
+  // ═══ 8b. App mode: the Android app signs a reader in through the phone's browser ═══════════════════════
+  section('App mode (the Android app signs in through the browser)');
+  const STATE = 'Qw3rTy_uIo-pAs9d';                     // what the app puts in ?state= (16–128 of A-Za-z0-9_-)
+  const APP_URL = `${SITE}/account?app=android&state=${STATE}`;
+  const AM = await device('app mode', { width: 390, height: 800 }); const AP = AM.pg;
+  const requested = [];                                  // every address the page asks for after it has loaded (the first load IS the address the app opened)
+  AP.on('request', (req) => { if (!req.isNavigationRequest()) requested.push(req.url()); });
+  const intentOf = async () => {
+    // The button's address is made at the tap; the test reads it in a listener that runs after the page's own and stops the real jump.
+    await AP.evaluate(() => { window.__intent = null; if (!window.__intentSpy) { window.__intentSpy = true; document.getElementById('appReturnBtn').addEventListener('click', (e) => { window.__intent = e.currentTarget.getAttribute('href'); e.preventDefault(); }); } });
+    await AP.click('#appReturnBtn');
+    return AP.evaluate(() => window.__intent);
+  };
+
+  await AP.goto(APP_URL);
+  await signedOutView(AP);
+  ok(new URL(AP.url()).search === '' && !AP.url().includes(STATE), 'the state is taken out of the address bar at once');
+  ok(!(await AP.locator('#appReturn').isVisible()), 'signed out: no "return to the app" panel yet');
+  await chooseRegister(AP);
+  await AP.fill('#regEmail', 'appuser@example.com'); await AP.fill('#regPass', 'longenough1');
+  await AP.click('#regBtn');
+  await signedIn(AP);
+  ok(await AP.locator('#appReturn').isVisible(), 'right after creating an account (with the Cloudflare check) the panel is shown');
+  ok((await AP.textContent('#appReturnTitle')).trim() === "You're signed in" && (await AP.textContent('#appReturn .acct-note')).trim() === 'Return to the Mara Lyrics app to finish signing in there.' && (await AP.textContent('#appReturnBtn')).trim() === 'Return to the Mara Lyrics app', 'it says "You\'re signed in", the one-line instruction and "Return to the Mara Lyrics app"');
+  const panelBox = await AP.locator('#appReturn').boundingBox(); const bannerBox = await AP.locator('.acct-banner').boundingBox(); const btnBox = await AP.locator('#appReturnBtn').boundingBox();
+  ok(panelBox.y < bannerBox.y && btnBox.width > 200 && btnBox.height >= 36 && panelBox.x >= 0 && panelBox.x + panelBox.width <= 390, 'the panel is at the top of the signed-in view, and the button is large and fits a phone screen');
+  if (process.env.E2E_SHOTS) await AP.screenshot({ path: `${process.env.E2E_SHOTS}/app-mode-panel.png` });
+  ok((await AP.getAttribute('#appReturnBtn', 'href')) === '#', 'until it is tapped the button holds no address (no token in the page)');
+  const token = await AP.evaluate(() => Sync.token());
+  const intent = await intentOf();
+  const expected = `intent://maralyrics.com/account/app-signin#Intent;scheme=https;package=com.maralyrics.laitei;S.token=${encodeURIComponent(token)};S.state=${STATE};S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei')};end`;
+  ok(token && intent === expected, 'tapping it makes the intent URL with the session token, the state and the Play fallback, encoded');
+  ok(await AP.evaluate(() => fetch('https://api.maralyrics.com/api/v1/account/me', { headers: { Authorization: `Bearer ${Sync.token()}` } }).then((r) => r.status)) === 200, '(that token is a working session)');
+  await sleep(1800);
+  ok((await AP.getAttribute('#appReturnBtn', 'href')) === '#', 'a moment later the address is taken out of the page again');
+  ok(!requested.some((u) => u.includes(token) || u.includes(STATE)) && !AP.url().includes(token) && !AP.url().includes(STATE), 'neither the token nor the state appears in any address the page asked for, or in the page address');
+
+  await AP.goto(APP_URL);
+  await signedIn(AP);
+  ok(await AP.locator('#appReturn').isVisible() && new URL(AP.url()).search === '', 'a page that loads already signed in shows the panel too');
+
+  await AP.click('#signoutKeep'); await signedOutView(AP);
+  await AP.fill('#signinUser', 'appuser@example.com'); await AP.fill('#signinPass', 'longenough1');
+  await AP.click('#signinBtn');
+  await signedIn(AP);
+  ok(await AP.locator('#appReturn').isVisible(), 'after signing in with email and password the panel is shown');
+
+  await AP.click('#signoutKeep'); await signedOutView(AP);
+  await AP.evaluate(() => { window.__gUser = ['g-gina', 'gina@gmail.com', 'Gina Lee']; });
+  await AP.click('#googleBtn .fake-google');
+  await signedIn(AP);
+  ok(await AP.locator('#appReturn').isVisible(), 'after signing in with Google the panel is shown');
+  ok((await intentOf()) === `intent://maralyrics.com/account/app-signin#Intent;scheme=https;package=com.maralyrics.laitei;S.token=${encodeURIComponent(await AP.evaluate(() => Sync.token()))};S.state=${STATE};S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei')};end`, '…and the tap uses the token of the session that is open now');
+
+  // Anything but a well-formed ?app=android&state=… leaves the page exactly as it is today.
+  for (const [why, query] of [['a state that is too short', 'app=android&state=short'], ['no state', 'app=android'], ['no app', `state=${STATE}`], ['another app', `app=ios&state=${STATE}`], ['a state with a forbidden character', `app=android&state=${STATE}.x`]]) {
+    await AP.goto(`${SITE}/account?${query}`);
+    await signedIn(AP);
+    ok(!(await AP.locator('#appReturn').isVisible()) && new URL(AP.url()).search === `?${query}`, `${why}: no panel, and the address is left alone`);
+  }
+  await AP.goto(`${SITE}/account`);
+  await signedIn(AP);
+  ok(!(await AP.locator('#appReturn').isVisible()), 'the plain account page has no panel');
+  await AP.evaluate(() => Sync.signedOut()); // (the page is left as it was for the next section)
+  await AM.ctx.close();
+
   // ═══ 9. The crop dialog in the artist / composer editor ═════════════════════
   section('Photo crop in the artist editor (For Artists)');
   sqlite.prepare(`INSERT INTO artists (name, slug) VALUES ('Dee Dancer', 'dee-dancer')`).run();
