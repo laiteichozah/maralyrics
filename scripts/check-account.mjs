@@ -4,6 +4,7 @@
 // Runs the real Hono worker against an in-memory SQLite database. Resend, Google and Cloudflare Turnstile are stubbed at
 // fetch(): the "Google" side is a real RSA key pair, so the signature / audience / expiry checks run for real.
 import fs from 'node:fs';
+import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -232,6 +233,63 @@ check((await call('POST', '/delete-account', {}, gOnly)).status === 401, 'a Goog
 check((await call('POST', '/delete-account', { credential: await idToken({ sub: 'someone-else', email: 'x@gmail.com' }) }, gOnly)).status === 401, '…with ITS Google account, not another');
 r = await call('POST', '/delete-account', { credential: await idToken({ sub: 'g-new', email: 'gina@gmail.com' }) }, gOnly);
 check(r.status === 200 && !get(`SELECT 1 AS x FROM person_accounts WHERE google_sub = 'g-new'`), 'with the right Google sign-in it is deleted');
+
+// ─── App mode: the Android app signs a reader in through the phone's browser ─────────────────────────────────
+// The page (public/account-page.js) opens in app mode only for ?app=android&state=<16–128 of A-Za-z0-9_->; once signed in it offers a
+// button that hands the session back through an intent URL. The pure parts live in public/app-mode.js and are tested here.
+console.log('App mode');
+const AppMode = vm.runInNewContext(`${fs.readFileSync(path.join(ROOT, 'public/app-mode.js'), 'utf8')}; AccountAppMode`, { URLSearchParams, encodeURIComponent });
+const appJs = fs.readFileSync(path.join(ROOT, 'public/app.js'), 'utf8');
+const APP_PACKAGE = (/APP_PACKAGE: '([^']+)'/.exec(appJs) || [])[1];
+const APP_STORE_URL = (/APP_STORE_URL: '([^']+)'/.exec(appJs) || [])[1];
+check(APP_PACKAGE === 'com.maralyrics.laitei' && APP_STORE_URL === 'https://play.google.com/store/apps/details?id=com.maralyrics.laitei', 'the package name and Play URL are the ones the song page uses (Utils.APP_PACKAGE / APP_STORE_URL)');
+const STATE = 'Ab3-_xYz9Qw0LmNp';          // 16 characters, the shortest allowed
+const LONG_STATE = 'a'.repeat(128);
+check(AppMode.parse(`?app=android&state=${STATE}`)?.state === STATE, 'app=android with a well-formed state turns app mode on');
+check(AppMode.parse(`?state=${STATE}&app=android&reset=x`)?.state === STATE && AppMode.parse(`?app=android&state=${LONG_STATE}`)?.state === LONG_STATE, '…in any order, with other parameters, up to 128 characters');
+for (const [why, search] of [
+  ['no parameters', ''], ['nothing at all', undefined], ['no state', '?app=android'], ['no app', `?state=${STATE}`],
+  ['another app', `?app=ios&state=${STATE}`], ['a different case', `?app=Android&state=${STATE}`], ['an empty app', `?app=&state=${STATE}`],
+  ['a state of 15 characters', `?app=android&state=${STATE.slice(1)}`], ['a state of 129 characters', `?app=android&state=${'a'.repeat(129)}`],
+  ['an empty state', '?app=android&state='], ['a state with a dot', `?app=android&state=${STATE}.`], ['a state with a plus sign', `?app=android&state=${STATE.slice(1)}%2B`],
+  ['a state with a space', `?app=android&state=${STATE.slice(1)}%20`], ['a state with a slash', `?app=android&state=${STATE.slice(1)}%2F`],
+  ['a state with an equals sign', `?app=android&state=${STATE.slice(1)}%3D`], ['a repeated app', `?app=android&app=android&state=${STATE}`],
+  ['a repeated state', `?app=android&state=${STATE}&state=${STATE}`], ['a script in the state', `?app=android&state=%3Cscript%3Ealert(1)%3C%2Fscript%3E`],
+]) check(AppMode.parse(search) === null, `app mode stays off with ${why}`);
+
+check(AppMode.cleanSearch(`?app=android&state=${STATE}`) === '' && AppMode.cleanSearch(`?verify=abc&app=android&state=${STATE}`) === '?verify=abc', 'the address bar keeps nothing of app and state');
+check(AppMode.cleanSearch(`?state=${STATE}&x=1&app=android&y=two`) === '?x=1&y=two', '…and every other parameter stays');
+
+const TOKEN = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOjF9.sig+/=;#?&é x';   // a token with every character that could break a URL
+const expected = `intent://maralyrics.com/account/app-signin#Intent;scheme=https;package=com.maralyrics.laitei;S.token=${encodeURIComponent(TOKEN)};S.state=${STATE};S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.maralyrics.laitei;end`;
+const intent = AppMode.intentUrl({ pkg: APP_PACKAGE, storeUrl: APP_STORE_URL, token: TOKEN, state: STATE });
+check(intent === expected, 'the intent URL is built exactly: package, token, state and the Play fallback, each encoded');
+const extras = intent.split('#Intent;')[1].split(';');
+check(extras.length === 6 && extras[5] === 'end' && extras[0] === 'scheme=https' && extras[1] === 'package=com.maralyrics.laitei', 'it has exactly the parts it should (nothing in the token can end a parameter early)');
+check(decodeURIComponent(extras[2].slice('S.token='.length)) === TOKEN && decodeURIComponent(extras[3].slice('S.state='.length)) === STATE && decodeURIComponent(extras[4].slice('S.browser_fallback_url='.length)) === APP_STORE_URL, 'the app gets the token, the state and the fallback back exactly');
+check(!/https?:\/\//i.test(intent) && intent.startsWith('intent://maralyrics.com/account/app-signin#Intent;'), 'the token and state are in no https:// address: the only URL is intent:// (the Play address is encoded)');
+const plain = AppMode.intentUrl({ pkg: APP_PACKAGE, storeUrl: APP_STORE_URL, token: 'abc.def.ghi', state: LONG_STATE });
+check(plain.includes('S.token=abc.def.ghi;') && plain.includes(`S.state=${LONG_STATE};`), 'an ordinary token and the longest state go in as they are');
+for (const [why, args] of [
+  ['no token', { token: '' }], ['a token that is not text', { token: 12345 }], ['no state', { state: '' }], ['a state that is too short', { state: 'short' }],
+  ['a state with a ;', { state: `${STATE};S.x=1` }], ['a package that could add parameters', { pkg: 'com.evil;S.token=x' }], ['no package', { pkg: '' }],
+  ['no Play address', { storeUrl: '' }],
+]) check(AppMode.intentUrl({ pkg: APP_PACKAGE, storeUrl: APP_STORE_URL, token: 'abc.def.ghi', state: STATE, ...args }) === '', `no intent URL is made with ${why}`);
+
+// The page itself: app mode only when the address asks, the state in one variable, the token in no https:// address, nothing logged.
+const pageJs = fs.readFileSync(path.join(ROOT, 'public/account-page.js'), 'utf8');
+const codeLines = (src) => src.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('//') && !l.startsWith('*') && !l.startsWith('/*'));
+check(/const appMode = AccountAppMode\.parse\(location\.search\);/.test(pageJs) && /if \(appMode\) history\.replaceState\(/.test(pageJs), 'the page reads app mode from the address, and only then touches the address bar');
+check(/\$\('appReturn'\)\.hidden = !appState;/.test(pageJs), 'the panel shows only in app mode, whenever the account is shown (sign-in or a page that loaded signed in)');
+check(!codeLines(pageJs).concat(codeLines(fs.readFileSync(path.join(ROOT, 'public/app-mode.js'), 'utf8'))).some((l) => /console\./.test(l)), 'neither file logs anything');
+check(!codeLines(pageJs).filter((l) => /appState/.test(l)).some((l) => /localStorage|sessionStorage|fetch\(|console|location\.|document\.cookie|turnstile|navigator\.|postMessage/i.test(l)), 'the state is kept in the variable only: never stored, sent or put in an address');
+check(!codeLines(pageJs).filter((l) => /https?:\/\//.test(l)).some((l) => /token|TOKEN_KEY|appState|state/i.test(l)), 'no line that builds an https:// address mentions the token or the state');
+check(/APP_PACKAGE/.test(pageJs) && !/package=/.test(pageJs), 'the package name comes from Utils.APP_PACKAGE (hard-coded in app.js), never from the address');
+const accountHtml = fs.readFileSync(path.join(ROOT, 'public/account.html'), 'utf8');
+check(accountHtml.indexOf('/app-mode.js') > 0 && accountHtml.indexOf('/app-mode.js') < accountHtml.indexOf('/account-page.js'), 'app-mode.js loads before the account page script');
+check(/id="appReturn"[^>]*\bhidden\b/.test(accountHtml) && accountHtml.indexOf('id="appReturn"') < accountHtml.indexOf('class="acct-banner"') && /id="appReturnBtn" href="#"/.test(accountHtml), 'the panel sits at the top of the signed-in view, hidden, with a button that holds no address until it is tapped');
+const enLocale = JSON.parse(fs.readFileSync(path.join(ROOT, 'public/locales/en.json'), 'utf8')).account;
+check(enLocale.app_signed_in_title === "You're signed in" && enLocale.app_signed_in_text === 'Return to the Mara Lyrics app to finish signing in there.' && enLocale.app_return_btn === 'Return to the Mara Lyrics app', 'the three texts are in en.json (my and mrh fall back to English until they are translated)');
 
 console.log(failures ? `\n✗ ${failures} failed, ${passes} passed` : `\n✓ ${passes} checks passed, 0 failed`);
 process.exit(failures ? 1 : 0);

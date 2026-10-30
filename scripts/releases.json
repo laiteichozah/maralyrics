@@ -1,5 +1,7 @@
 {
-  "unreleased": [],
+  "unreleased": [
+    "App mode on the account page, so the Android app can sign a reader in through the phone's browser: opening /account?app=android&state=… (a state of 16–128 letters, digits, - or _) shows a \"You're signed in\" panel at the top once the reader has signed in (with Google, email + password or a new account with the Cloudflare check, or when the page loads already signed in) with a \"Return to the Mara Lyrics app\" button; tapping it hands the session token and the state to the app through an Android intent URL (never an https address, the query string, the hash or a log) and the state is taken out of the address bar at once; any other address behaves exactly as before. Front end only: no migration and no API change. Run `npm run deploy` as usual (the Worker itself is unchanged); the page goes live with the site"
+  ],
   "releases": [
     {
       "version": "1.0.0",

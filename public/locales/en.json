@@ -856,7 +856,10 @@
     "contact_saved": "Contact details saved.",
     "contact_needed": "Add your email and phone number first — we need them to reach you.",
     "switch_profile": "Your profiles",
-    "legal_notice": "By creating an account or continuing with Google, you agree to our <a href=\"/terms\">Terms & Conditions</a> and <a href=\"/privacy\">Privacy Policy</a>."
+    "legal_notice": "By creating an account or continuing with Google, you agree to our <a href=\"/terms\">Terms & Conditions</a> and <a href=\"/privacy\">Privacy Policy</a>.",
+    "app_signed_in_title": "You're signed in",
+    "app_signed_in_text": "Return to the Mara Lyrics app to finish signing in there.",
+    "app_return_btn": "Return to the Mara Lyrics app"
   },
   "green": {
     "mark": "Green mark",

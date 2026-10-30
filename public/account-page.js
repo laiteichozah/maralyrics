@@ -18,6 +18,13 @@
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18n.t(key, vars);
 
+  // "App mode": the Android app opens /account?app=android&state=… in the phone's browser. Once the reader is signed in the
+  // page offers a button that hands the session back to the app (see app-mode.js). The state lives in this variable only;
+  // it is taken out of the address bar at once, and nothing else is changed when the address does not ask for app mode.
+  const appMode = AccountAppMode.parse(location.search);
+  const appState = appMode ? appMode.state : '';
+  if (appMode) history.replaceState(null, '', `${location.pathname}${AccountAppMode.cleanSearch(location.search)}${location.hash}`);
+
   let account = null;
   let tab = 'overview';
   let cfg = { google_client_id: null, email_enabled: false };
@@ -239,6 +246,7 @@
     account = me.account;
     $('syncAuth').hidden = true;
     $('syncHome').hidden = false;
+    $('appReturn').hidden = !appState; // app mode: the panel that sends the session back to the app
     startGoogle(); // the Security / Your data tabs have Google buttons too (connect, confirm a deletion)
     $('syncAuto').checked = Sync.info().auto;
     renderAccount();
@@ -284,6 +292,18 @@
     $('deleteGoogleBlock').hidden = account.has_password || !cfg.google_client_id;
     renderGoogleButtons();
   }
+
+  // The button is a real link, and it is a real tap that follows it (Chrome ignores intent: links that were not tapped). Its address is
+  // made at the moment of the tap, from the session as it is then (a profile save or "sign out everywhere" replaces the token),
+  // and put back to '#' a moment later, so the token is not left sitting in the page. The token and the state go only into this
+  // intent URL, which names the app's package: never into an https:// address, the query string, the hash, a log or analytics.
+  $('appReturnBtn').addEventListener('click', (e) => {
+    const link = e.currentTarget;
+    const url = AccountAppMode.intentUrl({ pkg: Utils.APP_PACKAGE, storeUrl: Utils.APP_STORE_URL, token: Sync.token(), state: appState });
+    if (!url) { e.preventDefault(); return; }
+    link.setAttribute('href', url);
+    setTimeout(() => link.setAttribute('href', '#'), 1500);
+  });
 
   // ── Tabs ────────────────────────────────────────
   function selectTab(which, { updateHash = true } = {}) {
