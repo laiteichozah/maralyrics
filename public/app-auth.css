@@ -1,0 +1,128 @@
+/* /app-auth — the page the Android app opens to sign a reader in. Dark only, one centred column, no site chrome. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html { background: #0c143d; }
+body.aa {
+  margin: 0;
+  min-height: 100vh;
+  background: #0c143d;
+  color: #e1e2e8;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+.aa-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 44px 0 48px;
+}
+
+/* The logo, in a round plate */
+.aa-logo {
+  width: 112px;
+  height: 112px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #151e47;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.07), 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+.aa-logo img { width: 64px; height: 64px; display: block; }
+
+/* The page's heading for screen readers (each card has its own visible title) */
+.aa-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* The card */
+.aa-card {
+  width: min(576px, calc(100% - 32px));
+  margin-top: 28px;
+  padding: 40px;
+  background: #222c59;
+  border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+.aa-card[hidden] { display: none; }
+
+.aa-check { display: block; width: 64px; height: 64px; margin: 0 auto 24px; }
+.aa-title {
+  margin: 0 0 16px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #e1e2e8;
+}
+.aa-title--plain { text-transform: none; letter-spacing: 0; margin-bottom: 24px; }
+.aa-text { margin: 0; font-size: 17px; font-weight: 400; line-height: 32px; color: #e1e2e8; }
+.aa-hint { margin: 16px 0 0; font-size: 14px; line-height: 1.5; color: #b7bcd6; }
+
+/* The button (also the Sign in button) */
+.aa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 240px;
+  height: 48px;
+  margin-top: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 4px;
+  background: #0c143d;
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+}
+.aa-btn:hover { background: #101a4d; }
+.aa-btn:focus-visible { outline: 2px solid #00bfa5; outline-offset: 3px; }
+.aa-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.aa-btn--wide { width: 100%; margin-top: 20px; }
+
+/* Sign-in form */
+.aa-form { text-align: left; }
+.aa-field { margin-top: 16px; }
+.aa-field label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 500; color: #b7bcd6; }
+.aa-field input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid rgba(225, 226, 232, 0.25);
+  border-radius: 6px;
+  background: #0c143d;
+  color: #e1e2e8;
+  font: inherit;
+  font-size: 16px;
+}
+.aa-field input:focus { outline: 2px solid #00bfa5; outline-offset: 1px; border-color: transparent; }
+.aa-form #signinTurnstile:not(:empty) { margin-top: 16px; }
+
+/* Messages written by the shared sign-in code */
+.aa-card .acct-message { margin: 16px 0 0; padding: 10px 12px; border-radius: 6px; background: rgba(255, 120, 120, 0.12); color: #ffb4b4; font-size: 14px; line-height: 1.45; text-align: left; }
+.aa-card .acct-message--ok { background: rgba(0, 191, 165, 0.12); color: #7fe7d6; }
+.aa-card .acct-message[hidden] { display: none; }
+
+/* Google, and the "or" divider */
+.aa-google { text-align: center; }
+.aa-google__btn { display: flex; justify-content: center; min-height: 44px; }
+.aa-challenge { margin-top: 16px; }
+.aa-or { display: flex; align-items: center; gap: 12px; margin: 24px 0 8px; color: #b7bcd6; font-size: 13px; }
+.aa-or::before, .aa-or::after { content: ''; flex: 1; height: 1px; background: rgba(225, 226, 232, 0.2); }
+
+.aa-switch { margin: 24px 0 0; font-size: 14px; color: #b7bcd6; }
+.aa-switch a { color: #e1e2e8; text-decoration: underline; text-underline-offset: 0.15em; }
+.aa-switch a:hover { color: #ffffff; }
+
+/* Phones: the button spans the card */
+@media (max-width: 480px) {
+  .aa-card { padding: 32px 20px; }
+  .aa-btn { width: 100%; }
+  .aa-title { font-size: 22px; }
+}

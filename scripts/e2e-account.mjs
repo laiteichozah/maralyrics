@@ -420,70 +420,105 @@ try {
   await signedOutView(P);
   ok(await P.evaluate(() => Favorites.getAll().length) === 0 && synced('favorite').includes('alpha'), '"Sign out and clear this device" empties the device but not the account');
 
-  // ═══ 8b. App mode: the Android app signs a reader in through the phone's browser ═══════════════════════
-  section('App mode (the Android app signs in through the browser)');
+  // ═══ 8b. /app-auth: the stand-alone sign-in page the Android app opens ══════════════════════════════
+  section('The Android app sign-in page (/app-auth)');
   const STATE = 'Qw3rTy_uIo-pAs9d';                     // what the app puts in ?state= (16–128 of A-Za-z0-9_-)
-  const APP_URL = `${SITE}/account?app=android&state=${STATE}`;
-  const AM = await device('app mode', { width: 390, height: 800 }); const AP = AM.pg;
+  const APP_AUTH = `${SITE}/app-auth?state=${STATE}`;
+  const AM = await device('app auth', { width: 390, height: 800 }); const AP = AM.pg;
   const requested = [];                                  // every address the page asks for after it has loaded (the first load IS the address the app opened)
   AP.on('request', (req) => { if (!req.isNavigationRequest()) requested.push(req.url()); });
+  const cards = () => AP.evaluate(() => ['invalidCard', 'signinCard', 'successCard'].filter((id) => !document.getElementById(id).hidden));
+  const waitCard = (id) => AP.waitForFunction((x) => !document.getElementById(x).hidden, id, { timeout: 8000 });
+  const chrome = () => AP.evaluate(() => document.querySelectorAll('header, nav, footer, aside, .header, .footer, .lang-switcher, .mobile-drawer, .settings-toggle, .notif-toggle').length);
+  const sideways = () => AP.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   const intentOf = async () => {
     // The button's address is made at the tap; the test reads it in a listener that runs after the page's own and stops the real jump.
-    await AP.evaluate(() => { window.__intent = null; if (!window.__intentSpy) { window.__intentSpy = true; document.getElementById('appReturnBtn').addEventListener('click', (e) => { window.__intent = e.currentTarget.getAttribute('href'); e.preventDefault(); }); } });
-    await AP.click('#appReturnBtn');
+    await AP.evaluate(() => { window.__intent = null; if (!window.__intentSpy) { window.__intentSpy = true; document.getElementById('returnBtn').addEventListener('click', (e) => { window.__intent = e.currentTarget.getAttribute('href'); e.preventDefault(); }); } });
+    await AP.click('#returnBtn');
     return AP.evaluate(() => window.__intent);
   };
+  const intentFor = (token) => `intent://maralyrics.com/account/app-signin#Intent;scheme=https;package=com.maralyrics.laitei;S.token=${encodeURIComponent(token)};S.state=${STATE};S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei')};end`;
 
-  await AP.goto(APP_URL);
-  await signedOutView(AP);
+  // No usable state: the card says so, with no form
+  for (const [why, url] of [['no state', `${SITE}/app-auth`], ['a state that is too short', `${SITE}/app-auth?state=short`], ['a state with a forbidden character', `${SITE}/app-auth?state=${STATE}.x`]]) {
+    await AP.goto(url); await waitCard('invalidCard');
+    ok((await cards()).join() === 'invalidCard' && await AP.locator('input:visible, form:visible, button:visible').count() === 0, `${why}: only the "link isn't valid" card shows, with no form`);
+  }
+  ok((await AP.textContent('#invalidCard')).trim() === "This sign-in link isn't valid. Open the Mara Lyrics app and tap Continue with Google to start again.", '…and it says what to do');
+  if (process.env.E2E_SHOTS) await AP.screenshot({ path: `${process.env.E2E_SHOTS}/app-auth-invalid.png` });
+
+  // A valid state, signed out
+  await AP.goto(APP_AUTH); await waitCard('signinCard');
   ok(new URL(AP.url()).search === '' && !AP.url().includes(STATE), 'the state is taken out of the address bar at once');
-  ok(!(await AP.locator('#appReturn').isVisible()), 'signed out: no "return to the app" panel yet');
-  await chooseRegister(AP);
-  await AP.fill('#regEmail', 'appuser@example.com'); await AP.fill('#regPass', 'longenough1');
-  await AP.click('#regBtn');
-  await signedIn(AP);
-  ok(await AP.locator('#appReturn').isVisible(), 'right after creating an account (with the Cloudflare check) the panel is shown');
-  ok((await AP.textContent('#appReturnTitle')).trim() === "You're signed in" && (await AP.textContent('#appReturn .acct-note')).trim() === 'Return to the Mara Lyrics app to finish signing in there.' && (await AP.textContent('#appReturnBtn')).trim() === 'Return to the Mara Lyrics app', 'it says "You\'re signed in", the one-line instruction and "Return to the Mara Lyrics app"');
-  const panelBox = await AP.locator('#appReturn').boundingBox(); const bannerBox = await AP.locator('.acct-banner').boundingBox(); const btnBox = await AP.locator('#appReturnBtn').boundingBox();
-  ok(panelBox.y < bannerBox.y && btnBox.width > 200 && btnBox.height >= 36 && panelBox.x >= 0 && panelBox.x + panelBox.width <= 390, 'the panel is at the top of the signed-in view, and the button is large and fits a phone screen');
-  if (process.env.E2E_SHOTS) await AP.screenshot({ path: `${process.env.E2E_SHOTS}/app-mode-panel.png` });
-  ok((await AP.getAttribute('#appReturnBtn', 'href')) === '#', 'until it is tapped the button holds no address (no token in the page)');
-  const token = await AP.evaluate(() => Sync.token());
+  ok((await cards()).join() === 'signinCard' && await chrome() === 0, 'a valid state shows the sign-in card, and the page has no site header, menu, footer or language bar');
+  ok(await AP.evaluate(() => typeof CONFIG === 'undefined' && typeof Sync === 'undefined'), 'the site\'s app.js is not loaded');
+  await sleep(1700);
+  ok(await AP.locator('.app-promo-dialog, .calendar-prompt, .cookie-banner, .app-promotion').count() === 0, 'none of the site\'s dialogs or banners appear');
+  ok((await AP.textContent('#signinTitle')).trim() === 'Sign in to MaraLyrics' && await AP.locator('#googleBtn .fake-google').isVisible() && (await AP.textContent('.aa-or')).includes('or use your email'), 'it offers Google and, under "or use your email", the email form');
+  ok(await AP.locator('label[for="signinUser"]').isVisible() && await AP.locator('label[for="signinPass"]').isVisible() && (await AP.textContent('#signinBtn')).trim() === 'Sign in', 'with email-or-username and password fields and a Sign in button');
+  ok((await AP.getAttribute('.aa-switch a', 'href')) === '/account' && (await AP.textContent('.aa-switch')).replace(/\s+/g, ' ').trim() === 'New here? Create an account', 'and a small "New here? Create an account" link to /account');
+  ok(await sideways() <= 0, 'no sideways scroll on a 390 px phone');
+  if (process.env.E2E_SHOTS) await AP.screenshot({ path: `${process.env.E2E_SHOTS}/app-auth-signin.png` });
+
+  // Wrong passwords: plain messages, then the Cloudflare challenge
+  await AP.fill('#signinUser', 'bob@example.com'); await AP.fill('#signinPass', 'nope-1'); await AP.click('#signinBtn');
+  await AP.waitForSelector('#signinMsg:not([hidden])');
+  ok((await AP.textContent('#signinMsg')).includes('Invalid email or password') && (await cards()).join() === 'signinCard', 'a wrong password gets the same plain message as /account');
+  await AP.evaluate(() => { window.__tsRendered.length = 0; });
+  await AP.fill('#signinPass', 'nope-2'); await AP.click('#signinBtn'); await sleep(450);
+  ok(await AP.evaluate(() => window.__tsRendered.includes('#signinTurnstile')), 'after two wrong passwords the Cloudflare challenge appears');
+  await AP.evaluate(() => { window.__ts = ''; });
+  await AP.fill('#signinPass', 'longenough1'); await AP.click('#signinBtn'); await sleep(450);
+  ok((await cards()).join() === 'signinCard', 'the right password is still refused until the challenge is solved');
+  await AP.evaluate(() => { window.__ts = 'ok'; });
+  await AP.click('#signinBtn');
+  await waitCard('successCard');
+
+  // Signed in: the success card
+  ok((await cards()).join() === 'successCard', 'after email + password the success card replaces the form');
+  ok((await AP.textContent('#successTitle')).trim().toUpperCase() === 'LOGIN SUCCESSFUL' && (await AP.evaluate(() => getComputedStyle(document.getElementById('successTitle')).textTransform)) === 'uppercase', 'it says LOGIN SUCCESSFUL');
+  ok((await AP.textContent('#successCard .aa-text')).trim() === "You're signed in. Return to the Mara Lyrics app to finish signing in there." && await AP.locator('#successCard .aa-check').isVisible(), '…with the teal check and "You\'re signed in. Return to the Mara Lyrics app to finish signing in there."');
+  ok(await AP.locator('#successCard a:visible, #successCard button:visible').count() === 1 && (await AP.textContent('#returnBtn')).trim().toUpperCase() === 'RETURN TO THE APP', 'there is exactly one button: RETURN TO THE APP');
+  const btn = await AP.locator('#returnBtn').boundingBox(); const card = await AP.locator('#successCard').boundingBox();
+  ok(btn.height === 48 && btn.width > card.width - 80 && btn.x >= card.x && btn.x + btn.width <= card.x + card.width && card.x >= 0 && card.x + card.width <= 390, `the button is 48 px high and fills the card on a phone (${Math.round(btn.width)} px in a ${Math.round(card.width)} px card), which fits the screen`);
+  ok(await sideways() <= 0, 'no sideways scroll');
+  ok((await AP.getAttribute('#returnBtn', 'href')) === '#' && await AP.locator('#returnHint').isHidden(), 'until the tap the button holds no address and the hint is hidden');
+  if (process.env.E2E_SHOTS) await AP.screenshot({ path: `${process.env.E2E_SHOTS}/app-auth-success.png` });
+  const token = await AP.evaluate(() => localStorage.getItem('ml_account_token'));
   const intent = await intentOf();
-  const expected = `intent://maralyrics.com/account/app-signin#Intent;scheme=https;package=com.maralyrics.laitei;S.token=${encodeURIComponent(token)};S.state=${STATE};S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei')};end`;
-  ok(token && intent === expected, 'tapping it makes the intent URL with the session token, the state and the Play fallback, encoded');
-  ok(await AP.evaluate(() => fetch('https://api.maralyrics.com/api/v1/account/me', { headers: { Authorization: `Bearer ${Sync.token()}` } }).then((r) => r.status)) === 200, '(that token is a working session)');
+  ok(token && intent === intentFor(token), 'the tap makes the intent URL with the session token, the state and the Play fallback, encoded');
+  ok(await AP.evaluate(() => fetch('https://api.maralyrics.com/api/v1/account/me', { headers: { Authorization: `Bearer ${localStorage.getItem('ml_account_token')}` } }).then((r) => r.status)) === 200, '(that token is a working session)');
+  ok(await AP.locator('#returnHint').isVisible() && (await AP.textContent('#returnHint')).trim() === 'Nothing happened? Make sure the Mara Lyrics app is installed and up to date.', 'after the tap, "Nothing happened? Make sure the Mara Lyrics app is installed and up to date." shows under the button');
   await sleep(1800);
-  ok((await AP.getAttribute('#appReturnBtn', 'href')) === '#', 'a moment later the address is taken out of the page again');
+  ok((await AP.getAttribute('#returnBtn', 'href')) === '#', 'a moment later the address is taken out of the page again');
   ok(!requested.some((u) => u.includes(token) || u.includes(STATE)) && !AP.url().includes(token) && !AP.url().includes(STATE), 'neither the token nor the state appears in any address the page asked for, or in the page address');
 
-  await AP.goto(APP_URL);
-  await signedIn(AP);
-  ok(await AP.locator('#appReturn').isVisible() && new URL(AP.url()).search === '', 'a page that loads already signed in shows the panel too');
+  // A session the browser already holds
+  await AP.goto(APP_AUTH); await waitCard('successCard');
+  ok((await cards()).join() === 'successCard' && new URL(AP.url()).search === '', 'a page that loads with a session shows the success card straight away');
+  ok((await intentOf()) === intentFor(await AP.evaluate(() => localStorage.getItem('ml_account_token'))), '…and its button hands that session back');
 
-  await AP.click('#signoutKeep'); await signedOutView(AP);
-  await AP.fill('#signinUser', 'appuser@example.com'); await AP.fill('#signinPass', 'longenough1');
-  await AP.click('#signinBtn');
-  await signedIn(AP);
-  ok(await AP.locator('#appReturn').isVisible(), 'after signing in with email and password the panel is shown');
+  // A session the server no longer accepts
+  await AP.evaluate(() => localStorage.setItem('ml_account_token', 'not.a.real.session'));
+  await AP.goto(APP_AUTH); await waitCard('signinCard');
+  ok((await cards()).join() === 'signinCard' && await AP.evaluate(() => localStorage.getItem('ml_account_token')) === null, 'a session the server refuses is dropped, and the sign-in card shows');
 
-  await AP.click('#signoutKeep'); await signedOutView(AP);
+  // Google: an existing account, then a NEW one (which needs the challenge first)
   await AP.evaluate(() => { window.__gUser = ['g-gina', 'gina@gmail.com', 'Gina Lee']; });
-  await AP.click('#googleBtn .fake-google');
-  await signedIn(AP);
-  ok(await AP.locator('#appReturn').isVisible(), 'after signing in with Google the panel is shown');
-  ok((await intentOf()) === `intent://maralyrics.com/account/app-signin#Intent;scheme=https;package=com.maralyrics.laitei;S.token=${encodeURIComponent(await AP.evaluate(() => Sync.token()))};S.state=${STATE};S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei')};end`, '…and the tap uses the token of the session that is open now');
+  await AP.click('#googleBtn .fake-google'); await waitCard('successCard');
+  ok((await cards()).join() === 'successCard', 'signing in with Google shows the success card');
+  await AP.evaluate(() => localStorage.removeItem('ml_account_token'));
+  await AP.goto(APP_AUTH); await waitCard('signinCard');
+  await AP.evaluate(() => { window.__gUser = ['g-newapp', 'newapp@gmail.com', 'New App']; window.__tsRendered.length = 0; });
+  await AP.click('#googleBtn .fake-google'); await waitCard('successCard');
+  ok(await AP.evaluate(() => window.__tsRendered.includes('#googleTurnstile')) && row(`SELECT 1 AS x FROM person_accounts WHERE google_sub = 'g-newapp'`), 'a NEW Google account gets the Cloudflare challenge first, then the success card');
+  ok((await intentOf()) === intentFor(await AP.evaluate(() => localStorage.getItem('ml_account_token'))), '…and the tap hands back that new session');
 
-  // Anything but a well-formed ?app=android&state=… leaves the page exactly as it is today.
-  for (const [why, query] of [['a state that is too short', 'app=android&state=short'], ['no state', 'app=android'], ['no app', `state=${STATE}`], ['another app', `app=ios&state=${STATE}`], ['a state with a forbidden character', `app=android&state=${STATE}.x`]]) {
-    await AP.goto(`${SITE}/account?${query}`);
-    await signedIn(AP);
-    ok(!(await AP.locator('#appReturn').isVisible()) && new URL(AP.url()).search === `?${query}`, `${why}: no panel, and the address is left alone`);
-  }
-  await AP.goto(`${SITE}/account`);
+  // /account is a normal page again
+  await AP.goto(`${SITE}/account?app=android&state=${STATE}`);
   await signedIn(AP);
-  ok(!(await AP.locator('#appReturn').isVisible()), 'the plain account page has no panel');
-  await AP.evaluate(() => Sync.signedOut()); // (the page is left as it was for the next section)
+  ok(await AP.locator('#appReturn').count() === 0 && new URL(AP.url()).search === `?app=android&state=${STATE}`, '/account ignores ?app=android&state=…: no panel, and the address is left alone');
+  await AP.evaluate(() => Sync.signedOut()); // (the device is left clean for the next section)
   await AM.ctx.close();
 
   // ═══ 9. The crop dialog in the artist / composer editor ═════════════════════

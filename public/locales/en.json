@@ -856,10 +856,7 @@
     "contact_saved": "Contact details saved.",
     "contact_needed": "Add your email and phone number first — we need them to reach you.",
     "switch_profile": "Your profiles",
-    "legal_notice": "By creating an account or continuing with Google, you agree to our <a href=\"/terms\">Terms & Conditions</a> and <a href=\"/privacy\">Privacy Policy</a>.",
-    "app_signed_in_title": "You're signed in",
-    "app_signed_in_text": "Return to the Mara Lyrics app to finish signing in there.",
-    "app_return_btn": "Return to the Mara Lyrics app"
+    "legal_notice": "By creating an account or continuing with Google, you agree to our <a href=\"/terms\">Terms & Conditions</a> and <a href=\"/privacy\">Privacy Policy</a>."
   },
   "green": {
     "mark": "Green mark",
@@ -899,5 +896,20 @@
     "cancel_confirm": "Cancel this order?",
     "err_receipt": "Please choose an image (JPEG, PNG or WebP).",
     "receipt_choose": "Choose receipt"
+  },
+  "app_auth": {
+    "or_email": "or use your email",
+    "email_or_username": "Email or username",
+    "password": "Password",
+    "signin_btn": "Sign in",
+    "new_here": "New here?",
+    "google_challenge": "One quick security check, then your account is created.",
+    "title_signin": "Sign in to MaraLyrics",
+    "create_account": "Create an account",
+    "invalid": "This sign-in link isn't valid. Open the Mara Lyrics app and tap Continue with Google to start again.",
+    "success_title": "Login successful",
+    "success_text": "You're signed in. Return to the Mara Lyrics app to finish signing in there.",
+    "return_btn": "Return to the app",
+    "return_hint": "Nothing happened? Make sure the Mara Lyrics app is installed and up to date."
   }
 }

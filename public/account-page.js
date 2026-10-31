@@ -5,68 +5,38 @@
 // on every device. Signed in, five tabs: Overview (sync status), Profile (name, photo, username, contact details),
 // Preferences, Security (password, Google, sign out everywhere) and Your data (download, delete). Talks to
 // /api/v1/account (worker/routes/account.js); the syncing itself is the Sync module in app.js. It is the same account
-// the "For Artists" page uses. Loaded after app.js.
+// the "For Artists" page uses. Loaded after app.js and account-auth.js (the sign-in parts it shares with /app-auth).
 (() => {
   'use strict';
   if (!document.getElementById('syncPage')) return;
 
   const API = `${CONFIG.API_BASE}/account`;
-  const TURNSTILE_SITEKEY = '0x4AAAAAABjildkegfR6T0sd'; // same public site key as the feedback forms
   const TABS = ['overview', 'profile', 'preferences', 'security', 'data'];
   const PHOTO_SIZE = 256;                                // a chosen photo is cropped (by the person, in the cropper) to a square this size (JPEG)
   const MAX_PHOTO_FILE_BYTES = 15 * 1024 * 1024;
   const $ = (id) => document.getElementById(id);
   const t = (key, vars) => I18n.t(key, vars);
 
-  // "App mode": the Android app opens /account?app=android&state=… in the phone's browser. Once the reader is signed in the
-  // page offers a button that hands the session back to the app (see app-mode.js). The state lives in this variable only;
-  // it is taken out of the address bar at once, and nothing else is changed when the address does not ask for app mode.
-  const appMode = AccountAppMode.parse(location.search);
-  const appState = appMode ? appMode.state : '';
-  if (appMode) history.replaceState(null, '', `${location.pathname}${AccountAppMode.cleanSearch(location.search)}${location.hash}`);
-
   let account = null;
   let tab = 'overview';
   let cfg = { google_client_id: null, email_enabled: false };
 
-  async function api(method, path, body, token = Sync.token()) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const res = await fetch(`${API}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { const err = new Error(data.error || t('common.err_generic')); err.status = res.status; err.code = data.code; throw err; }
-    return data;
-  }
-
-  // ── Cloudflare Turnstile (rendered explicitly, once per form) ──
-  const widgets = {};
-  function renderTurnstile(boxId, tries = 0, extra = {}) {
-    if (widgets[boxId] !== undefined) return;
-    if (!window.turnstile) { if (tries < 40) setTimeout(() => renderTurnstile(boxId, tries + 1, extra), 250); return; }
-    widgets[boxId] = window.turnstile.render(`#${boxId}`, { sitekey: TURNSTILE_SITEKEY, theme: 'auto', ...extra });
-  }
-  function removeTurnstile(boxId) {
-    if (widgets[boxId] !== undefined && window.turnstile) { try { window.turnstile.remove(widgets[boxId]); } catch { /* already gone */ } }
-    delete widgets[boxId];
-  }
-  const turnstileToken = (boxId) => (widgets[boxId] !== undefined && window.turnstile ? window.turnstile.getResponse(widgets[boxId]) : '') || '';
-  const turnstileReset = (boxId) => { if (widgets[boxId] !== undefined && window.turnstile) window.turnstile.reset(widgets[boxId]); };
-
-  function say(id, text, ok = false) {
-    const el = $(id);
-    el.textContent = text || '';
-    el.hidden = !text;
-    el.className = `acct-message${ok ? ' acct-message--ok' : ''}`;
-  }
+  // The API call, Cloudflare Turnstile, the message / busy helpers, Google sign-in and the email + password form are shared
+  // with the stand-alone page the Android app opens (/app-auth): see account-auth.js.
+  const auth = AccountAuth.create({
+    apiBase: API,
+    tokenKey: Sync.TOKEN_KEY,
+    t,
+    onSignedIn: async (data, { via }) => {
+      await enter(data);
+      if (via === 'google' && data.password_removed) notice(t('account.google_password_removed'), true);
+    },
+  });
+  const { api, say, busy, renderTurnstile, removeTurnstile, turnstileToken, turnstileReset } = auth;
   const notice = (text, ok = true) => say('pageNotice', text, ok);
-  async function busy(btn, fn) {
-    btn.disabled = true;
-    try { return await fn(); } finally { btn.disabled = false; }
-  }
   const toast = (text, type = 'success') => { if (typeof Toast !== 'undefined') Toast.show(text, { type, duration: 2400 }); };
 
   // ── Signed out ──────────────────────────────────
-  let googleStarted = false;
   function showAuth(view = 'tabs') {
     $('syncAuth').hidden = false;
     $('syncHome').hidden = true;
@@ -104,21 +74,7 @@
   $('tabSignin').addEventListener('click', () => selectAuthTab('signin'));
   $('tabRegister').addEventListener('click', () => selectAuthTab('register'));
 
-  $('signinForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    say('signinMsg', '');
-    await busy($('signinBtn'), async () => {
-      try {
-        await enter(await api('POST', '/login', { identifier: $('signinUser').value, password: $('signinPass').value, turnstile_token: turnstileToken('signinTurnstile') }, ''));
-        $('signinPass').value = '';
-        removeTurnstile('signinTurnstile');
-      } catch (err) {
-        say('signinMsg', err.message);
-        // After a couple of wrong passwords the server wants a Cloudflare challenge too: show it, and use a fresh one each time.
-        if (err.code === 'challenge_required') { renderTurnstile('signinTurnstile'); turnstileReset('signinTurnstile'); }
-      }
-    });
-  });
+  auth.bindSignin();
 
   $('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -171,62 +127,17 @@
   // ── Google (Google Identity Services; only loaded when the server has a client id) ──
   // One callback serves three buttons: sign in (signed out), connect Google (Security tab), confirm a deletion (Your data tab).
   function startGoogle() {
-    if (googleStarted || !cfg.google_client_id) return;
-    googleStarted = true;
-    loadGoogle();
+    auth.google.start(cfg.google_client_id, {
+      buttons: [['googleBtn', 'continue_with'], ['googleLinkBtn', 'continue_with'], ['googleConfirmBtn', 'continue_with']],
+      onCredential: onGoogle,
+    });
   }
-  function loadGoogle(tries = 0) {
-    if (!window.google || !window.google.accounts) {
-      if (tries === 0) {
-        const tag = document.createElement('script');
-        tag.src = 'https://accounts.google.com/gsi/client';
-        tag.async = true;
-        document.head.appendChild(tag);
-      }
-      if (tries < 40) setTimeout(() => loadGoogle(tries + 1), 250);
-      return;
-    }
-    window.google.accounts.id.initialize({ client_id: cfg.google_client_id, callback: onGoogle, use_fedcm_for_prompt: true });
-    renderGoogleButtons();
-  }
-  function renderGoogleButtons() {
-    if (!window.google || !window.google.accounts || !cfg.google_client_id) return;
-    const draw = (id, text) => {
-      const box = $(id);
-      if (!box || box.dataset.drawn || !box.offsetParent) return; // draw once, and only when it can be seen (so its width is known)
-      box.dataset.drawn = '1';
-      window.google.accounts.id.renderButton(box, { type: 'standard', theme: 'outline', size: 'large', shape: 'rectangular', text, logo_alignment: 'left', width: Math.min(320, box.parentElement.clientWidth || 300) });
-    };
-    draw('googleBtn', 'continue_with');
-    draw('googleLinkBtn', 'continue_with');
-    draw('googleConfirmBtn', 'continue_with');
-  }
+  const renderGoogleButtons = () => auth.google.render();
 
   async function onGoogle(response, challengeToken = '') {
-    if (!Sync.active()) return googleSignIn(response, challengeToken);
+    if (!Sync.active()) return auth.googleSignIn(response, challengeToken);
     if (tab === 'data') return googleConfirmDelete(response);
     return googleLink(response);
-  }
-
-  async function googleSignIn(response, challengeToken) {
-    say('signinMsg', '');
-    say('regMsg', '');
-    try {
-      const data = await api('POST', '/google', { credential: response.credential, turnstile_token: challengeToken }, '');
-      $('googleChallenge').hidden = true;
-      removeTurnstile('googleTurnstile');
-      await enter(data);
-      if (data.password_removed) notice(t('account.google_password_removed'), true);
-    } catch (err) {
-      if (err.code === 'challenge_required') {
-        // A NEW account needs the Cloudflare challenge first; solving it sends the same Google sign-in again.
-        $('googleChallenge').hidden = false;
-        removeTurnstile('googleTurnstile');
-        renderTurnstile('googleTurnstile', 0, { callback: (tok) => googleSignIn(response, tok) });
-        return;
-      }
-      say($('registerForm').hidden ? 'signinMsg' : 'regMsg', err.message);
-    }
   }
 
   // ── Signed in ───────────────────────────────────
@@ -246,7 +157,6 @@
     account = me.account;
     $('syncAuth').hidden = true;
     $('syncHome').hidden = false;
-    $('appReturn').hidden = !appState; // app mode: the panel that sends the session back to the app
     startGoogle(); // the Security / Your data tabs have Google buttons too (connect, confirm a deletion)
     $('syncAuto').checked = Sync.info().auto;
     renderAccount();
@@ -292,18 +202,6 @@
     $('deleteGoogleBlock').hidden = account.has_password || !cfg.google_client_id;
     renderGoogleButtons();
   }
-
-  // The button is a real link, and it is a real tap that follows it (Chrome ignores intent: links that were not tapped). Its address is
-  // made at the moment of the tap, from the session as it is then (a profile save or "sign out everywhere" replaces the token),
-  // and put back to '#' a moment later, so the token is not left sitting in the page. The token and the state go only into this
-  // intent URL, which names the app's package: never into an https:// address, the query string, the hash, a log or analytics.
-  $('appReturnBtn').addEventListener('click', (e) => {
-    const link = e.currentTarget;
-    const url = AccountAppMode.intentUrl({ pkg: Utils.APP_PACKAGE, storeUrl: Utils.APP_STORE_URL, token: Sync.token(), state: appState });
-    if (!url) { e.preventDefault(); return; }
-    link.setAttribute('href', url);
-    setTimeout(() => link.setAttribute('href', '#'), 1500);
-  });
 
   // ── Tabs ────────────────────────────────────────
   function selectTab(which, { updateHash = true } = {}) {

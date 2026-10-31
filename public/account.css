@@ -71,8 +71,6 @@
 .acct-field input:focus, .acct-field textarea:focus, .acct-field select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
 .acct-field input[readonly] { opacity: 0.7; cursor: not-allowed; }
 .acct-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.acct-app-return { margin: 0 0 20px; border-color: var(--accent-light); background: rgba(139, 92, 246, 0.08); }
-.acct-app-return .acct-note { margin-bottom: 14px; }
 .acct-legal { margin-top: 14px; text-align: center; }
 .acct-legal a { color: var(--accent-light); text-decoration: underline; text-underline-offset: 0.15em; }
 .acct-note { color: var(--a-muted); line-height: 1.55; margin-bottom: 14px; }

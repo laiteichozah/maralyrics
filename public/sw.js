@@ -7,7 +7,7 @@
 // i18n.js, theme.js, consent.js, toast.js, or the locale JSON files) — those are served
 // cache-first below, so a returning visitor's browser keeps the exact bytes it first
 // cached forever otherwise, immune even to a hard refresh, until this version changes.
-const CACHE_VERSION = 'ml-v46';
+const CACHE_VERSION = 'ml-v47';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -106,6 +106,9 @@ self.addEventListener('fetch', (event) => {
 
   // Skip admin paths, external origins (except fonts/CDN)
   if (url.pathname.startsWith('/admin')) return;
+
+  // The Android app's sign-in page (/app-auth): a copy of it must never be kept (its address carries the app's one-time state).
+  if (url.pathname === '/app-auth' || url.pathname === '/app-auth.html') return;
 
   // ── API requests: Network-first with cache fallback ──
   if (url.pathname.startsWith('/api/')) {
