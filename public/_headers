@@ -18,6 +18,16 @@
 /downloads
   X-Robots-Tag: noindex, follow
 
+# The Android app's sign-in page: never stored, never indexed, no referrer (its address carries the app's one-time state).
+/app-auth
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  Referrer-Policy: no-referrer
+/app-auth.html
+  Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow
+  Referrer-Policy: no-referrer
+
 # Digital Asset Links: Android checks this file to let the apps open maralyrics.com links.
 /.well-known/assetlinks.json
   Content-Type: application/json

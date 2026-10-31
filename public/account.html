@@ -26,7 +26,7 @@
 
   <!-- Styles -->
   <link rel="stylesheet" href="/style.css" />
-  <link rel="stylesheet" href="/account.css?v=10" />
+  <link rel="stylesheet" href="/account.css?v=11" />
 
   <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
@@ -284,13 +284,6 @@
 
     <!-- ═══ Signed in ═══ -->
     <div id="syncHome" hidden>
-      <!-- App mode (?app=android&state=…): the Android app is waiting for this sign-in -->
-      <section class="acct-card acct-app-return" id="appReturn" aria-labelledby="appReturnTitle" hidden>
-        <h2 class="acct-section-title" id="appReturnTitle" data-i18n="account.app_signed_in_title">You're signed in</h2>
-        <p class="acct-note" data-i18n="account.app_signed_in_text">Return to the Mara Lyrics app to finish signing in there.</p>
-        <a class="acct-btn acct-btn--block" id="appReturnBtn" href="#" data-i18n="account.app_return_btn">Return to the Mara Lyrics app</a>
-      </section>
-
       <header class="acct-banner">
         <span class="acct-avatar" id="syncAvatar" aria-hidden="true"></span>
         <div class="acct-banner__text">
@@ -558,7 +551,7 @@
   <!-- App Script -->
   <script src="/app.js"></script>
   <script src="/photo-cropper.js"></script>
-  <script src="/app-mode.js"></script>
-  <script src="/account-page.js?v=4"></script>
+  <script src="/account-auth.js"></script>
+  <script src="/account-page.js?v=5"></script>
 </body>
 </html>

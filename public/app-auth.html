@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in to MaraLyrics</title>
+  <meta name="description" content="Sign in to MaraLyrics, then return to the Mara Lyrics app." />
+
+  <!-- The page the Android app opens to sign a reader in: not for search results, no referrer, dark only -->
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#0c143d" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+
+  <!-- Fonts (the site's font stack) -->
+  <link rel="preconnect" href="https://api.maralyrics.com" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/app-auth.css?v=1" />
+
+  <!-- Cloudflare Turnstile (rendered explicitly when a form needs it) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+</head>
+<body class="aa">
+
+  <main class="aa-page" id="appAuthPage">
+    <h1 class="aa-sr" data-i18n="app_auth.title_signin">Sign in to MaraLyrics</h1>
+    <div class="aa-logo"><img src="/icon.svg" alt="MaraLyrics" width="64" height="64" /></div>
+
+    <!-- 1. No usable state: nothing to sign in for -->
+    <section class="aa-card" id="invalidCard" hidden>
+      <p class="aa-text" role="alert" data-i18n="app_auth.invalid">This sign-in link isn't valid. Open the Mara Lyrics app and tap Continue with Google to start again.</p>
+    </section>
+
+    <!-- 2. Signed out: Google or email + password -->
+    <section class="aa-card" id="signinCard" aria-labelledby="signinTitle" hidden>
+      <h2 class="aa-title aa-title--plain" id="signinTitle" data-i18n="app_auth.title_signin">Sign in to MaraLyrics</h2>
+
+      <div class="aa-google" id="googleBlock" hidden>
+        <div id="googleBtn" class="aa-google__btn"></div>
+        <div id="googleChallenge" class="aa-challenge" hidden>
+          <p class="aa-hint" data-i18n="app_auth.google_challenge">One quick security check, then your account is created.</p>
+          <div id="googleTurnstile"></div>
+        </div>
+        <div class="aa-or" aria-hidden="true"><span data-i18n="app_auth.or_email">or use your email</span></div>
+      </div>
+
+      <form id="signinForm" class="aa-form" autocomplete="on">
+        <div class="aa-field">
+          <label for="signinUser" data-i18n="app_auth.email_or_username">Email or username</label>
+          <input type="text" id="signinUser" autocomplete="username" autocapitalize="none" spellcheck="false" required />
+        </div>
+        <div class="aa-field">
+          <label for="signinPass" data-i18n="app_auth.password">Password</label>
+          <input type="password" id="signinPass" autocomplete="current-password" required />
+        </div>
+        <div id="signinTurnstile"></div>
+        <p class="acct-message" id="signinMsg" role="alert" hidden></p>
+        <button type="submit" class="aa-btn aa-btn--wide" id="signinBtn" data-i18n="app_auth.signin_btn">Sign in</button>
+      </form>
+
+      <p class="aa-switch"><span data-i18n="app_auth.new_here">New here?</span> <a href="/account" data-i18n="app_auth.create_account">Create an account</a></p>
+    </section>
+
+    <!-- 3. Signed in: hand the session back to the app -->
+    <section class="aa-card" id="successCard" aria-labelledby="successTitle" hidden>
+      <svg class="aa-check" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true" focusable="false">
+        <circle cx="32" cy="32" r="29" fill="none" stroke="#00bfa5" stroke-width="4" />
+        <path d="M19 33.5l9 9 17.5-20" fill="none" stroke="#00bfa5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+      <h2 class="aa-title" id="successTitle" data-i18n="app_auth.success_title">Login successful</h2>
+      <p class="aa-text" data-i18n="app_auth.success_text">You're signed in. Return to the Mara Lyrics app to finish signing in there.</p>
+      <a class="aa-btn" id="returnBtn" href="#" data-i18n="app_auth.return_btn">Return to the app</a>
+      <p class="aa-hint" id="returnHint" role="status" hidden data-i18n="app_auth.return_hint">Nothing happened? Make sure the Mara Lyrics app is installed and up to date.</p>
+    </section>
+
+    <noscript><section class="aa-card"><p class="aa-text">This page needs JavaScript. Please turn it on and open the link from the Mara Lyrics app again.</p></section></noscript>
+  </main>
+
+  <script src="/i18n.js"></script>
+  <script src="/app-mode.js"></script>
+  <script src="/account-auth.js"></script>
+  <script src="/app-auth.js?v=1"></script>
+</body>
+</html>
