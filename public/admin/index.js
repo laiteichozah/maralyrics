@@ -423,12 +423,12 @@ function buildCheckboxList(containerEl, items) {
 function wireCheckboxListFilter(filterEl, containerEl) {
   if (!filterEl || !containerEl) return;
   filterEl.addEventListener('input', () => {
-    const q = normalizeForSearch(filterEl.value).trim();
+    const q = filterEl.value.trim();
     // "Unknown" is pinned at the top and always stays visible regardless of the filter —
     // it has no `data-name` since it isn't a real, filterable artist/composer.
-    containerEl.querySelectorAll('.checkbox-list__item:not(.checkbox-list__item--unknown)').forEach((row) => {
-      row.classList.toggle('checkbox-list__item--hidden', !!q && !row.dataset.name.includes(q));
-    });
+    const rows = [...containerEl.querySelectorAll('.checkbox-list__item:not(.checkbox-list__item--unknown)')];
+    const shown = q ? new Set(filterBySearch(rows, q, [(row) => row.dataset.name])) : null;
+    rows.forEach((row) => row.classList.toggle('checkbox-list__item--hidden', !!shown && !shown.has(row)));
   });
 }
 
@@ -569,12 +569,17 @@ function normalizeForSearch(str) {
 }
 
 // Client-side filter for tabs that load their full dataset up front (Artists, Composers,
-// Copyright Owners, Reports, Revisions, Contacts, Admins, Audit Log) — checks each of
-// `fields` on every item for a substring match against the query.
+// Copyright Owners, Reports, Revisions, Contacts, Admins, Audit Log, Idols) — matches every
+// word of the query against `fields` of each item, best match first. Any case, any accents,
+// any word order, and a typo or two ("rama" and "RAMÂ" find "Ramâ", "waltx sad" finds "Sad
+// Waltz"): the shared matcher in /search-match.js, which the Worker also uses for the Songs and
+// Articles lists. Falls back to a plain "contains" test if that file did not load.
 function filterBySearch(items, query, fields) {
-  const q = normalizeForSearch(query).trim();
+  const q = String(query || '').trim();
   if (!q) return items;
-  return items.filter(item => fields.some(f => normalizeForSearch(item[f]).includes(q)));
+  if (typeof MaraMatch !== 'undefined') return MaraMatch.filter(items, q, fields);
+  const needle = normalizeForSearch(q);
+  return items.filter(item => fields.some(f => normalizeForSearch(item[f]).includes(needle)));
 }
 
 function generateSlug(text) {
@@ -2291,10 +2296,8 @@ function renderIdolSeasonOptions() {
 function renderIdolsTable() {
   const tbody = document.getElementById('idolsTableBody');
   const season = document.getElementById('idolFilterSeason').value;
-  const query = document.getElementById('idolSearch').value.trim().toLowerCase();
-  const rows = allIdols.filter(i =>
-    (!season || String(i.season_id) === season) &&
-    (!query || i.name.toLowerCase().includes(query) || (i.artist_name || '').toLowerCase().includes(query)));
+  const query = document.getElementById('idolSearch').value;
+  const rows = filterBySearch(allIdols.filter(i => !season || String(i.season_id) === season), query, ['name', 'artist_name']);
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="6" class="admin-table__empty">${allIdols.length ? 'No idols match your filter.' : 'No idols yet.'}</td></tr>`;
     return;
@@ -2981,9 +2984,7 @@ function renderAdminUsersTable() {
   const query = document.getElementById('adminUserSearch')?.value || '';
   // Search by the role label actually shown in the table (e.g. "Super Admin"),
   // not just the raw role slug (e.g. "super_admin"), so what the user sees is what matches.
-  const q = normalizeForSearch(query).trim();
-  const filtered = !q ? allAdminUsers : allAdminUsers.filter(u =>
-    normalizeForSearch(u.username).includes(q) || normalizeForSearch(roleLabel(u.role)).includes(q));
+  const filtered = filterBySearch(allAdminUsers, query, ['username', (u) => roleLabel(u.role)]);
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="4" class="admin-table__empty">${query.trim() ? 'No admin accounts match your search.' : 'No admin accounts found.'}</td></tr>`;
     return;

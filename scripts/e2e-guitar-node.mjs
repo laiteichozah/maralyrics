@@ -307,6 +307,51 @@ try {
   const laitei = links.find((l) => l.target.package_name === 'com.maralyrics.laitei');
   ok(laitei.relation.join() === 'delegate_permission/common.handle_all_urls' && laitei.target.namespace === 'android_app' && laitei.target.sha256_cert_fingerprints.length >= 1 && laitei.target.sha256_cert_fingerprints.every((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)), 'the app\'s statement is well formed (31 colons per fingerprint)');
 
+  section('Admin: searching (any case, accents, a typo)');
+  const accentedSong = Number(song('Ṭhâng Léi', 'thang-lei', 'Words of the song', null, null).lastInsertRowid);
+  const accentedArtist = Number(sqlite.prepare(`INSERT INTO artists (name, slug) VALUES ('Zoé Ṭhâng', 'zoe-thang')`).run().lastInsertRowid);
+  sqlite.prepare(`INSERT INTO song_artists (song_id, artist_id, position) VALUES (?, ?, 0)`).run(accentedSong, accentedArtist);
+  const { page: S } = await openPage({ admin: true, token: adminToken });
+  await S.goto(`${SITE}/admin/`);
+  await S.waitForSelector('#songsTableBody tr[data-id]', { timeout: 10000 });
+  ok(await S.evaluate(() => typeof MaraMatch === 'object'), 'the dashboard loads the shared matcher');
+  const found = async (q) => {
+    await S.fill('#adminSearch', q);
+    await S.waitForFunction((x) => document.getElementById('adminSearch').value === x, q);
+    await sleep(900);                                     // the box waits 200 ms, then asks the server
+    return (await S.locator('#songsTableBody tr[data-id]').allTextContents()).map((t) => t.replace(/\s+/g, ' ').trim());
+  };
+  const has = (rows, title) => rows.some((r) => r.includes(title));
+  let rows = await found('FALLING');
+  ok(rows.length === 1 && has(rows, 'Falling'), 'songs: capitals find it ("FALLING")');
+  rows = await found('ṬHÂNG LÉI');
+  ok(rows.length === 1 && has(rows, 'Ṭhâng Léi'), 'songs: accented capitals find the accented title ("ṬHÂNG LÉI")');
+  rows = await found('thang lei');
+  ok(rows.length === 1 && has(rows, 'Ṭhâng Léi'), 'songs: plain letters find the accented title ("thang lei")');
+  rows = await found('ZOE');
+  ok(rows.length === 1 && has(rows, 'Ṭhâng Léi'), 'songs: the artist\'s name is searched too, and "ZOE" finds "Zoé"');
+  rows = await found('fallng');
+  ok(rows.length === 1 && has(rows, 'Falling'), 'songs: a typo finds it ("fallng")');
+  rows = await found('waltz sad');
+  ok(rows.length === 1 && has(rows, 'Sad Waltz'), 'songs: any word order ("waltz sad")');
+  rows = await found('sad waltx');
+  ok(rows.length === 1 && has(rows, 'Sad Waltz'), 'songs: a typo in one of two words ("sad waltx")');
+  rows = await found('zzzzqq');
+  ok(rows.length === 0 && (await S.textContent('#songsTableBody')).includes('No songs match your search'), 'songs: no match says so');
+  rows = await found('');
+  ok(rows.length >= 7, 'songs: clearing the box brings the whole list back');
+  // tabs that hold their whole list in the browser
+  await S.click('.admin__tab[data-tab="artists"]');
+  await S.waitForSelector('#artistsTableBody tr[data-id]', { timeout: 10000 });
+  const artistRows = async (q) => { await S.fill('#artistSearch', q); await sleep(300); return S.locator('#artistsTableBody tr[data-id]').count(); };
+  ok(await artistRows('ZOÉ ṬHÂNG') === 1 && await artistRows('zoe thang') === 1 && await artistRows('thang zoe') === 1, 'artists: any case, accents and word order');
+  ok(await artistRows('zoe thng') === 1 && await artistRows('zoee') === 1, 'artists: a typo finds the artist');
+  ok(await artistRows('qqqq') === 0 && (await S.textContent('#artistsTableBody')).includes('match your search'), 'artists: no match says so');
+  sqlite.prepare('DELETE FROM song_artists WHERE song_id = ?').run(accentedSong);
+  sqlite.prepare('DELETE FROM songs WHERE id = ?').run(accentedSong);
+  sqlite.prepare('DELETE FROM artists WHERE id = ?').run(accentedArtist);
+  await S.close();
+
   section('Admin: key and chords in the song form');
   const { page: A } = await openPage({ admin: true, token: adminToken });
   await A.goto(`${SITE}/admin/`);
