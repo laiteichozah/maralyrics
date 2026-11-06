@@ -32,6 +32,7 @@ import { AVATARS } from '../lib/avatars.js';
 import { isSafeLinkUrl, isSafeImageUrl, validateSocialLinks } from '../lib/profile.js';
 import { normalizeBio } from '../lib/richText.js';
 import { readChordFields, resolveChordColumns, shapeChords } from '../lib/guitarNode.js';
+import { rank } from '../../public/search-match.js';
 import { sanitizeArticleHtml, isHtmlEmpty } from '../lib/sanitizeHtml.js';
 
 const app = new Hono();
@@ -757,41 +758,49 @@ async function getSongWithPeople(db, id) {
 
 const songsApp = new Hono();
 
-songsApp.get('/', async (c) => {
-  const db = c.env.DB;
-  const { page, limit, offset } = parsePagination(c.req.query(), 50);
-  const q = (c.req.query('q') || '').trim();
-
-  // Search matches title, category, or any credited artist/composer — across the WHOLE
-  // table, not just the current page, since the admin UI paginates in batches of 50.
-  const where = q
-    ? `WHERE s.title LIKE ? ESCAPE '\\' OR s.category LIKE ? ESCAPE '\\'
-       OR s.id IN (SELECT sa.song_id FROM song_artists sa JOIN artists a ON a.id = sa.artist_id WHERE a.name LIKE ? ESCAPE '\\')
-       OR s.id IN (SELECT sc.song_id FROM song_composers sc JOIN composers cm ON cm.id = sc.composer_id WHERE cm.name LIKE ? ESCAPE '\\')`
-    : '';
-  const like = `%${q.replace(/[%_]/g, '\\$&')}%`;
-  const bindings = q ? [like, like, like, like] : [];
-
-  const [rows, countRow] = await Promise.all([
-    db.prepare(
-      `SELECT s.*,
-         (SELECT GROUP_CONCAT(name, ', ') FROM (
+// The text a search looks through for each song / article. Capped so one huge table cannot make a request slow.
+const SEARCH_ROWS = 20000;
+const SONG_SEARCH_FIELDS = ['title', 'slug', 'category', 'artist_name', 'composer_name'];
+const SONG_CREDIT_COLUMNS = `(SELECT GROUP_CONCAT(name, ', ') FROM (
             SELECT a.name AS name FROM song_artists sa JOIN artists a ON a.id = sa.artist_id
             WHERE sa.song_id = s.id ORDER BY sa.position
           )) AS artist_name,
          (SELECT GROUP_CONCAT(name, ', ') FROM (
             SELECT cm.name AS name FROM song_composers sc JOIN composers cm ON cm.id = sc.composer_id
             WHERE sc.song_id = s.id ORDER BY sc.position
-          )) AS composer_name
-       FROM songs s
-       ${where}
-       ORDER BY s.created_at DESC
-       LIMIT ? OFFSET ?`
-    ).bind(...bindings, limit, offset).all(),
-    db.prepare(`SELECT COUNT(*) AS total FROM songs s ${where}`).bind(...bindings).first(),
-  ]);
+          )) AS composer_name`;
+const SONG_LIST_COLUMNS = `s.*, ${SONG_CREDIT_COLUMNS}`;
 
-  const total = countRow.total;
+songsApp.get('/', async (c) => {
+  const db = c.env.DB;
+  const { page, limit, offset } = parsePagination(c.req.query(), 50);
+  const q = (c.req.query('q') || '').trim();
+
+  let rows;
+  let total;
+  if (q) {
+    // Search matches the title, slug, category, or any credited artist / composer — across the WHOLE table, not just the current
+    // page, since the admin UI paginates in batches of 50. SQLite's LIKE only ignores case for plain A–Z and knows nothing of
+    // accents or typos, so the candidates are read once (a few short columns) and ranked by the shared matcher: any case,
+    // any accents, any word order, and a typo or two (public/search-match.js) — best match first.
+    const candidates = (await db
+      .prepare(`SELECT s.id, s.title, s.slug, s.category, ${SONG_CREDIT_COLUMNS} FROM songs s ORDER BY s.created_at DESC, s.id DESC LIMIT ?`)
+      .bind(SEARCH_ROWS).all()).results;
+    const ranked = rank(candidates, q, SONG_SEARCH_FIELDS).map((r) => r.item.id);
+    total = ranked.length;
+    const ids = ranked.slice(offset, offset + limit);
+    const found = ids.length
+      ? (await db.prepare(`SELECT ${SONG_LIST_COLUMNS} FROM songs s WHERE s.id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all()).results
+      : [];
+    const byId = new Map(found.map((row) => [row.id, row]));
+    rows = { results: ids.map((id) => byId.get(id)).filter(Boolean) };
+  } else {
+    [rows, { total }] = await Promise.all([
+      db.prepare(`SELECT ${SONG_LIST_COLUMNS} FROM songs s ORDER BY s.created_at DESC LIMIT ? OFFSET ?`).bind(limit, offset).all(),
+      db.prepare('SELECT COUNT(*) AS total FROM songs s').first(),
+    ]);
+  }
+
   // The chords of every song are not needed to list them (they can be large): only whether a song has any.
   const songs = rows.results.map(({ chords, ...song }) => ({ ...song, has_chords: !!chords, original_key: song.original_key || null }));
   return c.json({ songs, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
@@ -1282,19 +1291,27 @@ articlesApp.get('/', async (c) => {
     conditions.push('status = ?');
     bindings.push(status);
   }
-  if (q) {
-    conditions.push('(title LIKE ? OR author_name LIKE ?)');
-    bindings.push(`%${q}%`, `%${q}%`);
-  }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  const [rows, countRow] = await Promise.all([
-    db.prepare(`SELECT * FROM articles ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
-      .bind(...bindings, limit, offset).all(),
-    db.prepare(`SELECT COUNT(*) AS total FROM articles ${where}`).bind(...bindings).first(),
-  ]);
+  let rows;
+  let total;
+  if (q) {
+    // Same matcher as the song list (any case, accents, word order, a typo or two); the status filter still applies first.
+    const candidates = (await db.prepare(`SELECT id, title, slug, author_name, summary FROM articles ${where} ORDER BY created_at DESC, id DESC LIMIT ?`)
+      .bind(...bindings, SEARCH_ROWS).all()).results;
+    const ranked = rank(candidates, q, ['title', 'slug', 'author_name', 'summary']).map((r) => r.item.id);
+    total = ranked.length;
+    const ids = ranked.slice(offset, offset + limit);
+    const found = ids.length ? (await db.prepare(`SELECT * FROM articles WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all()).results : [];
+    const byId = new Map(found.map((row) => [row.id, row]));
+    rows = { results: ids.map((id) => byId.get(id)).filter(Boolean) };
+  } else {
+    [rows, { total }] = await Promise.all([
+      db.prepare(`SELECT * FROM articles ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).bind(...bindings, limit, offset).all(),
+      db.prepare(`SELECT COUNT(*) AS total FROM articles ${where}`).bind(...bindings).first(),
+    ]);
+  }
 
-  const total = countRow.total;
   return c.json({ articles: rows.results, total, page, totalPages: Math.max(1, Math.ceil(total / limit)) });
 });
 

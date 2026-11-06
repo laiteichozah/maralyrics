@@ -11,7 +11,7 @@
 //
 // Bump CACHE_VERSION whenever a precached file's content changes (the offline copies are replaced; while online the
 // network is always asked first — see the fetch handler).
-const CACHE_VERSION = 'ml-admin-v20';
+const CACHE_VERSION = 'ml-admin-v21';
 const SHELL_ASSETS = [
   './',
   './index.html',
@@ -27,6 +27,7 @@ const SHELL_ASSETS = [
   '/social-icons.js',
   '/rich-text.js',
   '/chords.js',
+  '/search-match.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -87,6 +88,7 @@ self.addEventListener('fetch', (event) => {
         if (res && res.ok) caches.open(CACHE_VERSION).then((cache) => cache.put(req, res.clone())).catch(() => {});
         return res;
       })
-      .catch(() => caches.match(req).then((cached) => cached || Response.error()))
+      // (ignoreSearch: the page asks for index.js?v=3, the install cached index.js — the same file)
+      .catch(() => caches.match(req, { ignoreSearch: true }).then((cached) => cached || Response.error()))
   );
 });
