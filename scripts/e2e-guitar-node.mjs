@@ -307,6 +307,35 @@ try {
   const laitei = links.find((l) => l.target.package_name === 'com.maralyrics.laitei');
   ok(laitei.relation.join() === 'delegate_permission/common.handle_all_urls' && laitei.target.namespace === 'android_app' && laitei.target.sha256_cert_fingerprints.length >= 1 && laitei.target.sha256_cert_fingerprints.every((f) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(f)), 'the app\'s statement is well formed (31 colons per fingerprint)');
 
+  section('Footer: the Mara Hymns promotion');
+  const { page: H } = await openPage();
+  const hymnalRequests = [];
+  H.on('request', (r) => { if (/mkhb\.maralyrics\.com/.test(r.url())) hymnalRequests.push(r.url()); });
+  await H.goto(`${SITE}/about`);
+  await H.waitForSelector('.app-promotion--hymnal', { state: 'attached' });
+  const banners = await H.evaluate(() => [...document.querySelectorAll('.footer .app-promotion')].map((b) => ({ hymnal: b.classList.contains('app-promotion--hymnal'), title: b.querySelector('.app-promotion__title').textContent.trim(), href: b.querySelector('a').getAttribute('href'), target: b.querySelector('a').target, rel: b.querySelector('a').rel, label: b.querySelector('a').textContent.trim(), labelledBy: document.getElementById(b.getAttribute('aria-labelledby'))?.textContent.trim() })));
+  ok(banners.length === 2 && !banners[0].hymnal && banners[1].hymnal, 'the footer has the app banner and, under it, the Mara Hymns banner (neither replaced the other)');
+  ok(banners[0].href.startsWith('https://play.google.com/store/apps/details?id=com.maralyrics.laitei'), 'the app banner still links to Google Play');
+  ok(banners[1].title === 'Mara Hymns (Krizyhpa Hlabu)' && banners[1].labelledBy === banners[1].title, 'it is named Mara Hymns (Krizyhpa Hlabu), and the section is labelled by that heading');
+  ok(banners[1].href === 'https://mkhb.maralyrics.com/' && banners[1].target === '_blank' && /\bnoopener\b/.test(banners[1].rel) && banners[1].label === 'Open Mara Hymns', 'it links to https://mkhb.maralyrics.com/ in a new tab (noopener) with the English text');
+  ok(await H.evaluate(() => { const i = document.querySelector('.app-promotion--hymnal img'); return i.complete && i.naturalWidth > 0 && new URL(i.src).origin === location.origin; }), 'its icon is a local file that loads');
+  ok(hymnalRequests.length === 0, 'the page loads nothing from mkhb.maralyrics.com (it is only a link)');
+  ok(await H.evaluate(() => { const l = document.querySelector('.app-promotion--hymnal a'); const b = l.getBoundingClientRect(); return b.width >= 24 && b.height >= 24; }), 'the link is a comfortable tap target');
+  await H.evaluate(() => I18n.setLanguage('my'));
+  ok(await H.evaluate(() => ['.app-promotion--hymnal .app-promotion__title', '.app-promotion--hymnal .app-promotion__text', '.app-promotion--hymnal a'].every((q) => document.querySelector(q).textContent.trim().length > 0)), 'in a language that has no translation of it yet the text falls back to English instead of going blank');
+  await H.evaluate(() => I18n.setLanguage('en'));
+  await H.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+  ok(await H.evaluate(() => getComputedStyle(document.querySelector('.app-promotion--hymnal a')).color === 'rgb(255, 255, 255)'), 'in the light theme the link keeps white text on its button');
+  await H.goto(`${SITE}/`);
+  await H.waitForSelector('.app-promotion--hymnal', { state: 'attached' });
+  ok(await H.locator('.footer .app-promotion--hymnal').count() === 1, 'one banner on the home page too');
+  const { page: HP } = await openPage({ viewport: { width: 360, height: 740 } });
+  await HP.goto(`${SITE}/about`);
+  await HP.waitForSelector('.app-promotion--hymnal', { state: 'attached' });
+  ok(await HP.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no sideways scroll on a phone');
+  ok(await HP.evaluate(() => { const b = document.querySelector('.app-promotion--hymnal'); const l = b.querySelector('a').getBoundingClientRect(); const r = b.getBoundingClientRect(); return l.top >= b.querySelector('.app-promotion__copy').getBoundingClientRect().bottom - 1 && l.width >= r.width * 0.8; }), 'on a phone the button sits under the text, full width');
+  if (process.env.E2E_SHOTS) { await HP.locator('.app-promotion--hymnal').scrollIntoViewIfNeeded(); await HP.screenshot({ path: `${process.env.E2E_SHOTS}/hymnal-promo.png` }); }
+
   section('Admin: searching (any case, accents, a typo)');
   const accentedSong = Number(song('Ṭhâng Léi', 'thang-lei', 'Words of the song', null, null).lastInsertRowid);
   const accentedArtist = Number(sqlite.prepare(`INSERT INTO artists (name, slug) VALUES ('Zoé Ṭhâng', 'zoe-thang')`).run().lastInsertRowid);

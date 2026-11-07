@@ -3305,6 +3305,11 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   transform: translateY(-1px);
 }
 
+/* The Mara Hymns banner reuses the app banner; its icon is a full tile of its own (a rounded square with its own colours). */
+.app-promotion--hymnal { border-color: rgba(181, 133, 61, 0.4); background: linear-gradient(110deg, rgba(22, 43, 58, 0.22), rgba(181, 133, 61, 0.1)); }
+.app-promotion--hymnal .app-promotion__icon { background: transparent; box-shadow: none; }
+.app-promotion--hymnal .app-promotion__icon img { width: 42px; height: 42px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+
 /* ─── First-visit App Promotion ────────────────────────────── */
 .app-promo-dialog {
   position: fixed;
