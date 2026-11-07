@@ -4126,7 +4126,7 @@ function updateFavoriteButton(btn, isFavorited) {
 function initAppPromotion() {
   const footer = document.querySelector('.footer');
   const footerBottom = footer?.querySelector('.footer__bottom');
-  if (!footer || !footerBottom || footer.querySelector('.app-promotion')) return;
+  if (!footer || !footerBottom || footer.querySelector('.app-promotion:not(.app-promotion--hymnal)')) return;
 
   const promotion = document.createElement('section');
   promotion.className = 'app-promotion';
@@ -4143,6 +4143,31 @@ function initAppPromotion() {
       </div>
     </div>
     <a class="app-promotion__link" href="https://play.google.com/store/apps/details?id=com.maralyrics.laitei" target="_blank" rel="noopener noreferrer" data-i18n="footer.app_download" data-i18n-title="footer.app_download_title" title="Download MaraLyrics on Google Play">Download app</a>
+  `;
+  footerBottom.before(promotion);
+}
+
+// Mara Hymns (Krizyhpa Hlabu), the digital hymnal at mkhb.maralyrics.com: a second footer banner under the app one.
+// A plain link, so nothing from that site is loaded here (the icon is a local copy) and nothing needs asking about.
+function initHymnalPromotion() {
+  const footer = document.querySelector('.footer');
+  const footerBottom = footer?.querySelector('.footer__bottom');
+  if (!footer || !footerBottom || footer.querySelector('.app-promotion--hymnal')) return;
+
+  const promotion = document.createElement('section');
+  promotion.className = 'app-promotion app-promotion--hymnal';
+  promotion.setAttribute('aria-labelledby', 'hymnalPromotionTitle');
+  promotion.innerHTML = `
+    <div class="app-promotion__copy">
+      <span class="app-promotion__icon" aria-hidden="true">
+        <img src="/mkhb-icon.svg" alt="" width="42" height="42" />
+      </span>
+      <div>
+        <h2 id="hymnalPromotionTitle" class="app-promotion__title" data-i18n="footer.hymnal_title">Mara Hymns (Krizyhpa Hlabu)</h2>
+        <p class="app-promotion__text" data-i18n="footer.hymnal_description">Browse, search and view every hymn from Edition 11 and Edition 13, with a presentation mode for worship.</p>
+      </div>
+    </div>
+    <a class="app-promotion__link" href="https://mkhb.maralyrics.com/" target="_blank" rel="noopener" data-i18n="footer.hymnal_open" data-i18n-title="footer.hymnal_open_title" title="Open Mara Hymns in a new tab">Open Mara Hymns</a>
   `;
   footerBottom.before(promotion);
 }
@@ -5354,6 +5379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   initAppPromotion();
+  initHymnalPromotion();
   CalendarFeature.init();
   EventDetail.init();
   CalendarPrefs.initSelect();
