@@ -336,6 +336,141 @@ try {
   ok(await HP.evaluate(() => { const b = document.querySelector('.app-promotion--hymnal'); const l = b.querySelector('a').getBoundingClientRect(); const r = b.getBoundingClientRect(); return l.top >= b.querySelector('.app-promotion__copy').getBoundingClientRect().bottom - 1 && l.width >= r.width * 0.8; }), 'on a phone the button sits under the text, full width');
   if (process.env.E2E_SHOTS) { await HP.locator('.app-promotion--hymnal').scrollIntoViewIfNeeded(); await HP.screenshot({ path: `${process.env.E2E_SHOTS}/hymnal-promo.png` }); }
 
+  section('Christmas theme (1–31 December)');
+  // The page's clock is set to a day of the test's choosing (Date only; timers keep running).
+  const clockAt = (iso) => `(() => { const Real = Date; const fixed = new Real('${iso}').getTime(); class FakeDate extends Real { constructor(...a) { if (a.length === 0) super(fixed); else super(...a); } static now() { return fixed; } } window.Date = FakeDate; })();`;
+  const xmasOn = (page) => page.evaluate(() => document.documentElement.getAttribute('data-season') === 'christmas' && !!document.querySelector('.xmas-scene'));
+  const visit = async (iso, url = '/', opts = {}) => {
+    const made = await openPage(opts);
+    await made.ctx.addInitScript(clockAt(iso));
+    await made.page.goto(`${SITE}${url}`);
+    await made.page.waitForSelector('.footer', { state: 'attached' });
+    await sleep(250);
+    return made;
+  };
+  // the days either side of the season, on the real page
+  for (const [iso, on, label] of [['2026-06-15T12:00:00', false, '15 June'], ['2026-11-30T23:59:00', false, '30 November, 23:59'], ['2026-12-01T00:00:00', true, '1 December, midnight'], ['2026-12-25T10:00:00', true, 'Christmas Day'], ['2026-12-31T23:59:00', true, '31 December, 23:59'], ['2027-01-01T00:00:00', false, '1 January, midnight']]) {
+    const { page: Y, ctx: YC } = await visit(iso);
+    const state = await Y.evaluate(() => ({ season: document.documentElement.getAttribute('data-season'), snow: document.querySelectorAll('.xmas-snow').length, scene: document.querySelectorAll('.xmas-scene').length, row: document.querySelectorAll('[data-xmas-setting]').length, mark: typeof Christmas !== 'undefined' && Christmas.isActive() }));
+    ok(on ? state.season === 'christmas' && state.snow === 1 && state.scene === 1 && state.row === 1 && state.mark : state.season === null && state.snow === 0 && state.scene === 0 && state.row === 0 && !state.mark, `${label}: the theme is ${on ? 'on (snow, trees, switch)' : 'not there at all (nothing added to the page)'}`);
+    await YC.close();
+  }
+
+  const { page: X, ctx: XC } = await visit('2026-12-15T12:00:00');
+  ok(await X.evaluate(() => getComputedStyle(document.querySelector('.xmas-snow')).pointerEvents === 'none' && getComputedStyle(document.querySelector('.xmas-snow')).position === 'fixed'), 'the snow is a fixed layer that ignores the mouse and touch');
+  const frames1 = await X.evaluate(() => Christmas.frames());
+  await sleep(700);
+  const frames2 = await X.evaluate(() => Christmas.frames());
+  ok(frames2 - frames1 >= 8, `the snow is animating (${frames2 - frames1} frames in 0.7 s)`);
+  const flakesDrawn = async () => X.evaluate(() => { const c = document.querySelector('.xmas-snow'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) n++; return n; });
+  const painted1 = await flakesDrawn();
+  ok(painted1 > 60, `flakes are drawn on the canvas (${painted1} pixels)`);
+  await sleep(500);
+  const moved = await X.evaluate(() => { const c = document.querySelector('.xmas-snow'); return c.toDataURL().length; });
+  await sleep(500);
+  ok(await X.evaluate((before) => document.querySelector('.xmas-snow').toDataURL().length !== before, moved), 'and they move (the picture changes from one moment to the next)');
+  ok(await X.evaluate(() => { const el = document.elementFromPoint(window.innerWidth / 2, 200); return !!el && !el.classList.contains('xmas-snow'); }), 'a click or tap goes through the snow to what is under it');
+  const scene = await X.evaluate(() => { const s = document.querySelector('.xmas-scene'); return { trees: s.querySelectorAll('.xmas-tree').length, gifts: s.querySelectorAll('.xmas-gifts').length, bulbs: s.querySelectorAll('.xmas-bulbs circle').length, stars: s.querySelectorAll('.xmas-halo').length, greeting: s.querySelector('.xmas-scene__greeting').textContent.replace(/\s+/g, ' ').trim(), before: s.nextElementSibling && s.nextElementSibling.classList.contains('footer'), hidden: s.querySelector('.xmas-scene__trees').getAttribute('aria-hidden'), ids: new Set([...s.querySelectorAll('[id]')].map((e) => e.id)).size === s.querySelectorAll('[id]').length }; });
+  ok(scene.trees === 3 && scene.gifts === 1 && scene.stars === 3 && scene.bulbs === 96, `three Christmas trees with stars and lights, and the gifts (${scene.bulbs} light circles)`);
+  ok(scene.before && scene.hidden === 'true' && scene.ids, 'the scene stands right above the footer, is hidden from screen readers, and its SVG ids do not clash');
+  ok(/Merry Christmas from MaraLyrics/.test(scene.greeting), `it says "Merry Christmas from MaraLyrics" (${scene.greeting})`);
+  ok(await X.evaluate(() => { const h = document.querySelector('.header'); return getComputedStyle(h, '::before').backgroundImage.includes('radial-gradient') && getComputedStyle(h, '::after').backgroundImage.includes('radial-gradient') && getComputedStyle(document.querySelector('.header__logo'), '::after').backgroundImage.includes('svg'); }), 'a string of lights under the header and a Santa hat on the logo');
+  ok(await X.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-light').trim() === '#f4c55a' && getComputedStyle(document.body).backgroundColor === 'rgb(7, 19, 14)'), 'the dark theme is evergreen with gold links');
+  ok(await X.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no sideways scroll');
+  if (process.env.E2E_SHOTS) { await X.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await X.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-dark.png` }); await X.evaluate(() => window.scrollTo(0, 0)); await sleep(200); await X.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-dark-top.png` }); }
+
+  // the switch in Settings
+  await X.click('.settings-toggle__btn');
+  const sw = X.locator('.xmas-switch');
+  await sw.waitFor({ state: 'visible' });     // the panel fades in
+  ok(await sw.isVisible() && (await sw.getAttribute('role')) === 'switch' && (await sw.getAttribute('aria-checked')) === 'true' && /Christmas theme/.test(await X.textContent('[data-xmas-setting] .settings-panel__label')) && (await sw.textContent()).trim() === 'On', 'Settings has a "Christmas theme" switch, on, with its name and state in words');
+  await sw.focus();
+  await X.keyboard.press('Enter');
+  await sleep(200);
+  ok(!(await xmasOn(X)) && await X.locator('.xmas-snow').count() === 0 && await X.locator('.xmas-scene').count() === 0 && (await sw.getAttribute('aria-checked')) === 'false' && (await sw.textContent()).trim() === 'Off', 'turning it off with the keyboard takes away the colours, the snow, the trees and the lights; the switch stays to turn it back on');
+  ok(await X.evaluate(() => localStorage.getItem('ml_christmas') === 'off'), 'the choice is remembered');
+  const framesOff = await X.evaluate(() => Christmas.frames());
+  await sleep(400);
+  ok(await X.evaluate((n) => Christmas.frames() === n, framesOff), 'with the snow off nothing keeps drawing in the background');
+  await X.reload();
+  await X.waitForSelector('.footer', { state: 'attached' });
+  await sleep(250);
+  ok(!(await xmasOn(X)) && await X.locator('[data-xmas-setting] .xmas-switch').count() === 1, 'on the next page view it is still off, and the switch is still there');
+  await X.click('.settings-toggle__btn');
+  await X.locator('.xmas-switch').waitFor({ state: 'visible' });
+  await X.click('.xmas-switch');
+  await sleep(200);
+  ok(await xmasOn(X) && await X.locator('.xmas-snow').count() === 1 && await X.evaluate(() => localStorage.getItem('ml_christmas') === null), 'turning it back on brings everything back and forgets the choice');
+  await XC.close();
+
+  // light theme: its own palette, and the snow turns icy blue so that it can be seen
+  const { page: XL, ctx: XLC } = await openPage();
+  await XLC.addInitScript(clockAt('2026-12-15T12:00:00'));
+  await XLC.addInitScript(() => { try { localStorage.setItem('ml_theme', 'light'); } catch {} });
+  await XL.goto(`${SITE}/`);
+  await XL.waitForSelector('.xmas-scene', { state: 'attached' });
+  await sleep(500);
+  ok(await XL.evaluate(() => document.documentElement.getAttribute('data-theme') === 'light' && getComputedStyle(document.documentElement).getPropertyValue('--accent-light').trim() === '#a31d24' && getComputedStyle(document.body).backgroundColor === 'rgb(244, 248, 245)'), 'the light theme has its own colours (dark red links on a snowy white)');
+  ok(await XL.evaluate(() => { const c = document.querySelector('.xmas-snow'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let bluish = 0, white = 0; for (let i = 0; i < d.length; i += 4) { if (d[i + 3] > 80) { if (d[i + 2] > d[i] + 40) bluish++; else if (d[i] > 240 && d[i + 1] > 240 && d[i + 2] > 240) white++; } } return bluish > 40 && white === 0; }), 'the snow is blue-grey there (white snow could not be seen on a light page)');
+  if (process.env.E2E_SHOTS) { await XL.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await XL.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-light.png` }); }
+  await XLC.close();
+
+  // less motion: the lights, the trees and the colours stay; the snow does not fall
+  const { page: XR, ctx: XRC } = await openPage();
+  await XRC.addInitScript(clockAt('2026-12-15T12:00:00'));
+  await XR.emulateMedia({ reducedMotion: 'reduce' });
+  await XR.goto(`${SITE}/`);
+  await XR.waitForSelector('.xmas-scene', { state: 'attached' });
+  await sleep(500);
+  ok(await XR.locator('.xmas-snow').count() === 0 && await xmasOn(XR) && await XR.evaluate(() => Christmas.frames() === 0), 'with "reduce motion" the page gets the trees and the colours but no falling snow');
+  ok(await XR.evaluate(() => getComputedStyle(document.querySelector('.xmas-bulbs')).animationName === 'none' && getComputedStyle(document.querySelector('.header'), '::before').animationName === 'none'), '…and the lights do not twinkle');
+  await XR.emulateMedia({ reducedMotion: 'no-preference' });
+  await sleep(300);
+  ok(await XR.locator('.xmas-snow').count() === 1, 'if the device then allows motion, the snow starts');
+  await XR.emulateMedia({ reducedMotion: 'reduce' });
+  await sleep(300);
+  ok(await XR.locator('.xmas-snow').count() === 0, '…and stops again as soon as it is asked to reduce motion');
+  await XRC.close();
+
+  // someone who did not accept preference cookies can still switch it off for the page, but nothing is stored
+  const { page: XN, ctx: XNC } = await openPage();
+  await XNC.addInitScript(clockAt('2026-12-15T12:00:00'));
+  await XNC.addInitScript(() => { try { localStorage.setItem('ml_cookie_consent', 'essential'); } catch {} });
+  await XN.goto(`${SITE}/`);
+  await XN.waitForSelector('.xmas-scene', { state: 'attached' });
+  await XN.click('.settings-toggle__btn');
+  await XN.locator('.xmas-switch').waitFor({ state: 'visible' });
+  await XN.click('.xmas-switch');
+  await sleep(200);
+  ok(!(await xmasOn(XN)) && await XN.evaluate(() => localStorage.getItem('ml_christmas') === null), 'without preference cookies the switch works for this page and stores nothing');
+  await XNC.close();
+
+  // the preview address shows it on any day, and does not remember anything
+  const { page: XP, ctx: XPC } = await visit('2026-06-15T12:00:00', '/?christmas=preview');
+  ok(await xmasOn(XP) && await XP.locator('.xmas-snow').count() === 1, '/?christmas=preview shows the theme in June');
+  await XP.click('.settings-toggle__btn');
+  await XP.locator('.xmas-switch').waitFor({ state: 'visible' });
+  await XP.click('.xmas-switch');
+  await sleep(150);
+  ok(!(await xmasOn(XP)) && await XP.evaluate(() => localStorage.getItem('ml_christmas') === null), 'turning the preview off stores nothing');
+  await XPC.close();
+
+  // other pages, other languages, a phone
+  const { page: XA, ctx: XAC } = await visit('2026-12-15T12:00:00', '/about');
+  ok(await xmasOn(XA) && await XA.locator('.xmas-snow').count() === 1 && await XA.locator('.xmas-scene').count() === 1, 'other pages (About) have it too, once');
+  await XA.evaluate(() => I18n.setLanguage('my'));
+  await sleep(300);
+  ok(await XA.evaluate(() => ['.xmas-scene__greeting', '.xmas-switch__text'].every((q) => document.querySelector(q).textContent.trim().length > 0)), 'in a language without a translation yet the greeting and the switch fall back to English (never blank)');
+  await XAC.close();
+  const { page: XU, ctx: XUC } = await visit('2026-12-15T12:00:00', '/account');
+  ok(!(await xmasOn(XU)) && await XU.locator('.xmas-snow').count() === 0, 'the sign-in page (/account) is left alone');
+  await XUC.close();
+  const { page: XM, ctx: XMC } = await visit('2026-12-15T12:00:00', '/', { viewport: { width: 360, height: 740 } });
+  ok(await XM.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth) && await XM.evaluate(() => { const s = document.querySelector('.xmas-scene__trees'); return s.scrollWidth <= s.clientWidth + 1; }), 'on a phone (360 px) the trees fit and nothing scrolls sideways');
+  ok(await XM.evaluate(() => { const c = document.querySelector('.xmas-snow'); return c.width >= 360 && c.getBoundingClientRect().width === window.innerWidth; }), '…and the snow covers the screen');
+  if (process.env.E2E_SHOTS) { await XM.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await XM.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-phone.png` }); }
+  await XMC.close();
+
   section('Admin: searching (any case, accents, a typo)');
   const accentedSong = Number(song('Ṭhâng Léi', 'thang-lei', 'Words of the song', null, null).lastInsertRowid);
   const accentedArtist = Number(sqlite.prepare(`INSERT INTO artists (name, slug) VALUES ('Zoé Ṭhâng', 'zoe-thang')`).run().lastInsertRowid);

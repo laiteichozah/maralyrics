@@ -78,6 +78,12 @@
     "copyright": "© 2026 MaraLyrics. All rights reserved.",
     "link_artists": "For Artists"
   },
+  "christmas": {
+    "greeting": "Merry Christmas from MaraLyrics",
+    "setting": "Christmas theme",
+    "on": "On",
+    "off": "Off"
+  },
   "app_promo": {
     "eyebrow": "Made for Mara music",
     "title": "MaraLyrics, wherever you are",
