@@ -26,16 +26,16 @@ const Christmas = vm.runInNewContext(`${source}; Christmas`, {});   // no `docum
 
 // ─── The season ──────────────────────────────────────────────────────────────
 console.log('The season');
-check(Christmas.FROM === 1201 && Christmas.UNTIL === 1231, 'the season is 1 December to 31 December (change FROM and UNTIL on purpose, and this check with them)');
+check(JSON.stringify(Christmas.SEASONS) === '[[20261113,20261231]]', 'the season is 13 November to 31 December 2026 (change SEASONS on purpose, and this check with it)');
 const at = (y, m, d, h = 12, mi = 0, s = 0) => new Date(y, m - 1, d, h, mi, s);
-check(Christmas.isSeason(at(2026, 12, 1, 0, 0, 0)) === true, '1 December, the first second, is in');
-check(Christmas.isSeason(at(2026, 11, 30, 23, 59, 59)) === false, '30 November, the last second, is out');
+check(Christmas.isSeason(at(2026, 11, 13, 0, 0, 0)) === true, '13 November, the first second, is in (it is on from the day it goes live)');
+check(Christmas.isSeason(at(2026, 11, 12, 23, 59, 59)) === false, '12 November, the last second, is out');
+check(Christmas.isSeason(at(2026, 11, 30, 23, 59, 59)) === true && Christmas.isSeason(at(2026, 12, 1, 0, 0, 0)) === true, 'the turn of the month, 30 November to 1 December, is in');
 check(Christmas.isSeason(at(2026, 12, 25)) === true && Christmas.isSeason(at(2026, 12, 24, 18)) === true, 'Christmas Eve and Christmas Day are in');
 check(Christmas.isSeason(at(2026, 12, 31, 23, 59, 59)) === true, '31 December, the last second, is in (the theme goes at midnight, not the day before)');
 check(Christmas.isSeason(at(2027, 1, 1, 0, 0, 0)) === false, '1 January, the first second, is out');
-check([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].every((m) => !Christmas.isSeason(at(2026, m, 15))), 'no other month is in');
-check([2026, 2027, 2028, 2031, 2040].every((y) => Christmas.isSeason(at(y, 12, 10)) && !Christmas.isSeason(at(y, 1, 10)) && !Christmas.isSeason(at(y, 6, 10))), 'it comes back every year');
-check(Christmas.isSeason(at(2028, 2, 29)) === false, 'a leap day is out');
+check([[2026, 1], [2026, 6], [2026, 10], [2027, 1], [2027, 6], [2027, 11], [2027, 12], [2025, 12]].every(([y, m]) => !Christmas.isSeason(at(y, m, 15))), 'every other month, and every other year, is out (a new year needs a new window in SEASONS)');
+check(Christmas.isSeason() === (Date.now() >= at(2026, 11, 13, 0).getTime() && Date.now() <= at(2026, 12, 31, 23, 59, 59).getTime()), 'with no date given it uses today');
 
 // ─── The page wiring ─────────────────────────────────────────────────────────
 console.log('Pages, service worker, consent, strings');

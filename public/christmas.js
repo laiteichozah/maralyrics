@@ -1,9 +1,9 @@
 // ╔══════════════════════════════════════════════════════════════╗
 // ║        MaraLyrics — Christmas theme                         ║
-// ║        Falling snow · Christmas trees · 1–31 December       ║
+// ║        Falling snow · Christmas trees · until 31 December   ║
 // ╚══════════════════════════════════════════════════════════════╝
 //
-// In December (the visitor's own calendar, every year) the site dresses up:
+// From 13 November to 31 December 2026 (the visitor's own calendar) the site dresses up:
 //   • a festive palette (the [data-season="christmas"] rules in style.css, dark and light),
 //   • snow falling over the page (a canvas that ignores the mouse and touch),
 //   • three Christmas trees and a pile of gifts standing in the snow above the footer,
@@ -16,18 +16,18 @@
 //
 //   https://maralyrics.com/?christmas=preview     shows the theme on any day of the year (not remembered; for looking at it)
 //
-// To change the dates, change FROM and UNTIL below (month × 100 + day, both days included).
+// To change the dates, change SEASONS below (year, month and day as one number, both days included). To bring the theme
+// back next year, add next year's window to the list (and to the check in scripts/check-christmas.mjs).
 'use strict';
 
 const Christmas = (() => {
-  const FROM = 1201;     // 1 December
-  const UNTIL = 1231;    // 31 December, the whole day
-  const STORAGE_KEY = 'ml_christmas';   // 'off' = the visitor turned the theme off (kept like the theme and language, with consent)
+  const SEASONS = [[20261113, 20261231]];   // 13 November to 31 December 2026, both days included (yyyymmdd)
+  const STORAGE_KEY = 'ml_christmas';       // 'off' = the visitor turned the theme off (kept like the theme and language, with consent)
 
-  /** Is this date inside the season? Only the month and the day count, so it comes back every year. */
+  /** Is this date inside a season? The visitor's own calendar day, the whole day. */
   function isSeason(date = new Date()) {
-    const monthDay = (date.getMonth() + 1) * 100 + date.getDate();
-    return monthDay >= FROM && monthDay <= UNTIL;
+    const day = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+    return SEASONS.some(([from, until]) => day >= from && day <= until);
   }
 
   const previewing = () => { try { return /[?&]christmas=preview(?:&|#|$)/.test(location.search); } catch (_) { return false; } };
@@ -360,5 +360,5 @@ const Christmas = (() => {
 
   if (typeof document !== 'undefined') init();
 
-  return { isSeason, isActive: () => running, isEnabled: () => enabled, setEnabled, frames: () => stats.frames, FROM, UNTIL };
+  return { isSeason, isActive: () => running, isEnabled: () => enabled, setEnabled, frames: () => stats.frames, SEASONS };
 })();

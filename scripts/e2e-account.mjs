@@ -105,7 +105,7 @@ async function device(name, viewport = { width: 1100, height: 900 }) {
   const ctx = await browser.newContext({ serviceWorkers: 'block', viewport, acceptDownloads: true });
   await ctx.exposeFunction('mkCred', (sub, email, nm) => mkCred(sub, email, nm));
   await ctx.addInitScript(() => {
-    try { localStorage.setItem('ml_cookie_consent', 'accepted'); localStorage.setItem('ml_calendar_pref_prompted', '1'); localStorage.setItem('ml_app_promo_seen', '1'); if (!localStorage.getItem('ml_lang')) localStorage.setItem('ml_lang', 'en'); } catch { /* storage blocked */ }
+    try { localStorage.setItem('ml_cookie_consent', 'accepted'); localStorage.setItem('ml_calendar_pref_prompted', '1'); localStorage.setItem('ml_app_promo_seen', '1'); localStorage.setItem('ml_christmas', 'off'); if (!localStorage.getItem('ml_lang')) localStorage.setItem('ml_lang', 'en'); } catch { /* storage blocked */ }
     // Cloudflare Turnstile: a widget with a callback "solves itself"; the others answer getResponse().
     window.__ts = 'ok'; window.__tsRendered = [];
     window.turnstile = { render(sel, opts) { window.__tsRendered.push(sel); if (opts && opts.callback) setTimeout(() => opts.callback('ok'), 60); return window.__tsRendered.length; }, getResponse() { return window.__ts; }, reset() {}, remove() {} };

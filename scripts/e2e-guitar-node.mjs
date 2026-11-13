@@ -74,14 +74,14 @@ const server = http.createServer((q, r) => {
 const SITE = `http://localhost:${server.address().port}`;
 
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' };
-async function openPage({ viewport = { width: 1100, height: 900 }, admin = false, token = '', serviceWorkers = 'block', userAgent } = {}) {
+async function openPage({ viewport = { width: 1100, height: 900 }, admin = false, token = '', serviceWorkers = 'block', userAgent, christmas = false } = {}) {
   const ctx = await browser.newContext({ serviceWorkers, viewport, permissions: [], ...(userAgent ? { userAgent } : {}) });
-  await ctx.addInitScript(([admin, token]) => {
-    try { localStorage.setItem('ml_cookie_consent', 'accepted'); localStorage.setItem('ml_calendar_pref_prompted', '1'); localStorage.setItem('ml_app_promo_seen', '1'); if (!localStorage.getItem('ml_lang')) localStorage.setItem('ml_lang', 'en'); } catch {}
+  await ctx.addInitScript(([admin, token, christmas]) => {
+    try { localStorage.setItem('ml_cookie_consent', 'accepted'); localStorage.setItem('ml_calendar_pref_prompted', '1'); localStorage.setItem('ml_app_promo_seen', '1'); if (!christmas) localStorage.setItem('ml_christmas', 'off'); if (!localStorage.getItem('ml_lang')) localStorage.setItem('ml_lang', 'en'); } catch {}
     window.__copied = [];
     try { Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (t) => { window.__copied.push(t); } }, configurable: true }); } catch {}
     if (admin) { localStorage.setItem('ml_admin_jwt', token); localStorage.setItem('ml_admin_info', JSON.stringify({ id: 1, username: 'boss', role: 'super_admin' })); }
-  }, [admin, token]);
+  }, [admin, token, christmas]);
   await ctx.route(/calendar-api|googlesyndication|fonts\.g|challenges\.cloudflare/, (r) => r.abort());
   await ctx.route('https://api.maralyrics.com/**', async (route) => {
     const req = route.request();
@@ -336,12 +336,12 @@ try {
   ok(await HP.evaluate(() => { const b = document.querySelector('.app-promotion--hymnal'); const l = b.querySelector('a').getBoundingClientRect(); const r = b.getBoundingClientRect(); return l.top >= b.querySelector('.app-promotion__copy').getBoundingClientRect().bottom - 1 && l.width >= r.width * 0.8; }), 'on a phone the button sits under the text, full width');
   if (process.env.E2E_SHOTS) { await HP.locator('.app-promotion--hymnal').scrollIntoViewIfNeeded(); await HP.screenshot({ path: `${process.env.E2E_SHOTS}/hymnal-promo.png` }); }
 
-  section('Christmas theme (1–31 December)');
+  section('Christmas theme (13 November – 31 December 2026)');
   // The page's clock is set to a day of the test's choosing (Date only; timers keep running).
   const clockAt = (iso) => `(() => { const Real = Date; const fixed = new Real('${iso}').getTime(); class FakeDate extends Real { constructor(...a) { if (a.length === 0) super(fixed); else super(...a); } static now() { return fixed; } } window.Date = FakeDate; })();`;
   const xmasOn = (page) => page.evaluate(() => document.documentElement.getAttribute('data-season') === 'christmas' && !!document.querySelector('.xmas-scene'));
   const visit = async (iso, url = '/', opts = {}) => {
-    const made = await openPage(opts);
+    const made = await openPage({ christmas: true, ...opts });
     await made.ctx.addInitScript(clockAt(iso));
     await made.page.goto(`${SITE}${url}`);
     await made.page.waitForSelector('.footer', { state: 'attached' });
@@ -349,7 +349,7 @@ try {
     return made;
   };
   // the days either side of the season, on the real page
-  for (const [iso, on, label] of [['2026-06-15T12:00:00', false, '15 June'], ['2026-11-30T23:59:00', false, '30 November, 23:59'], ['2026-12-01T00:00:00', true, '1 December, midnight'], ['2026-12-25T10:00:00', true, 'Christmas Day'], ['2026-12-31T23:59:00', true, '31 December, 23:59'], ['2027-01-01T00:00:00', false, '1 January, midnight']]) {
+  for (const [iso, on, label] of [['2026-06-15T12:00:00', false, '15 June'], ['2026-11-12T23:59:00', false, '12 November, 23:59'], ['2026-11-13T00:00:00', true, '13 November, midnight (the first day)'], ['2026-11-30T12:00:00', true, '30 November'], ['2026-12-25T10:00:00', true, 'Christmas Day'], ['2026-12-31T23:59:00', true, '31 December, 23:59'], ['2027-01-01T00:00:00', false, '1 January, midnight'], ['2027-12-15T12:00:00', false, 'December 2027 (not until a new window is added)']]) {
     const { page: Y, ctx: YC } = await visit(iso);
     const state = await Y.evaluate(() => ({ season: document.documentElement.getAttribute('data-season'), snow: document.querySelectorAll('.xmas-snow').length, scene: document.querySelectorAll('.xmas-scene').length, row: document.querySelectorAll('[data-xmas-setting]').length, mark: typeof Christmas !== 'undefined' && Christmas.isActive() }));
     ok(on ? state.season === 'christmas' && state.snow === 1 && state.scene === 1 && state.row === 1 && state.mark : state.season === null && state.snow === 0 && state.scene === 0 && state.row === 0 && !state.mark, `${label}: the theme is ${on ? 'on (snow, trees, switch)' : 'not there at all (nothing added to the page)'}`);
@@ -404,7 +404,7 @@ try {
   await XC.close();
 
   // light theme: its own palette, and the snow turns icy blue so that it can be seen
-  const { page: XL, ctx: XLC } = await openPage();
+  const { page: XL, ctx: XLC } = await openPage({ christmas: true });
   await XLC.addInitScript(clockAt('2026-12-15T12:00:00'));
   await XLC.addInitScript(() => { try { localStorage.setItem('ml_theme', 'light'); } catch {} });
   await XL.goto(`${SITE}/`);
@@ -416,7 +416,7 @@ try {
   await XLC.close();
 
   // less motion: the lights, the trees and the colours stay; the snow does not fall
-  const { page: XR, ctx: XRC } = await openPage();
+  const { page: XR, ctx: XRC } = await openPage({ christmas: true });
   await XRC.addInitScript(clockAt('2026-12-15T12:00:00'));
   await XR.emulateMedia({ reducedMotion: 'reduce' });
   await XR.goto(`${SITE}/`);
@@ -433,7 +433,7 @@ try {
   await XRC.close();
 
   // someone who did not accept preference cookies can still switch it off for the page, but nothing is stored
-  const { page: XN, ctx: XNC } = await openPage();
+  const { page: XN, ctx: XNC } = await openPage({ christmas: true });
   await XNC.addInitScript(clockAt('2026-12-15T12:00:00'));
   await XNC.addInitScript(() => { try { localStorage.setItem('ml_cookie_consent', 'essential'); } catch {} });
   await XN.goto(`${SITE}/`);
