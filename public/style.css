@@ -168,6 +168,7 @@ body::before {
 .header__logo {
   display: flex;
   align-items: center;
+  --logo-size: 32px;         /* the icon, and the Christmas hat that sits on it, are drawn from this one size */
   gap: 10px;
   flex-shrink: 0;            /* the logo and the name are one unit: the nav gives way, never the logo */
   white-space: nowrap;
@@ -178,8 +179,8 @@ body::before {
 }
 
 .header__logo-icon {
-  width: 32px;
-  height: 32px;
+  width: var(--logo-size);
+  height: var(--logo-size);
   flex: none;
   border-radius: var(--radius-md);
   object-fit: contain;
@@ -6069,19 +6070,20 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
 [data-season="christmas"] .header__logo { position: relative; }
 [data-season="christmas"] .header__logo::after {
-  /* the hat sits on the logo's head: the brim wraps its top, the hat tips a little and the pom-pom hangs out to the side */
+  /* The Santa hat is drawn in the logo's own units: a 46 × 46 picture whose 0–32 square is the logo (it reaches 14 above and to the
+     left of it), so it always sits on the same spot of the logo, at any logo size. The white brim is an arc around the logo's centre:
+     it hugs the circle's upper-left edge. The cone rises from it and its tip droops outwards with the pom-pom. The hat stays
+     clear of the clef in the middle of the logo (at least 3px). */
   content: '';
   position: absolute;
-  left: -4px;
-  top: -16px;
-  width: 40px;
-  height: 28px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 28'%3E%3Cpath d='M7 20.5C8 11 14 4.5 22 3.5C27 3 32 5.5 35 11C32.5 10 30 10.5 28.5 12.5C26.5 15 28.5 18 33 20.5Z' fill='%23c1121f' stroke='%237d0a14' stroke-width='.8' stroke-linejoin='round'/%3E%3Crect x='6' y='18.5' width='28' height='7.5' rx='3.75' fill='%23fff' stroke='%23d9dfe6' stroke-width='.6'/%3E%3Ccircle cx='35' cy='11.5' r='3.4' fill='%23fff' stroke='%23d9dfe6' stroke-width='.6'/%3E%3C/svg%3E") center / contain no-repeat;
-  transform: rotate(-14deg);
+  left: calc(var(--logo-size) * -0.4375);
+  top: calc(50% - var(--logo-size) * 0.9375);      /* the icon is centred in the logo: its top is 50% - half its size; the hat reaches 0.4375 above that */
+  width: calc(var(--logo-size) * 1.4375);
+  height: calc(var(--logo-size) * 1.4375);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-14 -14 46 46'%3E%3Cdefs%3E%3ClinearGradient id='h' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23d92d3d'/%3E%3Cstop offset='1' stop-color='%23a50f1d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg transform='translate(6.65 8.16) rotate(-50) scale(-1.0 1.0)'%3E%3Cpath d='M-6.4 2C-7 -6.5 -2.6 -13.4 4.4 -15.4C9 -16.7 12.8 -14 14.2 -9C10.9 -11 7.6 -8.6 6.6 2Z' fill='url(%23h)' stroke='%237d0a14' stroke-width='.7' stroke-linejoin='round'/%3E%3Ccircle cx='14.6' cy='-8.6' r='3.75' fill='%23c9d2dc'/%3E%3Ccircle cx='14.6' cy='-8.6' r='3.2' fill='%23fff'/%3E%3C/g%3E%3Cpath d='M4.54 11.83A12.2 12.2 0 0 1 9.90 5.43' fill='none' stroke='%23c9d2dc' stroke-width='7.300000000000001' stroke-linecap='round'/%3E%3Cpath d='M4.54 11.83A12.2 12.2 0 0 1 9.90 5.43' fill='none' stroke='%23fff' stroke-width='6.2' stroke-linecap='round'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
   pointer-events: none;
 }
-[data-season="christmas"][data-theme="light"] .header__logo::after { filter: drop-shadow(0 0 0.7px rgba(40, 40, 60, 0.6)); }
-
+[data-season="christmas"][data-theme="light"] .header__logo::after { filter: drop-shadow(0 0 0.6px rgba(40, 40, 60, 0.55)); }
 
 /* ─── The snow ─── */
 .xmas-snow {

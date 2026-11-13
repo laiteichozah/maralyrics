@@ -8,7 +8,7 @@
 // cache-first below, so a returning visitor's browser keeps the exact bytes it first
 // cached forever otherwise, immune even to a hard refresh, until this version changes. (A script that CHANGES also needs a new ?v= in
 // the pages that load it — `npm run bump-script -- file.js`; `npm test` checks it — because browsers keep scripts for hours.)
-const CACHE_VERSION = 'ml-v53';
+const CACHE_VERSION = 'ml-v54';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const API_CACHE = `${CACHE_VERSION}-api`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
