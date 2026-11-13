@@ -6056,15 +6056,21 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
 [data-season="christmas"] .header__logo { position: relative; }
 [data-season="christmas"] .header__logo::after {
+  /* the hat sits on the logo's head: the brim wraps its top, the hat tips a little and the pom-pom hangs out to the side */
   content: '';
   position: absolute;
-  left: -9px;
-  top: -12px;
-  width: 28px;
-  height: 24px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 22'%3E%3Cpath d='M4 16C5 8 11 3 19 4c3 .5 4 3 4 6l-1 6z' fill='%23d93a3a'/%3E%3Crect x='1.5' y='14.5' width='21' height='5.5' rx='2.75' fill='%23fff'/%3E%3Ccircle cx='22.5' cy='5' r='3.2' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat;
-  transform: rotate(-16deg);
+  left: -4px;
+  top: -16px;
+  width: 40px;
+  height: 28px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 28'%3E%3Cpath d='M7 20.5C8 11 14 4.5 22 3.5C27 3 32 5.5 35 11C32.5 10 30 10.5 28.5 12.5C26.5 15 28.5 18 33 20.5Z' fill='%23c1121f' stroke='%237d0a14' stroke-width='.8' stroke-linejoin='round'/%3E%3Crect x='6' y='18.5' width='28' height='7.5' rx='3.75' fill='%23fff' stroke='%23d9dfe6' stroke-width='.6'/%3E%3Ccircle cx='35' cy='11.5' r='3.4' fill='%23fff' stroke='%23d9dfe6' stroke-width='.6'/%3E%3C/svg%3E") center / contain no-repeat;
+  transform: rotate(-14deg);
   pointer-events: none;
+}
+[data-season="christmas"][data-theme="light"] .header__logo::after { filter: drop-shadow(0 0 0.7px rgba(40, 40, 60, 0.6)); }
+/* the header is shorter on a phone: a slightly smaller hat, with the brim in the same place, so that its top is not cut off */
+@media (max-width: 768px) {
+  [data-season="christmas"] .header__logo::after { transform: rotate(-14deg) scale(0.88); transform-origin: 50% 78%; }
 }
 
 /* ─── The snow ─── */

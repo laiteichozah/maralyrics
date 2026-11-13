@@ -339,6 +339,28 @@ try {
   section('Christmas theme (13 November – 31 December 2026)');
   // The page's clock is set to a day of the test's choosing (Date only; timers keep running).
   const clockAt = (iso) => `(() => { const Real = Date; const fixed = new Real('${iso}').getTime(); class FakeDate extends Real { constructor(...a) { if (a.length === 0) super(fixed); else super(...a); } static now() { return fixed; } } window.Date = FakeDate; })();`;
+  // Where the Santa hat is: its brim must lie across the top of the logo (the hat is worn, not floating beside it) and none of it may
+  // be cut off by the top of the page. The hat is a 40 × 28 picture in a box placed over the logo; these are points of that picture.
+  const hatPoints = (page) => page.evaluate(() => {
+    const logo = document.querySelector('.header__logo');
+    const icon = logo.querySelector('.header__logo-icon').getBoundingClientRect();
+    const r = logo.getBoundingClientRect();
+    const cs = getComputedStyle(logo, '::after');
+    const left = r.left + parseFloat(cs.left);
+    const top = r.top + parseFloat(cs.top);
+    const w = parseFloat(cs.width);
+    const h = parseFloat(cs.height);
+    const [ox, oy] = cs.transformOrigin.split(' ').map(parseFloat);
+    const m = new DOMMatrix(cs.transform);
+    const at = (vx, vy) => { const x = (vx * w) / 40 - ox; const y = (vy * h) / 28 - oy; return [left + ox + m.a * x + m.c * y, top + oy + m.b * x + m.d * y]; };
+    return { icon: { x: icon.left, y: icon.top, w: icon.width, h: icon.height }, tip: at(22, 3.5), pom: at(35, 8.1), brimLeft: at(6, 22), brimRight: at(34, 22), brimMiddle: at(20, 22.25), shown: cs.backgroundImage.includes('svg') && cs.content !== 'none' };
+  });
+  const hatIsWorn = (hat) => hat.shown
+    && hat.brimMiddle[0] > hat.icon.x + hat.icon.w * 0.2 && hat.brimMiddle[0] < hat.icon.x + hat.icon.w * 0.8      // across the middle of the head…
+    && hat.brimMiddle[1] > hat.icon.y && hat.brimMiddle[1] < hat.icon.y + hat.icon.h * 0.45                       // …in its top part
+    && hat.tip[1] < hat.icon.y && hat.pom[1] < hat.icon.y                                                         // the cone and the pom-pom rise above it
+    && hat.brimLeft[0] > hat.icon.x - 8 && hat.brimRight[0] < hat.icon.x + hat.icon.w + 8;                        // and it is no wider than the head, give or take
+  const hatIsInView = (hat) => [hat.tip, hat.pom, hat.brimLeft, hat.brimRight].every(([x, y]) => x >= 0 && y >= 1);
   const xmasOn = (page) => page.evaluate(() => document.documentElement.getAttribute('data-season') === 'christmas' && !!document.querySelector('.xmas-scene'));
   const visit = async (iso, url = '/', opts = {}) => {
     const made = await openPage({ christmas: true, ...opts });
@@ -375,6 +397,7 @@ try {
   ok(scene.before && scene.hidden === 'true' && scene.ids, 'the scene stands right above the footer, is hidden from screen readers, and its SVG ids do not clash');
   ok(/Merry Christmas from MaraLyrics/.test(scene.greeting), `it says "Merry Christmas from MaraLyrics" (${scene.greeting})`);
   ok(await X.evaluate(() => { const h = document.querySelector('.header'); return getComputedStyle(h, '::before').backgroundImage.includes('radial-gradient') && getComputedStyle(h, '::after').backgroundImage.includes('radial-gradient') && getComputedStyle(document.querySelector('.header__logo'), '::after').backgroundImage.includes('svg'); }), 'a string of lights under the header and a Santa hat on the logo');
+  { const hat = await hatPoints(X); ok(hatIsWorn(hat) && hatIsInView(hat), `the Santa hat sits on the logo's head (brim across its top, cone and pom-pom above it) and is not cut off (tip y ${hat.tip[1].toFixed(1)}, pom-pom y ${hat.pom[1].toFixed(1)})`); }
   ok(await X.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-light').trim() === '#f4c55a' && getComputedStyle(document.body).backgroundColor === 'rgb(7, 19, 14)'), 'the dark theme is evergreen with gold links');
   ok(await X.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no sideways scroll');
   if (process.env.E2E_SHOTS) { await X.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await X.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-dark.png` }); await X.evaluate(() => window.scrollTo(0, 0)); await sleep(200); await X.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-dark-top.png` }); }
@@ -467,6 +490,7 @@ try {
   await XUC.close();
   const { page: XM, ctx: XMC } = await visit('2026-12-15T12:00:00', '/', { viewport: { width: 360, height: 740 } });
   ok(await XM.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth) && await XM.evaluate(() => { const s = document.querySelector('.xmas-scene__trees'); return s.scrollWidth <= s.clientWidth + 1; }), 'on a phone (360 px) the trees fit and nothing scrolls sideways');
+  { const hat = await hatPoints(XM); ok(hatIsWorn(hat) && hatIsInView(hat), `…and on a phone the hat is still on the logo and not cut off at the top of the screen (tip y ${hat.tip[1].toFixed(1)}, pom-pom y ${hat.pom[1].toFixed(1)})`); }
   ok(await XM.evaluate(() => { const c = document.querySelector('.xmas-snow'); return c.width >= 360 && c.getBoundingClientRect().width === window.innerWidth; }), '…and the snow covers the screen');
   if (process.env.E2E_SHOTS) { await XM.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await XM.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-phone.png` }); }
   await XMC.close();
