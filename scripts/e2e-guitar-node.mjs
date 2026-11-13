@@ -336,6 +336,54 @@ try {
   ok(await HP.evaluate(() => { const b = document.querySelector('.app-promotion--hymnal'); const l = b.querySelector('a').getBoundingClientRect(); const r = b.getBoundingClientRect(); return l.top >= b.querySelector('.app-promotion__copy').getBoundingClientRect().bottom - 1 && l.width >= r.width * 0.8; }), 'on a phone the button sits under the text, full width');
   if (process.env.E2E_SHOTS) { await HP.locator('.app-promotion--hymnal').scrollIntoViewIfNeeded(); await HP.screenshot({ path: `${process.env.E2E_SHOTS}/hymnal-promo.png` }); }
 
+  section('Header: the logo and the brand name');
+  // The logo and its name are one unit: on whole pixels, centred in the bar, lined up with the page, never squeezed or run into by the nav.
+  const headerAt = async (width, theme = 'dark') => {
+    const { page: HW, ctx: HC } = await openPage({ viewport: { width, height: 600 } });
+    await HC.addInitScript((t) => { try { localStorage.setItem('ml_theme', t); } catch {} }, theme);
+    await HW.goto(`${SITE}/`);
+    await HW.waitForSelector('.header__logo');
+    await sleep(250);
+    const m = await HW.evaluate(() => {
+      const box = (r) => ({ x: r.left, y: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height });
+      const header = document.querySelector('.header');
+      const hcs = getComputedStyle(header);
+      const logo = document.querySelector('.header__logo');
+      const icon = logo.querySelector('.header__logo-icon');
+      const range = document.createRange();
+      range.selectNodeContents([...logo.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim()));
+      const container = document.querySelector('.container');
+      const ccs = getComputedStyle(container);
+      const nav = document.querySelector('.header__nav');
+      const navShown = getComputedStyle(nav).display !== 'none';
+      const items = navShown ? [...nav.children].filter((c) => getComputedStyle(c).display !== 'none') : [document.querySelector('.header__menu-btn')];
+      return {
+        header: box(header.getBoundingClientRect()), shadow: hcs.boxShadow, borderBottom: hcs.borderBottomWidth,
+        logo: box(logo.getBoundingClientRect()), icon: box(icon.getBoundingClientRect()), text: box(range.getBoundingClientRect()), lines: range.getClientRects().length,
+        contentLeft: container.getBoundingClientRect().left + parseFloat(ccs.paddingLeft), contentRight: container.getBoundingClientRect().right - parseFloat(ccs.paddingRight),
+        firstItemLeft: Math.min(...items.map((e) => e.getBoundingClientRect().left)), lastItemRight: Math.max(...items.map((e) => e.getBoundingClientRect().right)),
+        wrapped: [...document.querySelectorAll('.header__nav-link')].some((a) => getComputedStyle(nav).display !== 'none' && a.getBoundingClientRect().height > 36),
+        navShown, scrollW: document.documentElement.scrollWidth, innerW: window.innerWidth,
+      };
+    });
+    await HC.close();
+    return m;
+  };
+  const near = (a, b, tol = 0.01) => Math.abs(a - b) <= tol;
+  for (const width of [1920, 1440, 1100, 1024, 900, 840, 800, 769, 768, 600, 480, 390, 360, 320]) {
+    const m = await headerAt(width);
+    const innerH = m.header.h;                                   // the line under the header is inside it (an inset shadow), so this is the whole bar
+    ok(m.header.h === 64 && m.borderBottom === '0px' && /inset/.test(m.shadow), `${width}px: the bar is 64px high with its line drawn inside (no border taking a pixel of the height)`);
+    ok(Number.isInteger(m.logo.y) && Number.isInteger(m.icon.y) && near(m.logo.y, (innerH - 32) / 2) && near(m.icon.y, m.logo.y), `${width}px: the logo sits on whole pixels, centred in the bar (top ${m.logo.y}px, ${innerH - m.logo.b}px below)`);
+    ok(near((m.text.y + m.text.b) / 2, (m.icon.y + m.icon.b) / 2, 0.6) && m.lines === 1, `${width}px: the name is centred on the logo and on one line (centres ${((m.text.y + m.text.b) / 2).toFixed(1)} and ${((m.icon.y + m.icon.b) / 2).toFixed(1)})`);
+    ok(near(m.text.x - m.icon.r, 10, 0.05) && m.logo.w > 150, `${width}px: a steady 10px between the logo and its name, and the unit is never squeezed (${m.logo.w.toFixed(1)}px wide)`);
+    ok(near(m.logo.x, m.contentLeft) && near(m.lastItemRight, m.contentRight, 0.6), `${width}px: the bar lines up with the page, the logo on the content's left edge (${m.logo.x}px) and the last button on its right edge`);
+    ok(!m.navShown || (m.firstItemLeft - m.logo.r >= 12 && !m.wrapped), `${width}px: ${m.navShown ? `the nav keeps clear of the logo (${(m.firstItemLeft - m.logo.r).toFixed(0)}px) and no link wraps` : 'the menu button replaces the nav'}`);
+    if (width <= 768) ok(near(m.logo.y, m.logo.x), `${width}px: the same 16px above the logo as at its left`);
+    ok(m.scrollW <= m.innerW, `${width}px: no sideways scroll`);
+  }
+  { const m = await headerAt(1280, 'light'); ok(m.header.h === 64 && /inset/.test(m.shadow) && /0\.06|rgba\(0, 0, 0, 0\.06\)/.test(m.shadow), `light theme: the line under the bar is still there, in its own colour (${m.shadow.slice(0, 40)})`); }
+
   section('Christmas theme (13 November – 31 December 2026)');
   // The page's clock is set to a day of the test's choosing (Date only; timers keep running).
   const clockAt = (iso) => `(() => { const Real = Date; const fixed = new Real('${iso}').getTime(); class FakeDate extends Real { constructor(...a) { if (a.length === 0) super(fixed); else super(...a); } static now() { return fixed; } } window.Date = FakeDate; })();`;

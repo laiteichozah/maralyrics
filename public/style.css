@@ -147,7 +147,9 @@ body::before {
   background: rgba(10, 14, 26, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-glass);
+  /* The line under the header is an inset shadow, not a border: a border took 1px of the height, which put the logo and the
+     buttons on half a pixel (blurred edges). The header is a whole number of pixels high inside, so they sit on whole pixels. */
+  box-shadow: inset 0 -1px 0 var(--header-line, var(--border-glass));
   height: var(--header-height);
   display: flex;
   align-items: center;
@@ -166,7 +168,9 @@ body::before {
 .header__logo {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 10px;
+  flex-shrink: 0;            /* the logo and the name are one unit: the nav gives way, never the logo */
+  white-space: nowrap;
   font-size: var(--text-xl);
   font-weight: 700;
   color: var(--text-primary);
@@ -176,6 +180,7 @@ body::before {
 .header__logo-icon {
   width: 32px;
   height: 32px;
+  flex: none;
   border-radius: var(--radius-md);
   object-fit: contain;
 }
@@ -345,12 +350,23 @@ body::before {
   font-weight: 500;
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
+  white-space: nowrap;
   transition: all var(--transition-fast);
 }
 .header__nav-link:hover,
 .header__nav-link.active {
   color: var(--text-primary);
   background: var(--bg-glass);
+}
+
+/* Between a tablet and a small laptop the five links and five buttons do not fit with a 16px gap and 8px padding (they ran into the
+   name and wrapped onto two lines): the gaps get tighter, in two steps, so there is always clear space after the logo. */
+@media (min-width: 769px) and (max-width: 960px) {
+  .header__nav { gap: var(--space-sm); }
+}
+@media (min-width: 769px) and (max-width: 880px) {
+  .header__nav { gap: 4px; }
+  .header__nav-link { padding: var(--space-xs) 6px; }
 }
 
 /* ─── Calendar Icon Button ───────────────────────────────────── */
@@ -4259,6 +4275,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 /* Tablets */
 @media (max-width: 768px) {
   .container { padding: 0 var(--space-md); }
+  .header__inner { padding: 0 var(--space-md); }     /* the logo and the menu button line up with the page's content (same 16px) */
 
   .header__menu-btn {
     display: inline-flex;
@@ -4348,10 +4365,6 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
 /* Mobile */
 @media (max-width: 480px) {
-  :root {
-    --header-height: 56px;
-  }
-
   .hero__subtitle { font-size: var(--text-base); }
 
   .search__input {
@@ -4644,7 +4657,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 /* Header */
 [data-theme="light"] .header {
   background: rgba(245, 247, 251, 0.88);
-  border-bottom-color: rgba(0, 0, 0, 0.06);
+  --header-line: rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .header__logo {
@@ -6068,10 +6081,7 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   pointer-events: none;
 }
 [data-season="christmas"][data-theme="light"] .header__logo::after { filter: drop-shadow(0 0 0.7px rgba(40, 40, 60, 0.6)); }
-/* the header is shorter on a phone: a slightly smaller hat, with the brim in the same place, so that its top is not cut off */
-@media (max-width: 768px) {
-  [data-season="christmas"] .header__logo::after { transform: rotate(-14deg) scale(0.88); transform-origin: 50% 78%; }
-}
+
 
 /* ─── The snow ─── */
 .xmas-snow {
