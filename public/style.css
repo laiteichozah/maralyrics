@@ -5914,3 +5914,282 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   .breadcrumb__link { display: inline-block; padding-block: 0.4rem; }
   .category-btn { min-height: 36px; }
 }
+
+
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║  Christmas theme (1–31 December, set by christmas.js)       ║
+   ║  [data-season="christmas"] is on <html> only while it is on ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+
+/* ─── Palette: evergreen night, holly red and gold (every pair checked for WCAG AA by npm run test:christmas) ─── */
+[data-season="christmas"]:not([data-theme="light"]) {
+  --bg-primary:    #07130e;
+  --bg-secondary:  #0d2017;
+  --bg-card:       rgba(13, 32, 23, 0.68);
+  --bg-glass:      rgba(255, 255, 255, 0.045);
+  --border-glass:  rgba(255, 255, 255, 0.09);
+
+  --text-primary:   #f8fafc;
+  --text-secondary: #a9b9af;
+  --text-muted:     #93a79b;
+
+  --accent:         #e24444;
+  --accent-glow:    rgba(226, 68, 68, 0.35);
+  --accent-light:   #f4c55a;
+  --accent-dark:    #b3202a;
+
+  --neon-pink:      #ff7b7b;
+  --neon-cyan:      #9bd7ff;
+  --neon-green:     #4ade80;
+}
+
+[data-season="christmas"][data-theme="light"] {
+  --bg-primary:    #f4f8f5;
+  --bg-secondary:  #e3ece6;
+  --bg-card:       rgba(255, 255, 255, 0.78);
+  --bg-glass:      rgba(8, 40, 25, 0.04);
+  --border-glass:  rgba(8, 40, 25, 0.12);
+
+  --text-primary:   #12261c;
+  --text-secondary: #3c5448;
+  --text-muted:     #4f6659;
+
+  --accent:         #c62828;
+  --accent-glow:    rgba(198, 40, 40, 0.20);
+  --accent-light:   #a31d24;
+  --accent-dark:    #8a1820;
+
+  --neon-pink:      #c62839;
+  --neon-cyan:      #0b7285;
+  --neon-green:     #15803d;
+}
+
+[data-season="christmas"] body::before {
+  background:
+    radial-gradient(ellipse at 18% 0%, rgba(239, 83, 80, 0.13) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 100%, rgba(74, 222, 128, 0.09) 0%, transparent 52%),
+    radial-gradient(ellipse at 50% 45%, rgba(244, 197, 90, 0.05) 0%, transparent 60%);
+}
+[data-season="christmas"][data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse at 18% 0%, rgba(198, 40, 40, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 100%, rgba(21, 128, 61, 0.06) 0%, transparent 52%),
+    radial-gradient(ellipse at 50% 45%, rgba(214, 158, 46, 0.05) 0%, transparent 60%);
+}
+[data-season="christmas"]:not([data-theme="light"]) .header { background: rgba(7, 19, 14, 0.86); }
+[data-season="christmas"]:not([data-theme="light"]) .settings-panel,
+[data-season="christmas"]:not([data-theme="light"]) .notif-panel { background: rgba(10, 26, 19, 0.94); }
+
+/* The purple tints written straight into the stylesheet (borders, glows, chips) follow the palette where the browser can mix
+   colours; where it cannot, they simply stay as they are. */
+@supports (color: color-mix(in srgb, red, blue)) {
+  [data-season="christmas"] {
+    --xm-a05: color-mix(in srgb, var(--accent) 5%, transparent);
+    --xm-a10: color-mix(in srgb, var(--accent) 10%, transparent);
+    --xm-a16: color-mix(in srgb, var(--accent) 16%, transparent);
+    --xm-a25: color-mix(in srgb, var(--accent) 25%, transparent);
+    --xm-a35: color-mix(in srgb, var(--accent) 35%, transparent);
+    --xm-a50: color-mix(in srgb, var(--accent) 50%, transparent);
+    --xm-g10: color-mix(in srgb, var(--neon-green) 10%, transparent);
+    --xm-g22: color-mix(in srgb, var(--neon-green) 22%, transparent);
+  }
+  [data-season="christmas"] .song-card:hover,
+  [data-season="christmas"] .article-card:hover { border-color: var(--xm-a35); box-shadow: var(--shadow-lg), 0 0 30px var(--xm-a10); }
+  [data-season="christmas"] .song-card--pinned { border-color: var(--xm-a50); background-image: linear-gradient(135deg, var(--xm-a16), transparent 55%); box-shadow: 0 0 0 1px var(--xm-a25) inset; }
+  [data-season="christmas"] .song-card__pin.active,
+  [data-season="christmas"] .song-page__pin.active { border-color: var(--xm-a50); background: var(--xm-a16); }
+  [data-season="christmas"] .song-card__category,
+  [data-season="christmas"] .profile-page__role,
+  [data-season="christmas"] .event-modal__row-icon,
+  [data-season="christmas"] .stat-tile__icon { background: var(--xm-a16); }
+  [data-season="christmas"] .category-btn:hover,
+  [data-season="christmas"] .calendar-pref-dialog__option:hover,
+  [data-season="christmas"] .suggestion-chip:hover,
+  [data-season="christmas"] .btn--ghost:hover,
+  [data-season="christmas"] .app-promo-dialog__language-option:hover,
+  [data-season="christmas"] .dropdown__item.is-active { background: var(--xm-a16); }
+  [data-season="christmas"] .suggestion-chip { background: var(--xm-a10); border-color: var(--xm-a25); }
+  [data-season="christmas"] .song-page__action-btn:hover,
+  [data-season="christmas"] .calendar-dialog__retry:hover,
+  [data-season="christmas"] .notif-panel__permission { background: var(--xm-a10); }
+  [data-season="christmas"] .song-page__action-btn:hover { border-color: var(--xm-a25); }
+  [data-season="christmas"] .static-page__step,
+  [data-season="christmas"] .stat-tile { background: var(--xm-a05); border-color: var(--xm-a10); }
+  [data-season="christmas"] .faq-item[open],
+  [data-season="christmas"] .release[open] { border-color: var(--xm-a35); }
+  [data-season="christmas"] .mobile-drawer__link.active,
+  [data-season="christmas"] .calendar-event__badge { background: linear-gradient(120deg, var(--xm-a16), var(--xm-g10)); }
+  [data-season="christmas"] .app-promotion:not(.app-promotion--hymnal) { border-color: var(--xm-a35); background: linear-gradient(110deg, var(--xm-a16), var(--xm-g10)); }
+  [data-season="christmas"] .app-promotion__link:hover { background: var(--accent); }
+  [data-season="christmas"] .event-modal__hero { background: radial-gradient(120% 140% at 0% 0%, var(--xm-a50), transparent 60%), radial-gradient(100% 120% at 100% 100%, var(--xm-g22), transparent 60%); }
+  [data-season="christmas"] .app-promo-dialog__art { background: radial-gradient(circle at 50% 45%, var(--xm-a50), transparent 55%), linear-gradient(160deg, var(--xm-g10), transparent); }
+  [data-season="christmas"] .idol-video__play { background: linear-gradient(135deg, var(--xm-a50), var(--xm-g22)), var(--bg-secondary); }
+  [data-season="christmas"] .btn-send-feedback { box-shadow: 0 4px 15px var(--xm-a35); }
+  [data-season="christmas"] .btn-send-feedback:hover { box-shadow: 0 8px 25px var(--xm-a50), 0 0 40px var(--xm-g22); }
+}
+
+/* ─── The header: a string of lights under it, and a Santa hat on the logo ─── */
+[data-season="christmas"] .header::before,
+[data-season="christmas"] .header::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -8px;
+  height: 8px;
+  background-repeat: repeat-x;
+  background-size: 76px 8px;
+  pointer-events: none;
+}
+[data-season="christmas"] .header::before {
+  background-image:
+    radial-gradient(circle at 10px 4px, #ff5a5a 0 3px, transparent 3.7px),
+    radial-gradient(circle at 48px 4px, #63c7ff 0 3px, transparent 3.7px);
+  animation: xmasTwinkle 2.2s ease-in-out infinite;
+}
+[data-season="christmas"] .header::after {
+  background-image:
+    radial-gradient(circle at 29px 4px, #ffd54a 0 3px, transparent 3.7px),
+    radial-gradient(circle at 67px 4px, #ff8ad8 0 3px, transparent 3.7px);
+  animation: xmasTwinkle 2.2s ease-in-out -1.1s infinite;
+}
+@keyframes xmasTwinkle { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+[data-season="christmas"] .header__logo { position: relative; }
+[data-season="christmas"] .header__logo::after {
+  content: '';
+  position: absolute;
+  left: -9px;
+  top: -12px;
+  width: 28px;
+  height: 24px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 22'%3E%3Cpath d='M4 16C5 8 11 3 19 4c3 .5 4 3 4 6l-1 6z' fill='%23d93a3a'/%3E%3Crect x='1.5' y='14.5' width='21' height='5.5' rx='2.75' fill='%23fff'/%3E%3Ccircle cx='22.5' cy='5' r='3.2' fill='%23fff'/%3E%3C/svg%3E") center / contain no-repeat;
+  transform: rotate(-16deg);
+  pointer-events: none;
+}
+
+/* ─── The snow ─── */
+.xmas-snow {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 90;
+}
+
+/* ─── Trees in the snow, above the footer ─── */
+[data-season="christmas"] .footer { margin-top: 0; border-top-color: transparent; }
+
+.xmas-scene {
+  --xmas-snow: #f4f9ff;
+  --xmas-snow-deep: #dfecf8;
+  position: relative;
+  margin-top: var(--space-3xl);
+  pointer-events: none;
+}
+.xmas-scene__trees {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.25rem, 2.5vw, 1.75rem);
+  margin-bottom: -5px;
+  padding: 0 var(--space-md);
+}
+.xmas-tree { display: block; flex: none; height: auto; overflow: visible; }
+.xmas-tree--sm { width: 104px; }
+.xmas-tree--md { width: 140px; }
+.xmas-tree--lg { width: 188px; }
+.xmas-gifts { display: block; flex: none; width: 128px; height: auto; margin-bottom: 14px; }
+.xmas-scene__ground {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-sm) var(--space-lg) var(--space-lg);
+  background: linear-gradient(var(--xmas-snow), var(--xmas-snow-deep));
+  color: var(--xmas-snow);     /* the wave is drawn in currentColor, so it joins the snow below it */
+  text-align: center;
+}
+.xmas-scene__wave {
+  position: absolute;
+  left: 0;
+  top: -15px;
+  width: 100%;
+  height: 16px;
+  color: var(--xmas-snow);
+}
+[data-season="christmas"]:not([data-theme="light"]) .xmas-scene__wave { filter: drop-shadow(0 -3px 8px rgba(180, 220, 255, 0.16)); }
+[data-season="christmas"][data-theme="light"] .xmas-scene { --xmas-snow: #eaf3fc; --xmas-snow-deep: #d2e3f4; }
+.xmas-scene__edge { stroke: none; }
+[data-season="christmas"][data-theme="light"] .xmas-scene__edge { stroke: rgba(30, 80, 130, 0.25); stroke-width: 1.2px; }
+.xmas-scene__greeting {
+  margin: 0;
+  color: #1b3a57;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.xmas-scene__greeting span[aria-hidden="true"] { color: #5b9bd5; }
+
+/* Twinkling: the four colours take turns, the star breathes */
+.xmas-bulbs--0 { animation: xmasTwinkle 1.9s ease-in-out infinite; }
+.xmas-bulbs--1 { animation: xmasTwinkle 1.9s ease-in-out -0.5s infinite; }
+.xmas-bulbs--2 { animation: xmasTwinkle 1.9s ease-in-out -0.95s infinite; }
+.xmas-bulbs--3 { animation: xmasTwinkle 1.9s ease-in-out -1.4s infinite; }
+.xmas-halo { animation: xmasHalo 3.2s ease-in-out infinite; }
+@keyframes xmasHalo { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.45; } }
+
+@media (max-width: 600px) {
+  .xmas-tree--sm { width: 60px; }
+  .xmas-tree--md { width: 84px; }
+  .xmas-tree--lg { width: 112px; }
+  .xmas-gifts { width: 76px; margin-bottom: 9px; }
+  .xmas-scene { margin-top: var(--space-2xl); }
+  .xmas-scene__greeting { font-size: var(--text-base); }
+}
+
+/* ─── The switch in Settings ─── */
+.xmas-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.xmas-switch:hover { border-color: var(--accent-light); }
+.xmas-switch:focus-visible { outline: 2px solid var(--accent-light); outline-offset: 2px; }
+.xmas-switch__knob {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: rgba(148, 163, 184, 0.4);
+  transition: background var(--transition-fast);
+}
+.xmas-switch__knob::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: transform var(--transition-fast);
+}
+.xmas-switch[aria-checked="true"] .xmas-switch__knob { background: #2f9e5a; }
+.xmas-switch[aria-checked="true"] .xmas-switch__knob::after { transform: translateX(14px); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-season="christmas"] .header::before,
+  [data-season="christmas"] .header::after,
+  .xmas-bulbs, .xmas-halo { animation: none; }
+  .xmas-switch, .xmas-switch__knob, .xmas-switch__knob::after { transition: none; }
+}
