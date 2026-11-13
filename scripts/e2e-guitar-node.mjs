@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
@@ -387,28 +388,6 @@ try {
   section('Christmas theme (13 November – 31 December 2026)');
   // The page's clock is set to a day of the test's choosing (Date only; timers keep running).
   const clockAt = (iso) => `(() => { const Real = Date; const fixed = new Real('${iso}').getTime(); class FakeDate extends Real { constructor(...a) { if (a.length === 0) super(fixed); else super(...a); } static now() { return fixed; } } window.Date = FakeDate; })();`;
-  // Where the Santa hat is: its brim must lie across the top of the logo (the hat is worn, not floating beside it) and none of it may
-  // be cut off by the top of the page. The hat is a 40 × 28 picture in a box placed over the logo; these are points of that picture.
-  const hatPoints = (page) => page.evaluate(() => {
-    const logo = document.querySelector('.header__logo');
-    const icon = logo.querySelector('.header__logo-icon').getBoundingClientRect();
-    const r = logo.getBoundingClientRect();
-    const cs = getComputedStyle(logo, '::after');
-    const left = r.left + parseFloat(cs.left);
-    const top = r.top + parseFloat(cs.top);
-    const w = parseFloat(cs.width);
-    const h = parseFloat(cs.height);
-    const [ox, oy] = cs.transformOrigin.split(' ').map(parseFloat);
-    const m = new DOMMatrix(cs.transform);
-    const at = (vx, vy) => { const x = (vx * w) / 40 - ox; const y = (vy * h) / 28 - oy; return [left + ox + m.a * x + m.c * y, top + oy + m.b * x + m.d * y]; };
-    return { icon: { x: icon.left, y: icon.top, w: icon.width, h: icon.height }, tip: at(22, 3.5), pom: at(35, 8.1), brimLeft: at(6, 22), brimRight: at(34, 22), brimMiddle: at(20, 22.25), shown: cs.backgroundImage.includes('svg') && cs.content !== 'none' };
-  });
-  const hatIsWorn = (hat) => hat.shown
-    && hat.brimMiddle[0] > hat.icon.x + hat.icon.w * 0.2 && hat.brimMiddle[0] < hat.icon.x + hat.icon.w * 0.8      // across the middle of the head…
-    && hat.brimMiddle[1] > hat.icon.y && hat.brimMiddle[1] < hat.icon.y + hat.icon.h * 0.45                       // …in its top part
-    && hat.tip[1] < hat.icon.y && hat.pom[1] < hat.icon.y                                                         // the cone and the pom-pom rise above it
-    && hat.brimLeft[0] > hat.icon.x - 8 && hat.brimRight[0] < hat.icon.x + hat.icon.w + 8;                        // and it is no wider than the head, give or take
-  const hatIsInView = (hat) => [hat.tip, hat.pom, hat.brimLeft, hat.brimRight].every(([x, y]) => x >= 0 && y >= 1);
   const xmasOn = (page) => page.evaluate(() => document.documentElement.getAttribute('data-season') === 'christmas' && !!document.querySelector('.xmas-scene'));
   const visit = async (iso, url = '/', opts = {}) => {
     const made = await openPage({ christmas: true, ...opts });
@@ -445,7 +424,6 @@ try {
   ok(scene.before && scene.hidden === 'true' && scene.ids, 'the scene stands right above the footer, is hidden from screen readers, and its SVG ids do not clash');
   ok(/Merry Christmas from MaraLyrics/.test(scene.greeting), `it says "Merry Christmas from MaraLyrics" (${scene.greeting})`);
   ok(await X.evaluate(() => { const h = document.querySelector('.header'); return getComputedStyle(h, '::before').backgroundImage.includes('radial-gradient') && getComputedStyle(h, '::after').backgroundImage.includes('radial-gradient') && getComputedStyle(document.querySelector('.header__logo'), '::after').backgroundImage.includes('svg'); }), 'a string of lights under the header and a Santa hat on the logo');
-  { const hat = await hatPoints(X); ok(hatIsWorn(hat) && hatIsInView(hat), `the Santa hat sits on the logo's head (brim across its top, cone and pom-pom above it) and is not cut off (tip y ${hat.tip[1].toFixed(1)}, pom-pom y ${hat.pom[1].toFixed(1)})`); }
   ok(await X.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent-light').trim() === '#f4c55a' && getComputedStyle(document.body).backgroundColor === 'rgb(7, 19, 14)'), 'the dark theme is evergreen with gold links');
   ok(await X.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'no sideways scroll');
   if (process.env.E2E_SHOTS) { await X.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await X.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-dark.png` }); await X.evaluate(() => window.scrollTo(0, 0)); await sleep(200); await X.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-dark-top.png` }); }
@@ -538,10 +516,97 @@ try {
   await XUC.close();
   const { page: XM, ctx: XMC } = await visit('2026-12-15T12:00:00', '/', { viewport: { width: 360, height: 740 } });
   ok(await XM.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth) && await XM.evaluate(() => { const s = document.querySelector('.xmas-scene__trees'); return s.scrollWidth <= s.clientWidth + 1; }), 'on a phone (360 px) the trees fit and nothing scrolls sideways');
-  { const hat = await hatPoints(XM); ok(hatIsWorn(hat) && hatIsInView(hat), `…and on a phone the hat is still on the logo and not cut off at the top of the screen (tip y ${hat.tip[1].toFixed(1)}, pom-pom y ${hat.pom[1].toFixed(1)})`); }
   ok(await XM.evaluate(() => { const c = document.querySelector('.xmas-snow'); return c.width >= 360 && c.getBoundingClientRect().width === window.innerWidth; }), '…and the snow covers the screen');
   if (process.env.E2E_SHOTS) { await XM.evaluate(() => document.querySelector('.xmas-scene').scrollIntoView({ block: 'center' })); await sleep(300); await XM.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-phone.png` }); }
   await XMC.close();
+
+  section('Christmas hat on the logo');
+  // Pictures are looked at pixel by pixel: a tiny PNG reader (8-bit RGB or RGBA, no interlacing, which is what a screenshot is).
+  const decodePng = (buf) => {
+    let pos = 8; let width = 0; let height = 0; let colorType = 0; const idat = [];
+    while (pos < buf.length) {
+      const len = buf.readUInt32BE(pos); const type = buf.toString('ascii', pos + 4, pos + 8); const data = buf.subarray(pos + 8, pos + 8 + len);
+      if (type === 'IHDR') { width = data.readUInt32BE(0); height = data.readUInt32BE(4); colorType = data[9]; } else if (type === 'IDAT') idat.push(data);
+      pos += 12 + len;
+    }
+    const bpp = colorType === 6 ? 4 : 3; const raw = zlib.inflateSync(Buffer.concat(idat)); const stride = width * bpp; const out = Buffer.alloc(height * stride);
+    for (let y = 0; y < height; y++) {
+      const f = raw[y * (stride + 1)];
+      for (let x = 0; x < stride; x++) {
+        const a = x >= bpp ? out[y * stride + x - bpp] : 0; const b = y ? out[(y - 1) * stride + x] : 0; const c = x >= bpp && y ? out[(y - 1) * stride + x - bpp] : 0;
+        let v = raw[y * (stride + 1) + 1 + x];
+        if (f === 1) v += a; else if (f === 2) v += b; else if (f === 3) v += (a + b) >> 1; else if (f === 4) { const p = a + b - c; const pa = Math.abs(p - a); const pb = Math.abs(p - b); const pc = Math.abs(p - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
+        out[y * stride + x] = v & 255;
+      }
+    }
+    return { width, height, bpp, data: out };
+  };
+  // The hat is a 46 × 46 picture whose 0–32 square is the logo (it reaches 14 above and to the left of it). Pixels are read in the logo's own units.
+  const { page: HT, ctx: HTC } = await openPage({ christmas: true });
+  await HTC.addInitScript(clockAt('2026-12-15T12:00:00'));
+  await HT.emulateMedia({ reducedMotion: 'reduce' });       // nothing moves: no snow, no twinkling, so two pictures of the same place are the same
+  await HT.goto(`${SITE}/`);
+  await HT.waitForSelector('.xmas-scene', { state: 'attached' });
+  await sleep(400);
+  const iconBox = () => HT.evaluate(() => { const r = document.querySelector('.header__logo-icon').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width }; });
+  let shotNo = 0;
+  const shot = async (u0, v0, u1, v1) => { const ic = await iconBox(); const k = ic.w / 32; const png = await HT.screenshot({ clip: { x: ic.x + u0 * k, y: ic.y + v0 * k, width: (u1 - u0) * k, height: (v1 - v0) * k } }); if (process.env.E2E_SHOTS) fs.writeFileSync(`${process.env.E2E_SHOTS}/hat-debug-${shotNo++}.png`, png); return decodePng(png); };
+  const CLEF = [11.75, 4.6, 20.25, 27.1];        // the treble clef of the logo (x 12.3–19.7, y 5.1–26.6) with half a pixel round it
+  const withHat = await shot(...CLEF);
+  await HT.addStyleTag({ content: '.header__logo::after { display: none !important; }' });
+  const withoutHat = await shot(...CLEF);
+  { // the clef's own pixels, from the picture without the hat, and one pixel round each: all must be exactly the same with the hat on
+    let clefPixels = 0; let changed = 0;
+    const at = (img, x, y) => { const i = (y * img.width + x) * img.bpp; return [img.data[i], img.data[i + 1], img.data[i + 2]]; };
+    const isClef = (x, y) => { const [r, g, b] = at(withoutHat, x, y); return r > 200 && g > 200 && b > 200; };
+    for (let y = 0; y < withoutHat.height; y++) for (let x = 0; x < withoutHat.width; x++) {
+      let near1 = false;
+      for (let dy = -1; dy <= 1 && !near1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; const yy = y + dy; if (xx >= 0 && yy >= 0 && xx < withoutHat.width && yy < withoutHat.height && isClef(xx, yy)) { near1 = true; break; } }
+      if (!near1) continue;
+      clefPixels++;
+      if (at(withHat, x, y).join() !== at(withoutHat, x, y).join()) changed++;
+    }
+    ok(clefPixels > 60 && changed === 0, `the logo's clef is untouched by the hat (${clefPixels} pixels of the clef and its edge, ${changed} changed by the hat)`);
+  }
+  await HT.reload();
+  await HT.waitForSelector('.xmas-scene', { state: 'attached' });
+  await sleep(400);
+  const pic = await shot(-14, -14, 32, 32);
+  const hatPixels = { crimsonOutside: 0, crimsonAll: 0, whiteBrim: 0, whiteOutside: 0, farthestRight: -99, lowest: -99 };
+  for (let y = 0; y < pic.height; y++) {
+    for (let x = 0; x < pic.width; x++) {
+      const i = (y * pic.width + x) * pic.bpp; const r = pic.data[i]; const g = pic.data[i + 1]; const b = pic.data[i + 2];
+      const u = x - 14 + 0.5; const v = y - 14 + 0.5;                    // the centre of this pixel, in logo units
+      const dist = Math.hypot(u - 16, v - 16); const angle = (Math.atan2(u - 16, -(v - 16)) * 180) / Math.PI;     // 0 = straight up, negative = to the left
+      const crimson = r >= 110 && r <= 240 && g < 80 && b < 90 && !(r > 238 && g < 25 && b < 25) && dist > 16.9;   // the hat's red outside the circle (the circle's own anti-aliased edge is no hat)
+      const white = r > 225 && g > 225 && b > 225 && !(u > CLEF[0] - 1 && u < CLEF[2] + 1 && v > CLEF[1] - 1 && v < CLEF[3] + 1);
+      if (crimson) { hatPixels.crimsonAll++; hatPixels.crimsonOutside++; }
+      if (white && dist > 8.5 && dist <= 16.4 && angle < -12 && angle > -88) hatPixels.whiteBrim++;
+      if (white && dist > 16.4) hatPixels.whiteOutside++;
+      if (crimson || white) { hatPixels.farthestRight = Math.max(hatPixels.farthestRight, u); hatPixels.lowest = Math.max(hatPixels.lowest, v); }
+    }
+  }
+  ok(hatPixels.crimsonOutside >= 60, `the red cone of the hat rises beyond the logo's edge (${hatPixels.crimsonOutside} pixels outside the circle)`);
+  ok(hatPixels.whiteBrim >= 40, `the white brim lies on the circle's upper-left edge, inside it (${hatPixels.whiteBrim} pixels between 9 and 16 px from the centre, 12°–88° left of the top)`);
+  ok(hatPixels.whiteOutside >= 15, `the pom-pom hangs outside the circle (${hatPixels.whiteOutside} white pixels)`);
+  ok(hatPixels.farthestRight < 17 && hatPixels.lowest < 20, `the hat stays on the upper-left: nothing right of x = 17 or below y = 20 of the logo's 32 pixels (furthest right ${hatPixels.farthestRight.toFixed(1)}, lowest ${hatPixels.lowest.toFixed(1)})`);
+  const hatBox = () => HT.evaluate(() => { const logo = document.querySelector('.header__logo'); const icon = logo.querySelector('.header__logo-icon').getBoundingClientRect(); const lr = logo.getBoundingClientRect(); const cs = getComputedStyle(logo, '::after'); return { icon: { x: icon.left, y: icon.top, w: icon.width }, left: lr.left + parseFloat(cs.left), top: lr.top + parseFloat(cs.top), w: parseFloat(cs.width), h: parseFloat(cs.height), shown: cs.content !== 'none' && cs.backgroundImage.includes('svg') }; });
+  { const g = await hatBox(); const k = g.icon.w / 32;
+    ok(g.shown && near(g.left, g.icon.x - 14 * k, 0.05) && near(g.top, g.icon.y - 14 * k, 0.05) && near(g.w, 46 * k, 0.05) && near(g.h, 46 * k, 0.05), `the hat's picture is placed on the logo's own square (14 above and to the left, 46 × 46 in logo units: ${g.w}px for a ${g.icon.w}px logo)`); }
+  // the hat follows the logo when the logo's size changes
+  await HT.addStyleTag({ content: '.header__logo { --logo-size: 24px; }' });
+  await sleep(100);
+  { const g = await hatBox(); const k = g.icon.w / 32;
+    ok(near(g.icon.w, 24, 0.01) && near(g.left, g.icon.x - 14 * k, 0.05) && near(g.top, g.icon.y - 14 * k, 0.05) && near(g.w, 46 * k, 0.05), `with a smaller logo (24px) the hat is smaller by the same amount and still on the same spot of it (${g.w.toFixed(1)}px)`); }
+  await HTC.close();
+  // at every width the whole hat is on the screen
+  for (const width of [1920, 1280, 1024, 768, 600, 390, 360, 320]) {
+    const { page: HV, ctx: HVC } = await visit('2026-12-15T12:00:00', '/', { viewport: { width, height: 600 } });
+    const g = await HV.evaluate(() => { const logo = document.querySelector('.header__logo'); const lr = logo.getBoundingClientRect(); const cs = getComputedStyle(logo, '::after'); return { left: lr.left + parseFloat(cs.left), top: lr.top + parseFloat(cs.top), right: lr.left + parseFloat(cs.left) + parseFloat(cs.width), w: parseFloat(cs.width), headerH: document.querySelector('.header').getBoundingClientRect().height }; });
+    ok(g.left >= 0 && g.top >= 0 && g.w === 46 && g.top + 46 <= g.headerH + 30, `${width}px: the whole hat is on the screen, the same size as everywhere (46px picture from x ${g.left}, y ${g.top})`);
+    await HVC.close();
+  }
+  if (process.env.E2E_SHOTS) { const { page: HS, ctx: HSC } = await visit('2026-12-15T12:00:00', '/'); await HS.screenshot({ path: `${process.env.E2E_SHOTS}/christmas-hat.png`, clip: { x: 0, y: 0, width: 360, height: 70 } }); await HSC.close(); }
 
   section('Admin: searching (any case, accents, a typo)');
   const accentedSong = Number(song('Ṭhâng Léi', 'thang-lei', 'Words of the song', null, null).lastInsertRowid);
