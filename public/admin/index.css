@@ -1579,6 +1579,9 @@ button.is-busy::after {
 .gn-chord { min-height: 1.4em; padding-right: 0.7em; font-family: var(--font-mono); font-size: 0.82em; font-weight: 700; line-height: 1.4; color: var(--accent-light); white-space: pre; }
 .gn-line--chords .gn-chord { padding-right: 1em; }
 .gn-text { white-space: pre-wrap; min-width: 0; }
+/* A chord at the very end of a line has no words under it: its column keeps the height of one line of words, so the chord stays on the
+   chord row above the words (it used to drop to the row of the words). A line of only chords keeps its own height. */
+.gn-line:not(.gn-line--chords) .gn-text { min-height: 1.35em; }
 .gn-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgba(139,92,246,0.18); color: var(--accent-light); font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
 
 .gn-admin__tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: var(--space-sm); }
