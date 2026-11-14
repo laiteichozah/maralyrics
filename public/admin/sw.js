@@ -11,7 +11,7 @@
 //
 // Bump CACHE_VERSION whenever a precached file's content changes (the offline copies are replaced; while online the
 // network is always asked first — see the fetch handler).
-const CACHE_VERSION = 'ml-admin-v21';
+const CACHE_VERSION = 'ml-admin-v22';
 const SHELL_ASSETS = [
   './',
   './index.html',

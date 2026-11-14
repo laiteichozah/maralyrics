@@ -60,6 +60,8 @@ song('Sad Waltz', 'sad-waltz', 'Alone again\nWith the rain', 'Am', { v: 1, lines
 song('Mystery Key', 'mystery-key', 'Over the hill\nAnd far away', null, { v: 1, lines: { 0: [[0, 'Bb'], [9, 'F/A']], 1: [[0, 'Gm7'], [8, 'C7']] } });
 song('Plain Song', 'plain-song', 'No chords here\nJust words', null, null);
 song('Intro Song', 'intro-song', '\nFirst line\nSecond line', 'G', { v: 1, lines: { 0: [[0, 'G'], [0, 'D'], [0, 'Em']], 1: [[0, 'G'], [6, 'D']] } });
+const END_LYRICS = 'Thyutliana daihti pha he\nRamâ hawh dei a vaw châ\nDaihti rei hmâh aw mapi\nPawpi paw hawh thlai ama lo aw\n\nTahmâ he lypa ta\nHuasua daihti hmâh su vy\nLôh hia leita, hmâh lymâ su vy';
+song('End Chords', 'end-chords', END_LYRICS, 'G', { v: 1, lines: { 0: [[0, 'G'], [11, 'D']], 1: [[0, 'Am'], [10, 'D'], [23, 'G']], 2: [[0, 'G'], [11, 'C']], 3: [[0, 'G'], [16, 'D'], [30, 'G']], 5: [[0, 'C'], [6, 'G']], 6: [[0, 'D']], 7: [[0, 'C'], [11, 'D'], [90, 'G']] } });
 song('Burmese Song', 'burmese-song', 'မြန်မာနိုင်ငံ\nနောက်ဆုံး', 'D', { v: 1, lines: { 0: [[0, 'D'], [3, 'A']] } });
 
 const MIME = { '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml' };
@@ -279,6 +281,40 @@ try {
   ok(colour === 'rgb(91, 33, 182)', `light theme: darker chord colour (${colour})`);
 
   // ═══ Admin ═════════════════════════════════════════════════════════════════
+  section('Chords at the end of a line');
+  // A chord written at the very end of a line has no words under it. It must still stand above the line, on the row of the other
+  // chords, not drop down to the row of the words (which is where an empty column used to put it).
+  const rowsOf = (page) => page.evaluate(() => [...document.querySelectorAll('#songLyrics .gn-line')].filter((r) => r.querySelector('.gn-chord') && !r.classList.contains('gn-line--chords') && !r.classList.contains('gn-line--plain')).map((row) => {
+    const chords = [...row.querySelectorAll('.gn-chord')].filter((c) => c.textContent.trim()).map((c) => { const r = c.getBoundingClientRect(); return { name: c.textContent.trim(), top: r.top, bottom: r.bottom, left: r.left, right: r.right }; });
+    const texts = [...row.querySelectorAll('.gn-text')].filter((t) => t.textContent.length).map((t) => { const r = t.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; });
+    const segs = [...row.querySelectorAll('.gn-seg')].map((g) => { const r = g.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, empty: !g.querySelector('.gn-text').textContent.length }; });
+    return { chords, texts, segs, text: row.textContent };
+  }));
+  const { page: EP } = await openPage();
+  await openSong(EP, 'end-chords');
+  const endRows = await rowsOf(EP);
+  ok(endRows.length === 7 && endRows.filter((r) => r.segs.some((g) => g.empty)).length === 3, `the Mara song has 7 lines with chords, 3 of them ending in a chord with no words under it (${endRows.length} / ${endRows.filter((r) => r.segs.some((g) => g.empty)).length})`);
+  for (const row of endRows) {
+    const tops = row.chords.map((c) => c.top);
+    const lowestChord = Math.max(...row.chords.map((c) => c.bottom));
+    const highestText = Math.min(...row.texts.map((t) => t.top));
+    ok(Math.max(...tops) - Math.min(...tops) <= 1 && lowestChord <= highestText + 1, `"${row.text.trim().slice(0, 26)}": every chord is on one row above the words (chords from ${Math.min(...tops).toFixed(1)} to ${Math.max(...tops).toFixed(1)}px, words from ${highestText.toFixed(1)}px)`);
+  }
+  { const row = endRows[1];
+    const last = row.chords[row.chords.length - 1];
+    const lastText = row.texts[row.texts.length - 1];
+    ok(last.name === 'G' && last.top < lastText.top && last.left >= lastText.right - 3, `the G at the end of "Ramâ hawh dei a vaw châ" stands above the end of the line (top ${last.top.toFixed(1)} against the words' ${lastText.top.toFixed(1)}; left ${last.left.toFixed(1)} against the words' end ${lastText.right.toFixed(1)})`); }
+  { const row = endRows[6]; ok(row.chords.map((c) => c.name).join() === 'C,D,G' && row.chords.every((c) => c.top < Math.min(...row.texts.map((t) => t.top))), 'a chord written far past the end of its line (column 90) is clamped to the end and shown above, like the others'); }
+  { const row = endRows[0]; ok(row.segs.every((g) => !g.empty) && row.chords.length === 2, 'a line with no chord at its end is drawn as before'); }
+  if (process.env.E2E_SHOTS) { await EP.locator('#songLyrics').screenshot({ path: `${process.env.E2E_SHOTS}/end-chords-desktop.png` }); }
+  // a phone: the lines are narrower and may wrap, the chords still stay with their words
+  const { page: EM } = await openPage({ viewport: { width: 360, height: 740 } });
+  await openSong(EM, 'end-chords');
+  { const rows = await rowsOf(EM);
+    const bad = rows.filter((row) => { const rowsTop = new Map(); for (const c of row.chords) { const key = Math.round(c.top); rowsTop.set(key, c); } return row.chords.some((c) => !row.texts.some((t) => t.top >= c.bottom - 1 && t.top - c.bottom < 40)); });
+    ok(bad.length === 0, `on a 360px phone every chord still has words on a row below it (${rows.length} lines, ${bad.length} chords without)`); }
+  if (process.env.E2E_SHOTS) { await EM.locator('#songLyrics').screenshot({ path: `${process.env.E2E_SHOTS}/end-chords-phone.png` }); }
+
   section('Open in the Android app');
   const ANDROID = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36';
   const FALLBACK = encodeURIComponent('https://play.google.com/store/apps/details?id=com.maralyrics.laitei');
@@ -682,6 +718,13 @@ try {
   ok((await A.inputValue('#formLyrics')) === 'Amazing grace how sweet the sound\nThat saved a wretch like me\n\n[Chorus]\n', 'the Lyrics box shows the words only (the [Chorus] label stays, the chord-only line is an empty line)');
   const preview = await A.evaluate(() => [...document.querySelectorAll('#gnAdminPreview .gn-chord')].map((c) => c.textContent).filter(Boolean).join(' '));
   ok(preview === 'G C D G Em D G C D G', `the live preview draws the chords (${preview})`);
+  // a chord at the end of a line (nothing after it) stands on the chord row above the words in the dashboard's preview too
+  await A.fill('#formChordSheet', '[Am]Ramâ hawh [D]dei a vaw châ[G]\n[G]Daihti [C]rei hmâh aw mapi[G]');
+  await sleep(350);
+  { const rows = await A.evaluate(() => [...document.querySelectorAll('#gnAdminPreview .gn-line')].filter((r) => r.querySelector('.gn-chord')).map((r) => ({ chords: [...r.querySelectorAll('.gn-chord')].filter((c) => c.textContent.trim()).map((c) => ({ name: c.textContent.trim(), top: c.getBoundingClientRect().top, bottom: c.getBoundingClientRect().bottom })), words: Math.min(...[...r.querySelectorAll('.gn-text')].filter((t) => t.textContent.length).map((t) => t.getBoundingClientRect().top)) })));
+    ok(rows.length === 2 && rows.every((r) => r.chords.length === 3 && Math.max(...r.chords.map((c) => c.top)) - Math.min(...r.chords.map((c) => c.top)) <= 1 && Math.max(...r.chords.map((c) => c.bottom)) <= r.words + 1), `a chord at the end of a line is above the words in the preview too (${rows.map((r) => r.chords.map((c) => `${c.name}@${c.top.toFixed(0)}`).join(' ') + ' / words ' + r.words.toFixed(0)).join(' | ')})`); }
+  await A.fill('#formChordSheet', '[G]Amazing [C]grace how [D]sweet the sound\n[G]That saved a [Em]wretch like [D]me\n\n[Chorus]\n[G] [C] [D] [G]');
+  await sleep(300);
   if (process.env.E2E_SHOTS) {
     await A.evaluate(() => document.getElementById('gnAdmin').scrollIntoView({ block: 'start' }));
     await A.screenshot({ path: `${process.env.E2E_SHOTS}/gn-admin-form-top.png` });

@@ -5900,6 +5900,11 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 }
 [data-theme="light"] .gn-chord { color: #5b21b6; }
 .gn-text { white-space: pre-wrap; min-width: 0; }
+/* A chord at the very end of a line (or written past its end) has no words under it. Its column is then empty and would be as tall as
+   the chord alone, and the row lines its columns up at the bottom, so the chord dropped to the row of the words. An empty column keeps
+   the height of one line of words, so every chord of a line stays on one row, above the words. (A line of only chords has no words
+   on purpose: it keeps its own height.) */
+.gn-line:not(.gn-line--chords) .gn-text { min-height: 1.35em; }
 .gn-line--chords .gn-chord { padding-right: 1em; }
 @media (max-width: 600px) {
   .guitar-node { padding: 12px; }
