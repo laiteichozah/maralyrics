@@ -5,6 +5,156 @@
  "releases_url": "https://github.com/laiteichozah/maralyrics/releases",
  "releases": [
   {
+   "version": "1.12.0",
+   "tag": "v1.12.0",
+   "title": "Christmas, Android sign-in and a calmer home page",
+   "date": "2026-11-20",
+   "summary": "A Christmas theme for the season, a stand-alone sign-in page for the Android app, a Mara Hymns link, forgiving search in the dashboard, and a site audit that stops the home page jumping while it loads and takes the people photos out of the API lists.",
+   "highlights": [
+    "Christmas theme, from 13 November to 31 December 2026 (by the visitor's own date; it switches itself off after 31 December and does not come back by itself next year: add a window to SEASONS in christmas.js): falling snow over every page (ignores mouse and touch, paused in a hidden tab, left out for \"reduce motion\" and Save-Data), three decorated trees with twinkling lights standing in a snow drift above the footer, a string of lights under the header, a Santa hat on the logo's upper-left edge (the clef is never touched) and a festive palette in both the dark and the light theme. Settings has a \"Christmas theme\" On/Off switch; /?christmas=preview shows it on any day. It loads nothing from another site, so the Privacy Policy needs no change; the text is English for now. `npm run test:christmas` and the browser test cover the dates, the wiring, the contrast and that the whole hat is on screen from 1920px down to 320px",
+    "Android sign-in on its own page, https://maralyrics.com/app-auth?state=<state>: one dark card, no site header or footer, Google or email + password with the same Cloudflare challenges as /account, then LOGIN SUCCESSFUL and a single RETURN TO THE APP button that hands the session back to the app through an Android intent URL (a missing or invalid state shows \"This sign-in link isn't valid\"; the page is noindex, no-store and never cached by the service worker). Every local script tag on /app-auth and /account now carries a ?v=, which fixed that page showing \"isn't valid\" in browsers still holding an older script; `npm test` now fails when a script under public/ changed but the ?v= of a page that loads it did not (`npm run test:scriptv`, `npm run bump-script -- file.js`)",
+    "Site audit, people photos: artist and composer photos were stored as base64 and sent inside the lists (the artists list was about 534 KB). The lists and the detail answer now carry a short address instead (/api/v1/artists/<slug>/image?v=<fingerprint>, the same for composers), served with a one-year cache, ETag and 304 (an SVG is sandboxed, a stored https photo is redirected to). Measured on the live API: the two lists went from about 421 KB to 6.7 KB on the wire; the photos a page shows are still downloaded once and then kept for a year, so a first visit to the home page saves about 130 KB and every later visit, and every page that needs the list but not the photos, saves about 415 KB. Social cards and the page data (JSON-LD) now use an uploaded photo instead of the brand image. The dashboard, the account page and /bootstrap still receive the stored value; nothing in the database changes. `npm run test:peopleimages` (50 checks)",
+    "Site audit, first visit: the Song of the Day and Featured people sections no longer push the page down when they appear (their space is reserved; layout shift 0.96 down to 0.02 in a throttled mobile run); the \"which calendar do you use?\" question and the Android app promotion no longer cover the page 900 ms after it loads: they wait for the first touch, key or scroll plus 3 seconds, the calendar question is asked on the home page only, and crawlers and automated browsers (Googlebot, AdSense's checker, Lighthouse and the like) never get them; the cookie banner on phones is a compact bar, 174 px instead of 281 px. `npm run test:firstvisit` (55 checks)",
+    "Header: the logo and the brand name line up as one unit (the bar's line is drawn inside it so the logo sits on whole pixels, 16px from the top and from the left on phones, a steady 10px gap to the name); between about 770 and 960px the links and buttons no longer collide or wrap, and the bar no longer overflows at 769px; checked at fourteen widths from 1920px down to 320px",
+    "Guitar chords: a chord written at the very end of a line (or a column past the end) is drawn above the line with the other chords instead of after the last word, on the song page and in the dashboard's chord preview",
+    "Admin dashboard search is forgiving: the Songs and Articles lists and every list the dashboard loads whole ignore case and accents (\"ṬHÂNG\" finds \"Ṭhâng\"), take the words in any order, match the start or the inside of a word, and forgive a typo or two, best match first (public/search-match.js, shared by the Worker and the page)",
+    "A Mara Hymns (Krizyhpa Hlabu) banner in the footer of every page, under the Android app one, linking to the digital hymnal at https://mkhb.maralyrics.com/ (only a link: nothing is loaded from that site)",
+    "No country is turned away any more: the API Worker used to refuse visitors from CN, RU, KP and IR in code, and the paid Workers plan makes that unnecessary. Countries are now refused only when the optional BLOCKED_COUNTRIES variable lists them (two-letter ISO codes separated by commas, set in the Cloudflare dashboard); with none set nobody is refused, and anything that is not a two-letter code is ignored, so a typo cannot lock visitors out",
+    "Tooling: wrangler (the deploy tool) is updated within version 4 (now 4.158.0), which clears the `npm audit` advisories for undici and miniflare; they only affected the developer's computer, not the site"
+   ],
+   "commit_count": 18,
+   "compare_url": "https://github.com/laiteichozah/maralyrics/compare/0122a87258a57600acf9f71b02f4add7be83656e...64a7e72ff68fa8ebea153cc3b804968e48c04111",
+   "tag_url": "https://github.com/laiteichozah/maralyrics/releases/tag/v1.12.0",
+   "commits": [
+    {
+     "sha": "64a7e72ff68fa8ebea153cc3b804968e48c04111",
+     "short": "64a7e72",
+     "date": "2026-11-20",
+     "subject": "Site audit: photos served as addresses, no layout jump, no pop-ups in the way",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "82c07452951223538109ef50bfda3c4d653dafe6",
+     "short": "82c0745",
+     "date": "2026-11-20",
+     "subject": "No country is turned away any more: BLOCKED_COUNTRIES replaces the hard-coded list",
+     "author": "Laitei40"
+    },
+    {
+     "sha": "ac493748607ca56199c732c7551d2b22dcb7b81f",
+     "short": "ac49374",
+     "date": "2026-11-14",
+     "subject": "Guitar chords: a chord at the end of a line stands above the line, not after it (#119)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2837592f752a726082d06eaeafcda92c10291208",
+     "short": "2837592",
+     "date": "2026-11-13",
+     "subject": "Christmas theme: the Santa hat sits on the logo's upper-left edge (#118)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "b142e9c781dc53d414f461c2825b026e57aa8e7c",
+     "short": "b142e9c",
+     "date": "2026-11-13",
+     "subject": "Header: the logo and the brand name line up as one unit (#117)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "d3221d6855bc74bf44850526805958262492b8ab",
+     "short": "d3221d6",
+     "date": "2026-11-13",
+     "subject": "Christmas theme: the Santa hat is worn by the logo (#116)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "823655172befa438cad73bd0cc20c3314134dd9d",
+     "short": "8236551",
+     "date": "2026-11-13",
+     "subject": "Christmas theme: on from 13 November (the day it goes live) to 31 December 2026 (#115)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "01c360f2a6a4c0a2aaedbdd96b9e318fbb880147",
+     "short": "01c360f",
+     "date": "2026-11-13",
+     "subject": "Revert \"Bump hono from 4.13.13 to 4.13.17 (#111)\" (#114)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "f6f853c20403046dea27ae445bb791085f499d15",
+     "short": "f6f853c",
+     "date": "2026-11-13",
+     "subject": "Bump hono from 4.13.13 to 4.13.17 (#111)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "4d1cd9ddac6b2643f8480f6a8b1840a715d5ea3d",
+     "short": "4d1cd9d",
+     "date": "2026-11-13",
+     "subject": "Bump wrangler from 4.156.0 to 4.158.0 (#112)",
+     "author": "dependabot[bot]"
+    },
+    {
+     "sha": "3ac81b482c9a34e69cfcd380ea69cf2393594dc9",
+     "short": "3ac81b4",
+     "date": "2026-11-13",
+     "subject": "Christmas theme for 1-31 December: falling snow, Christmas trees, lights, festive colours (#113)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "39b4ca791dac94b5627006029dfeeb2c43d01529",
+     "short": "39b4ca7",
+     "date": "2026-11-07",
+     "subject": "Footer: a Mara Hymns (Krizyhpa Hlabu) promotion linking to mkhb.maralyrics.com (#110)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "66cde367ab5c265f1fcad5d93e50d91428bbe94b",
+     "short": "66cde36",
+     "date": "2026-11-06",
+     "subject": "Admin search: any case, any accents, any word order and a typo or two, on the server lists and in the dashboard (#109)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "1d34b924aa434d2527b51e7ffd87c42ab476f2f3",
+     "short": "1d34b92",
+     "date": "2026-10-31",
+     "subject": "Update wrangler within 4.x (lockfile): clears the npm audit advisories for undici and miniflare (#107)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "215b7b7f1ac0507bc2ba06aed6fc4ef8cbde8f2f",
+     "short": "215b7b7",
+     "date": "2026-10-31",
+     "subject": "Version every script tag on /app-auth and /account; fail npm test when a changed script keeps its ?v= (#106)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "2095ebee9cabd3a260bb803b48a292db93ccfa69",
+     "short": "2095ebe",
+     "date": "2026-10-31",
+     "subject": "Add /app-auth, a stand-alone sign-in page for the Android app; take app mode out of /account (#105)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "adfcd1013408672f46e67eba90b5509a4945ecaa",
+     "short": "adfcd10",
+     "date": "2026-10-30",
+     "subject": "Account page: app mode, so the Android app can sign a reader in through the phone's browser (#104)",
+     "author": "Laitei"
+    },
+    {
+     "sha": "4c95353be4de9997f76003a197fe3ff8481af16b",
+     "short": "4c95353",
+     "date": "2026-10-27",
+     "subject": "Release v1.11.0 — Android link, security and legal: notes, changelog and version (#103)",
+     "author": "Laitei"
+    }
+   ]
+  },
+  {
    "version": "1.11.0",
    "tag": "v1.11.0",
    "title": "Android link, security and legal",
