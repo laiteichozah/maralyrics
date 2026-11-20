@@ -27,6 +27,11 @@ GOOGLE_CLIENT_ID = "1008973631492-5n19m9dvld2e3a2gvs07fb0v2sg3fbau.apps.googleus
 # Email through Resend. The sender's domain must be verified in Resend. Links in emails point at SITE_ORIGIN.
 MAIL_FROM = "MaraLyrics <noreply@maralyrics.com>"
 SITE_ORIGIN = "https://maralyrics.com"
+# Optional: countries the API Worker turns away with 403 "Access denied" — two-letter ISO codes separated by commas, e.g. "KP,IR".
+# Not set here on purpose: with no value nobody is refused (any country can use the site), and a value set in the Cloudflare
+# dashboard (Workers & Pages > maralyrics-api > Settings > Variables) is kept across deploys. Anything that is not a two-letter
+# code is ignored, so a typo cannot lock visitors out.
+# BLOCKED_COUNTRIES = ""
 
 # ─── Secrets (set via `wrangler secret put <NAME>`, never committed) ───
 # JWT_SECRET           — signs/verifies admin session JWTs (see admin_users table + worker/lib/auth.js)

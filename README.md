@@ -23,7 +23,7 @@ maralyrics/
 │   ├── composer/[[catchall]].js
 │   └── copyright-owner/[[catchall]].js
 ├── worker/                 # Standalone REST API Worker (api.maralyrics.com)
-│   ├── worker.js           # Entry point — CORS, country block, route mounting
+│   ├── worker.js           # Entry point — CORS, optional country block (BLOCKED_COUNTRIES), route mounting
 │   ├── routes/public.js    # Public API: /api/v1/*
 │   ├── routes/admin.js     # Admin API: /api/v1/admin/* (Bearer token required)
 │   └── lib/                # auth.js, turnstile.js, helpers.js

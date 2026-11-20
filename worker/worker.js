@@ -5,7 +5,12 @@ import adminRoutes from './routes/admin.js';
 import accountRoutes from './routes/account.js';
 import { requireAuth } from './lib/auth.js';
 
-const BLOCKED_COUNTRIES = new Set(['CN', 'RU', 'KP', 'IR']);
+// Countries to refuse, from the optional BLOCKED_COUNTRIES setting: two-letter ISO codes separated by commas, e.g. "KP,IR".
+// Nothing is refused unless it is set. The site used to turn four countries away in code; with the paid Workers plan that is no
+// longer needed, and a list written into the code is hard to undo. Anything that is not a two-letter code is ignored, so a typo in
+// the setting can never lock visitors out.
+const blockedCountries = (env) =>
+  new Set(String(env?.BLOCKED_COUNTRIES ?? '').split(',').map((code) => code.trim().toUpperCase()).filter((code) => /^[A-Z]{2}$/.test(code)));
 
 const app = new Hono();
 
@@ -27,7 +32,7 @@ app.use('*', async (c, next) => {
 
 app.use('*', async (c, next) => {
   const country = c.req.raw.cf?.country;
-  if (country && BLOCKED_COUNTRIES.has(country)) {
+  if (country && blockedCountries(c.env).has(country)) {
     return c.json({ success: false, error: 'Access denied' }, 403);
   }
   await next();

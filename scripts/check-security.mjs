@@ -233,5 +233,36 @@ check(cached.length === before, 'nothing private was stored');
 check(await intercepts(`${BASE}/songs/falling`) === false, 'a single song stays out of the cache (downloads only), as before');
 check(/ml-v(\d+)/.test(fs.readFileSync(path.join(ROOT, 'public/sw.js'), 'utf8')) && Number(/ml-v(\d+)/.exec(fs.readFileSync(path.join(ROOT, 'public/sw.js'), 'utf8'))[1]) >= 44, 'the cache version was bumped, so copies stored by the old worker are deleted');
 
+// ─── Country blocking: nobody, unless the BLOCKED_COUNTRIES setting names them ───────────────────────────────
+// The Worker used to refuse CN, RU, KP and IR in code. That list is gone: the site is open to every country (the paid Workers plan
+// carries the traffic), and a country is refused only when it is listed in the optional BLOCKED_COUNTRIES setting.
+console.log('Country blocking');
+const callFrom = async (country, env = ENV) => {
+  const req = new Request('https://api.test/api/v1/stats');
+  Object.defineProperty(req, 'cf', { value: country ? { country } : undefined });   // what Cloudflare adds to every request it forwards
+  const res = await app.fetch(req, env);
+  const text = await res.text();
+  let json = {}; try { json = JSON.parse(text); } catch { /* not JSON */ }
+  return { status: res.status, json };
+};
+for (const country of ['CN', 'RU', 'KP', 'IR', 'MM', 'IN', 'US', 'T1', undefined]) {
+  r = await callFrom(country);
+  check(r.status === 200, `with no setting, no country is refused (${country ?? 'unknown country'})`);
+}
+const withList = (list) => ({ ...ENV, BLOCKED_COUNTRIES: list });
+r = await callFrom('KP', withList('KP, ir'));
+check(r.status === 403 && r.json.success === false && r.json.error === 'Access denied', 'a listed country is refused with 403 "Access denied"');
+r = await callFrom('IR', withList('KP, ir'));
+check(r.status === 403, 'codes match whatever their case and spacing (" ir " refuses IR)');
+for (const country of ['MM', 'IN', 'CN', 'US', undefined]) {
+  r = await callFrom(country, withList('KP,IR'));
+  check(r.status === 200, `a country that is not listed is let in (${country ?? 'unknown country'})`);
+}
+for (const junk of ['', '   ', ',,', 'ALL', '*', 'KOREA', 'K', undefined]) {
+  r = await callFrom('KP', withList(junk));
+  check(r.status === 200, `a setting that is empty or not a list of two-letter codes refuses nobody, so a typo can never lock the site (${JSON.stringify(junk)})`);
+}
+check(!/BLOCKED_COUNTRIES\s*=\s*new Set\(\[/.test(fs.readFileSync(path.join(ROOT, 'worker/worker.js'), 'utf8')), 'no country list is written into the code any more');
+
 console.log(failures ? `\n✗ ${failures} failed, ${passes} passed` : `\n✓ ${passes} checks passed, 0 failed`);
 process.exit(failures ? 1 : 0);
