@@ -5,6 +5,7 @@ import { buildOrPrefixQuery, matchPercent } from '../lib/fuzzySearch.js';
 import { attachBadges } from '../lib/badges.js';
 import { attachGreen } from '../lib/green.js';
 import { shapeBio } from '../lib/richText.js';
+import { withPublicImage, pictureResponse } from '../lib/personImage.js';
 import { shapeChords } from '../lib/guitarNode.js';
 import idolRoutes from './publicIdol.js';
 
@@ -409,7 +410,9 @@ async function listPeople(c, table) {
     .all();
   // Recognition badges (month / year / lifetime), most prestigious first. No ids or awarder.
   const type = table.replace(/s$/, '');
-  const people = (await attachGreen(c.env.DB, await attachBadges(c.env.DB, rows.results, type), type)).map((p) => shapeBio(p));
+  // Each photo is sent as an address (see lib/personImage.js), not inline: the list was ~550 KB, nearly all of it pictures.
+  const origin = new URL(c.req.url).origin;
+  const people = (await attachGreen(c.env.DB, await attachBadges(c.env.DB, rows.results, type), type)).map((p) => withPublicImage(origin, table, shapeBio(p)));
   return c.json({ [table]: people, total: people.length });
 }
 
@@ -434,13 +437,26 @@ async function getPerson(c, table, junctionTable, junctionFk) {
   try {
     owner = await db.prepare(`SELECT 1 FROM person_claims WHERE ${junctionFk} = ? AND status = 'approved'`).bind(person.id).first();
   } catch { /* migration 0015 not applied yet */ }
-  return c.json({ ...shapeBio(withBadges, { withHtml: true }), claimed: !!owner, songs: songs.results.map(parseSongPeople) });
+  const origin = new URL(c.req.url).origin;
+  return c.json({ ...withPublicImage(origin, table, shapeBio(withBadges, { withHtml: true })), claimed: !!owner, songs: songs.results.map(parseSongPeople) });
+}
+
+/** The photo itself (the address the lists and detail answers carry): the stored picture's bytes, kept by browsers for a year. */
+async function servePersonImage(c, table) {
+  const row = await c.env.DB.prepare(`SELECT image_url FROM ${table} WHERE slug = ?`).bind(c.req.param('slug')).first();
+  const value = row?.image_url;
+  if (!value) return c.json({ error: 'Not found' }, 404);
+  if (/^https:\/\//i.test(value)) return c.redirect(value, 302);   // the photo is somewhere else: send the browser there
+  const answer = pictureResponse(value, c.req.query('v'), c.req.header('If-None-Match'));
+  return answer || c.json({ error: 'Not found' }, 404);
 }
 
 app.get('/artists', (c) => listPeople(c, 'artists'));
 app.get('/artists/:slug', (c) => getPerson(c, 'artists', 'song_artists', 'artist_id'));
+app.get('/artists/:slug/image', (c) => servePersonImage(c, 'artists'));
 app.get('/composers', (c) => listPeople(c, 'composers'));
 app.get('/composers/:slug', (c) => getPerson(c, 'composers', 'song_composers', 'composer_id'));
+app.get('/composers/:slug/image', (c) => servePersonImage(c, 'composers'));
 
 app.get('/copyright-owners', async (c) => {
   const rows = await c.env.DB.prepare('SELECT * FROM copyright_owners ORDER BY name').all();

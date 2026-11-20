@@ -4172,6 +4172,34 @@ function initHymnalPromotion() {
   footerBottom.before(promotion);
 }
 
+// ─── First-visit questions: who is asked, and when ──────────────────────────────────────────────────
+// A dialog that asks something of a NEW visitor must not sit on top of the page before the visitor has even looked at it, and a
+// crawler must never meet one: search and ad crawlers and automated browsers (Googlebot, AdSense's crawler, Lighthouse) see the page
+// the way a first-time visitor does, with nothing remembered, and there is nobody to answer. So the questions wait for the visitor's
+// first touch, tap, key press or scroll (and a moment more), and an automated visitor is never asked at all.
+
+/** True for search and ad crawlers and for automated browsers. */
+function isAutomatedVisitor() {
+  if (typeof navigator === 'undefined') return false;
+  if (navigator.webdriver === true) return true;
+  return /googlebot|bingbot|duckduckbot|baiduspider|yandexbot|applebot|slurp|petalbot|semrushbot|ahrefsbot|mediapartners-google|adsbot-google|google-inspectiontool|chrome-lighthouse|pagespeed|headlesschrome|facebookexternalhit|\b(?:bot|crawler|spider)\b/i.test(navigator.userAgent || '');
+}
+
+/** Calls `callback` once, `delay` ms after the visitor first touches, taps, types or scrolls. Never for an automated visitor. */
+function afterFirstInteraction(callback, delay = 3000) {
+  if (isAutomatedVisitor()) return;
+  const events = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'wheel'];
+  let started = false;
+  const start = () => {
+    if (started) return;
+    started = true;
+    for (const name of events) window.removeEventListener(name, start, true);
+    setTimeout(callback, delay);
+  };
+  // passive: these never slow scrolling; capture: they are seen before anything on the page can stop them.
+  for (const name of events) window.addEventListener(name, start, { capture: true, passive: true });
+}
+
 function initAppPromotionDialog() {
   const seenKey = 'ml_app_promo_seen';
   try {
@@ -5384,14 +5412,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   EventDetail.init();
   CalendarPrefs.initSelect();
   NotificationsFeature.init();
-  // The calendar prompt (first visit only) goes first — once it's dismissed
-  // (or skipped immediately, on a returning visit), the app promo dialog
-  // follows on its usual delay, instead of the two stacking on top of each other.
-  setTimeout(() => {
-    CalendarPrefs.promptIfNeeded().then(() => {
+  // The first-visit questions. They wait until the visitor has first touched, tapped or scrolled the page (and never open for a crawler),
+  // so nothing covers the page before it has been seen. The calendar question goes first, and only on the home page, where it is
+  // about Today's Event; once it is dismissed (or skipped at once, on a returning visit, or on any other page) the app promo
+  // follows, instead of the two stacking on top of each other.
+  afterFirstInteraction(() => {
+    const calendar = Utils.getPageType() === 'home' ? CalendarPrefs.promptIfNeeded() : Promise.resolve();
+    calendar.then(() => {
       setTimeout(initAppPromotionDialog, 400);
     });
-  }, 900);
+  });
 
   // Downloaded songs: load the saved list so cards and the nav badge reflect it from the start.
   await Downloads.init();

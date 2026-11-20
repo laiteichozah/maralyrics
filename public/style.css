@@ -4052,6 +4052,8 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
   gap: 8px;
   margin-bottom: var(--space-lg);
   text-align: left;
+  /* Holds the height of the three choices while "Loading events…" is shown, so the dialog does not jump when they arrive. */
+  min-height: 196px;
 }
 
 .calendar-pref-dialog__option {
@@ -4251,6 +4253,22 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
 .fade-in {
   animation: fadeIn 0.4s ease;
+}
+
+/* Space held for home-page sections that appear after the first paint, once their data has arrived (Song of the Day, Featured
+   Artists & Composers). They start display:none; without this they pushed everything below them down by ~520 px (a layout shift
+   of 0.78 on a phone, Google's "good" is 0.1). The reserve sits right after its section and is shown only while the section still
+   carries its original inline display:none; app.js shows a section by setting style.display, which changes that attribute and so
+   ends the reserve in the same moment. The heights are the sections' real heights at each width. */
+.late-reserve { display: none; }
+#songOfTheDaySection[style*="display:none"] + .late-reserve { display: block; min-height: 275px; }
+#featuredPeopleSection[style*="display:none"] + .late-reserve { display: block; min-height: 249px; }
+@media (max-width: 380px) {
+  #songOfTheDaySection[style*="display:none"] + .late-reserve { min-height: 313px; }
+  #featuredPeopleSection[style*="display:none"] + .late-reserve { min-height: 297px; }
+}
+@media (min-width: 1100px) {
+  #featuredPeopleSection[style*="display:none"] + .late-reserve { min-height: 219px; }
 }
 
 @keyframes fadeIn {
@@ -5165,15 +5183,19 @@ a.supporter-card:hover .supporter-card__logo { border-color: var(--accent); }
 
 /* Mobile consent */
 @media (max-width: 600px) {
-  .cookie-consent { padding: var(--space-sm) var(--space-md); }
-  .cookie-consent__inner { padding: var(--space-md); max-width: 100%; }
-  .cookie-consent__content { flex-direction: column; gap: var(--space-sm); }
-  .cookie-consent__icon { width: 36px; height: 36px; }
-  .cookie-consent__actions { flex-direction: column; }
+  /* Compact: on a phone the notice used to fill a third of the screen (icon above the text, two stacked buttons). */
+  .cookie-consent { padding: var(--space-sm); }
+  .cookie-consent__inner { padding: var(--space-sm) var(--space-md); max-width: 100%; gap: var(--space-sm); }
+  .cookie-consent__content { flex-direction: row; align-items: flex-start; gap: var(--space-sm); }
+  .cookie-consent__icon { width: 32px; height: 32px; }
+  .cookie-consent__title { margin-bottom: 2px; }
+  .cookie-consent__desc { line-height: 1.45; }
+  .cookie-consent__actions { flex-direction: row; }
   .cookie-consent__btn {
-    width: 100%;
+    flex: 1;
+    min-height: 44px;
     text-align: center;
-    padding: var(--space-sm) var(--space-md);
+    padding: var(--space-xs) var(--space-md);
   }
 }
 
