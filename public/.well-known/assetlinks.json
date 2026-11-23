@@ -15,7 +15,8 @@
       "namespace": "android_app",
       "package_name": "com.maralyrics.laitei",
       "sha256_cert_fingerprints": [
-        "0A:60:AF:5B:2B:AC:16:A4:FC:D1:D7:44:54:49:68:2E:66:A6:95:E2:DE:8A:80:7E:A1:90:8B:EF:82:AA:43:31"
+        "0A:60:AF:5B:2B:AC:16:A4:FC:D1:D7:44:54:49:68:2E:66:A6:95:E2:DE:8A:80:7E:A1:90:8B:EF:82:AA:43:31",
+        "FC:F1:B4:D7:F7:F2:35:95:B3:48:E2:6B:F1:63:CD:F9:94:9A:53:2D:E5:DE:90:B9:29:74:12:57:BC:FE:99:71"
       ]
     }
   }
