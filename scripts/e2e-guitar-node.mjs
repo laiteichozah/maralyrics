@@ -109,13 +109,17 @@ const chordsOf = async (page) => (await drawn(page)).flatMap((l) => l.chords).fi
 const lyricsShown = async (page) => (await drawn(page)).map((l) => (l.plain !== null ? l.plain : l.texts.join(''))).join('\n');
 const openSong = async (page, slug) => { await page.goto(`${SITE}/song/${slug}`); await page.waitForSelector('#songDetail', { state: 'visible' }); await sleep(150); };
 const status = (page) => page.textContent('#gnStatus').then((t) => t.trim());
+// The key controls live in a panel that the music-note button opens; this opens it (when it is not open yet) and waits until it is on the screen.
+const gnOpen = async (page) => { if ((await page.getAttribute('#gnButton', 'aria-expanded')) !== 'true') await page.click('#gnButton'); await page.waitForSelector('#gnPanel', { state: 'visible' }); };
 
 try {
   // ═══ Song page: chords above the lyrics ═════════════════════════════════════
   section('Song page: chords above the lyrics');
   const { page: P } = await openPage();
   await openSong(P, 'falling');
-  ok(await P.locator('#guitarNode').isVisible(), 'a song with chords shows the Guitar Node panel');
+  ok(await P.locator('#guitarNode').isVisible() && await P.locator('#gnButton').isVisible(), 'a song with chords shows the music-note button above the lyrics');
+  ok(await P.locator('#gnPanel').isHidden() && (await P.getAttribute('#gnButton', 'aria-expanded')) === 'false' && (await P.getAttribute('#gnButton', 'aria-controls')) === 'gnPanel' && (await P.getAttribute('#gnButton', 'aria-haspopup')) === 'dialog', 'the options panel is closed to begin with, and the button says what it opens (aria-expanded, aria-controls)');
+  await gnOpen(P);
   ok((await P.textContent('#gnOriginal')).trim() === 'C Major', 'the original key is shown (C Major)');
   ok(await P.inputValue('#gnKey') === '0', 'the display key starts at the original key');
   ok((await P.locator('#gnKey option').allTextContents()).length === 12 && (await P.locator('#gnKey option').allTextContents())[0].includes('(original)'), 'the key list has 12 keys, the original marked');
@@ -178,11 +182,13 @@ try {
   ok((await P.textContent('#gnOriginal')).trim() === 'A Minor' && await P.inputValue('#gnKey') === '9', 'another song starts at its own original key');
   await openSong(P, 'falling');
   ok(await P.inputValue('#gnKey') === '7', '… and the first song still remembers G');
+  await gnOpen(P);
   await P.click('#gnToggle');
-  ok((await P.locator('#songLyrics .gn-chord').count()) === 0 && (await P.textContent('#songLyrics')).includes('Wise men say') && await P.locator('#gnControls').isHidden(), 'Hide chords: plain lyrics, key controls hidden');
-  ok((await P.getAttribute('#gnToggle', 'aria-pressed')) === 'false' && (await P.textContent('#gnToggle')).includes('Show'), '(the button now says Show chords)');
+  ok((await P.locator('#songLyrics .gn-chord').count()) === 0 && (await P.textContent('#songLyrics')).includes('Wise men say') && await P.locator('#gnKey').isDisabled() && await P.locator('#gnUp').isDisabled() && await P.locator('#gnControls').evaluate((e) => e.classList.contains('is-off')), 'Hide chords: plain lyrics, the key controls dimmed and off');
+  ok((await P.getAttribute('#gnToggle', 'aria-checked')) === 'false' && (await P.getAttribute('#gnButton', 'data-chords')) === 'off' && (await P.textContent('#gnSummary')).includes('Chords hidden'), '(the switch is off, and the button and the line beside it show that the chords are hidden)');
   await P.reload(); await P.waitForSelector('#songDetail', { state: 'visible' }); await sleep(200);
   ok((await P.locator('#songLyrics .gn-chord').count()) === 0, 'hidden stays hidden after a reload');
+  await gnOpen(P);
   await P.click('#gnToggle');
   ok((await chordsOf(P))[0] === 'G', 'Show chords brings them back, in the remembered key');
   await P.click('#gnReset');
@@ -190,6 +196,7 @@ try {
   // ═══ Minor keys ════════════════════════════════════════════════════════════
   section('Minor keys, unknown keys, songs without chords');
   await openSong(P, 'sad-waltz');
+  await gnOpen(P);
   ok((await chordsOf(P)).join(' ') === 'Am Dm E7 Am', 'A minor song as written');
   await P.selectOption('#gnKey', '11'); // B minor
   ok((await P.locator('#gnKey option').allTextContents())[0].includes('C Minor'), 'a minor song is offered minor keys');
@@ -199,6 +206,7 @@ try {
   await P.click('#gnReset');
 
   await openSong(P, 'mystery-key');
+  await gnOpen(P);
   ok((await P.textContent('#gnOriginal')).trim() === 'not set' && await P.locator('#gnKeyField').isHidden(), 'a song with chords but no key: "not set", and no key list (nothing is guessed)');
   ok((await chordsOf(P)).join(' ') === 'Bb F/A Gm7 C7', 'its chords are shown as written');
   await P.click('#gnUp'); await P.click('#gnUp');
@@ -212,6 +220,7 @@ try {
   ok(await P.locator('#guitarNode').isHidden() && (await P.locator('#songLyrics .gn-line').count()) === 0 && (await P.textContent('#songLyrics')) === 'No chords here\nJust words', 'a song without chords looks exactly as before: no panel, plain lyrics');
 
   await openSong(P, 'intro-song');
+  await gnOpen(P);
   lines = await drawn(P);
   ok(lines[0].cls.includes('gn-line--chords') || lines[0].chords.length === 3, 'a line with only chords (an intro) is drawn as a row of chords');
   ok(!(await P.textContent('#songLyrics')).includes('undefined'), '(no stray text)');
@@ -226,13 +235,16 @@ try {
   // ═══ Copy ══════════════════════════════════════════════════════════════════
   section('Copy, keyboard, downloads');
   await openSong(P, 'falling');
+  await gnOpen(P);
   await P.selectOption('#gnKey', '2');
   await P.click('#btnCopyLyrics');
   const copied = await P.evaluate(() => window.__copied.at(-1));
   ok(copied.split('\n')[0].trim().startsWith('D') && copied.includes('Wise men say only fools rush in') && copied.includes('F#m'), 'Copy gives the lyrics with the chords above them, in the key being shown');
+  await gnOpen(P);
   await P.click('#gnToggle');
   await P.click('#btnCopyLyrics');
   ok((await P.evaluate(() => window.__copied.at(-1))) === FALLING, 'with chords hidden, Copy gives just the lyrics');
+  await gnOpen(P);
   await P.click('#gnToggle'); await P.click('#gnReset');
 
   await P.focus('#gnKey');
@@ -246,6 +258,7 @@ try {
   const labelFor = await P.evaluate(() => document.querySelector('label[for="gnKey"]')?.textContent.trim());
   ok(labelFor === 'Display key', 'the key list has a visible label');
 
+  await P.keyboard.press('Escape');      // the open panel hangs over the buttons under the lyrics
   await P.click('#btnDownloadSong');
   await P.waitForFunction(() => Downloads.has('falling'), null, { timeout: 5000 });
   const kept = await P.evaluate(() => Downloads.get('falling').then((s) => ({ key: s.original_key, chords: !!(s.chords && s.chords.lines) })));
@@ -255,6 +268,7 @@ try {
   section('On a phone');
   const { page: M } = await openPage({ viewport: { width: 360, height: 740 } });
   await openSong(M, 'falling');
+  await gnOpen(M);
   await M.selectOption('#gnKey', '6'); // F#
   const phone = await M.evaluate(() => {
     const box = document.getElementById('songLyrics').getBoundingClientRect();
@@ -262,7 +276,7 @@ try {
     return {
       noSideScroll: document.documentElement.scrollWidth <= window.innerWidth,
       insideColumn: rects.every((r) => r.right <= window.innerWidth + 0.5 && r.left >= -0.5),
-      buttons: [...document.querySelectorAll('.guitar-node__btn, .guitar-node__select')].map((b) => Math.round(b.getBoundingClientRect().height)),
+      buttons: [...document.querySelectorAll('.guitar-node__trigger, .guitar-node__close, .guitar-node__step, .guitar-node__reset, .guitar-node__select')].map((b) => Math.round(b.getBoundingClientRect().height)),
       lineWidth: Math.round(box.width),
     };
   });
@@ -281,6 +295,92 @@ try {
   ok(colour === 'rgb(91, 33, 182)', `light theme: darker chord colour (${colour})`);
 
   // ═══ Admin ═════════════════════════════════════════════════════════════════
+  section('Guitar Node: the music-note button and its options panel');
+  const { page: G } = await openPage();
+  await openSong(G, 'falling');
+  const gBox = (sel) => G.evaluate((q) => { const r = document.querySelector(q).getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, sel);
+  ok(await G.evaluate(() => { const b = document.getElementById('gnButton'); return !!b.querySelector('svg path[d^="M9 18V5"]') && b.textContent.trim() === 'Chords' && b.getAttribute('aria-label') === 'Guitar chord options'; }), 'the button is a music note with the word "Chords", and a name for screen readers that contains it');
+  ok((await G.textContent('#gnSummary')).replace(/\s+/g, ' ').trim() === 'Key C Major' && (await G.getAttribute('#gnButton', 'data-chords')) === 'on', 'beside it a line says what is shown ("Key C Major")');
+  ok((await gBox('#gnButton')).h >= 44, 'the button is at least 44px tall');
+  ok(await G.locator('#gnPanel').isHidden() && await G.locator('#gnBackdrop').isHidden(), 'the panel and its backdrop are not shown until the button is used');
+  if (process.env.E2E_SHOTS) await G.locator('.song-page__card').screenshot({ path: `${process.env.E2E_SHOTS}/gn-button-closed.png` });
+  // opening
+  await G.click('#gnButton');
+  await G.waitForSelector('#gnPanel', { state: 'visible' });
+  await sleep(300);     // the panel fades in over a moment
+  ok((await G.getAttribute('#gnButton', 'aria-expanded')) === 'true' && (await G.getAttribute('#gnPanel', 'role')) === 'dialog' && (await G.textContent('#gnTitle')).trim() === 'Guitar Node', 'the button opens a dialog titled Guitar Node and says it is expanded');
+  ok(await G.evaluate(() => document.activeElement && document.activeElement.id === 'gnToggle'), 'the focus moves into the panel, onto the first control (the switch for the chords)');
+  ok((await G.getAttribute('#gnToggle', 'role')) === 'switch' && (await G.getAttribute('#gnToggle', 'aria-checked')) === 'true' && (await G.evaluate(() => { const t = document.getElementById('gnToggle'); return document.getElementById(t.getAttribute('aria-labelledby')).textContent.trim(); })) === 'Show chords', 'the first row is a switch named "Show chords", on');
+  ok(await G.evaluate(() => document.getElementById('gnPanel').parentElement === document.body), 'the panel sits at the top level of the page, not inside the song card (which clips what sticks out)');
+  { const b = await gBox('#gnButton'); const p = await gBox('#gnPanel'); const vw = 1100; const vh = 900;
+    ok(p.y >= b.b + 4 && p.y <= b.b + 14 && Math.abs(p.x - b.x) <= 1 && p.w <= 360.5 && p.r <= vw - 16 && p.b <= vh - 8, `on a wide screen the panel hangs just under the button, lined up with it, inside the window (panel ${Math.round(p.x)},${Math.round(p.y)} ${Math.round(p.w)}×${Math.round(p.h)}; button at ${Math.round(b.x)},${Math.round(b.b)})`); }
+  ok(await G.evaluate(() => { const p = document.getElementById('gnPanel').getBoundingClientRect(); const top = document.elementFromPoint(p.left + p.width / 2, p.top + 30); return !!top && !!top.closest('#gnPanel'); }), 'nothing is on top of the panel');
+  if (process.env.E2E_SHOTS) await G.screenshot({ path: `${process.env.E2E_SHOTS}/gn-panel-desktop.png` });
+  // what is inside
+  ok((await G.textContent('#gnReadoutMain')).trim() === 'C Major' && (await G.textContent('#gnReadoutSub')).trim() === 'Original key', 'between − and + the readout shows the key and "Original key"');
+  await G.click('#gnUp');
+  const shownKey = (await G.evaluate(() => document.querySelector('#gnKey option:checked').textContent)).replace(/\s*\(original\)/, '').trim();
+  ok((await G.textContent('#gnReadoutMain')).trim() === shownKey && (await G.textContent('#gnReadoutSub')).trim() === '+1 semitones', `after + the readout shows ${shownKey} and "+1 semitones"`);
+  ok((await G.textContent('#gnSummary')).includes(shownKey) && (await G.textContent('#gnSummary')).includes('+1'), 'and so does the line beside the button (a badge +1)');
+  await G.click('#gnReset');
+  // hide chords from the panel
+  await G.click('#gnToggle');
+  ok((await G.getAttribute('#gnToggle', 'aria-checked')) === 'false' && (await G.locator('#songLyrics .gn-chord').count()) === 0 && (await G.textContent('#gnSummary')).trim() === 'Chords hidden' && (await G.getAttribute('#gnButton', 'data-chords')) === 'off', 'the switch hides the chords: plain lyrics, "Chords hidden" beside the button, a slash through the note');
+  ok(await G.locator('#gnPanel').isVisible() && await G.locator('#gnKey').isDisabled() && await G.locator('#gnDown').isDisabled() && await G.locator('#gnUp').isDisabled() && await G.locator('#gnReset').isDisabled(), 'the panel stays open, and the key controls are off while the chords are hidden');
+  if (process.env.E2E_SHOTS) await G.screenshot({ path: `${process.env.E2E_SHOTS}/gn-panel-hidden.png` });
+  await G.click('#gnToggle');
+  ok((await G.locator('#songLyrics .gn-chord').count()) > 0 && await G.locator('#gnKey').isEnabled(), 'the switch brings the chords back');
+  // closing: Escape, the close button, a click elsewhere, the focus going elsewhere, the button again
+  await G.keyboard.press('Escape');
+  ok(await G.locator('#gnPanel').isHidden() && (await G.getAttribute('#gnButton', 'aria-expanded')) === 'false' && await G.evaluate(() => document.activeElement.id === 'gnButton'), 'Escape closes the panel and puts the focus back on the button');
+  await G.focus('#gnButton'); await G.keyboard.press('Enter');
+  ok(await G.locator('#gnPanel').isVisible() && await G.evaluate(() => document.activeElement.id === 'gnToggle'), 'Enter on the button opens it (and Space does the same, as it is a button)');
+  await G.click('#gnClose');
+  ok(await G.locator('#gnPanel').isHidden() && await G.evaluate(() => document.activeElement.id === 'gnButton'), 'the close button closes it, focus back on the button');
+  await G.click('#gnButton'); await G.waitForSelector('#gnPanel', { state: 'visible' });
+  await G.click('#songTitle');
+  ok(await G.locator('#gnPanel').isHidden(), 'a click anywhere else closes it');
+  await G.click('#gnButton'); await G.waitForSelector('#gnPanel', { state: 'visible' });
+  await G.click('#gnButton');
+  ok(await G.locator('#gnPanel').isHidden(), 'the button closes it again');
+  await G.click('#gnButton'); await G.waitForSelector('#gnPanel', { state: 'visible' });
+  await G.focus('#btnShareSong');
+  ok(await G.locator('#gnPanel').isHidden(), 'moving the focus out of the panel (Tab) closes it');
+  await G.click('#gnButton'); await G.waitForSelector('#gnPanel', { state: 'visible' });
+  await G.focus('#gnKey'); await G.keyboard.press('Escape');
+  ok(await G.locator('#gnPanel').isVisible(), 'Escape on the key list is left to the list (the panel stays open)');
+  // keyboard order inside: switch, key list, −, +, reset, close
+  await G.focus('#gnToggle');
+  const order = [];
+  for (let i = 0; i < 5; i++) { await G.keyboard.press('Tab'); order.push(await G.evaluate(() => document.activeElement.id)); }
+  ok(order.join() === 'gnKey,gnDown,gnUp,gnClose,gnButton' || order.slice(0, 3).join() === 'gnKey,gnDown,gnUp', `Tab goes through the controls in order (${order.join(' → ')})`);
+  // the light theme
+  await G.click('#gnButton').catch(() => {});
+  await G.evaluate(() => Theme.setMode('light'));
+  if (!(await G.locator('#gnPanel').isVisible())) await G.click('#gnButton');
+  await G.waitForSelector('#gnPanel', { state: 'visible' });
+  ok(await G.evaluate(() => getComputedStyle(document.getElementById('gnPanel')).backgroundColor === 'rgb(255, 255, 255)'), 'the light theme has a white panel');
+  await sleep(500);     // the page's colours and the panel finish fading
+  if (process.env.E2E_SHOTS) await G.screenshot({ path: `${process.env.E2E_SHOTS}/gn-panel-light.png` });
+  // a phone: a sheet from the bottom of the screen
+  const { page: GS } = await openPage({ viewport: { width: 360, height: 740 } });
+  await openSong(GS, 'falling');
+  await GS.click('#gnButton');
+  await GS.waitForSelector('#gnPanel', { state: 'visible' });
+  await sleep(300);
+  { const p = await GS.evaluate(() => { const r = document.getElementById('gnPanel').getBoundingClientRect(); const b = document.getElementById('gnBackdrop').getBoundingClientRect(); return { x: r.left, y: r.top, r: r.right, b: r.bottom, h: r.height, vh: window.innerHeight, vw: window.innerWidth, backdrop: { w: b.width, h: b.height }, sideScroll: document.documentElement.scrollWidth > window.innerWidth, over: document.elementFromPoint(180, 20).id }; });
+    ok(Math.abs(p.x) < 0.5 && Math.abs(p.r - p.vw) < 0.5 && Math.abs(p.b - p.vh) < 0.5 && p.y >= p.vh * 0.14, `on a phone the panel is a sheet on the bottom edge, the whole width (${Math.round(p.x)}–${Math.round(p.r)} px, ${Math.round(p.y)}–${Math.round(p.b)} of ${p.vh})`);
+    ok(p.backdrop.w === p.vw && p.backdrop.h === p.vh && p.over === 'gnBackdrop' && !p.sideScroll, 'a dimmed backdrop covers the page above it, with no sideways scroll'); }
+  ok(await GS.evaluate(() => { const els = [...document.querySelectorAll('#gnPanel button, #gnPanel select')].filter((e) => e.getBoundingClientRect().width); const sw = document.getElementById('gnToggle'); return els.length >= 6 && els.every((e) => e === sw || e.getBoundingClientRect().height >= 43.5) && sw.getBoundingClientRect().height + 16 >= 44; }), 'every control in the sheet can be touched (44px; the switch is drawn 28px with a larger touch area)');
+  if (process.env.E2E_SHOTS) await GS.screenshot({ path: `${process.env.E2E_SHOTS}/gn-panel-phone.png` });
+  await GS.mouse.click(180, 40);
+  ok(await GS.locator('#gnPanel').isHidden() && await GS.locator('#gnBackdrop').isHidden(), 'a tap on the dimmed page closes the sheet');
+  { const { page: R } = await openPage({ viewport: { width: 360, height: 740 } });
+    await R.emulateMedia({ reducedMotion: 'reduce' });
+    await openSong(R, 'falling');
+    await R.click('#gnButton'); await R.waitForSelector('#gnPanel', { state: 'visible' });
+    ok(await R.evaluate(() => getComputedStyle(document.getElementById('gnPanel')).animationName === 'none'), 'with "reduce motion" the panel just appears (no animation)'); }
+
   section('Chords at the end of a line');
   // A chord written at the very end of a line has no words under it. It must still stand above the line, on the row of the other
   // chords, not drop down to the row of the words (which is where an empty column used to put it).

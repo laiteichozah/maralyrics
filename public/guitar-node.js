@@ -100,17 +100,80 @@ const GuitarNode = (() => {
     box.appendChild(frag);
   }
 
-  // ── The control panel ───────────────────────────────────────────
+  // ── The music-note button and its panel ──────────────────────────
+  // A slim bar above the lyrics: the music-note button, and beside it what is being shown. The button opens the options panel
+  // (show or hide the chords, the key, transposing); a popover on a wide screen, a sheet from the bottom on a phone.
+  const panelOpen = () => { const p = el('gnPanel'); return !!p && !p.hidden; };
+
+  /** Where the panel goes. On a phone the stylesheet makes it a sheet from the bottom of the screen; on a wide screen it hangs under the
+      button (or above it when there is no room below), kept inside the window. It lives at the top of the page (see wire()), not in the
+      song's card, which clips what sticks out of it. */
+  function placePanel() {
+    const panel = el('gnPanel');
+    if (!panel || panel.hidden) return;
+    const phone = window.matchMedia('(max-width: 600px)').matches;
+    for (const prop of ['top', 'bottom', 'left', 'maxHeight']) panel.style[prop] = '';
+    if (phone) return;
+    const r = el('gnButton').getBoundingClientRect();
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const gap = 8;
+    const below = vh - r.bottom - gap - 16;
+    const above = r.top - gap - 16;
+    panel.style.left = `${Math.max(16, Math.min(r.left, vw - panel.offsetWidth - 16))}px`;
+    if (below >= 320 || below >= above) { panel.style.top = `${r.bottom + gap}px`; panel.style.maxHeight = `${Math.max(200, Math.min(600, below))}px`; }
+    else { panel.style.bottom = `${vh - r.top + gap}px`; panel.style.maxHeight = `${Math.max(200, Math.min(600, above))}px`; }
+  }
+
+  function openPanel() {
+    const panel = el('gnPanel');
+    if (!s || !panel || !panel.hidden) return;
+    panel.hidden = false;
+    el('gnBackdrop').hidden = false;
+    el('gnButton').setAttribute('aria-expanded', 'true');
+    placePanel();
+    el('gnToggle').focus({ preventScroll: true });
+  }
+
+  function closePanel({ restoreFocus = false } = {}) {
+    const panel = el('gnPanel');
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    el('gnBackdrop').hidden = true;
+    el('gnButton').setAttribute('aria-expanded', 'false');
+    if (restoreFocus) el('gnButton').focus({ preventScroll: true });
+  }
+
+  function drawSummary(key) {
+    const summary = el('gnSummary');
+    summary.textContent = '';
+    const word = (cls, text) => { const n = document.createElement('span'); n.className = cls; n.textContent = text; return n; };
+    if (!s.show) { summary.append(word('guitar-node__summary-quiet', t('guitar.summary_hidden', 'Chords hidden'))); return; }
+    const moved = s.shift % 12 !== 0;
+    const shift = s.key ? nearest(s.shift) : s.shift;
+    if (s.key) {
+      summary.append(word('guitar-node__summary-label', t('guitar.summary_key', 'Key')), ' ', word('guitar-node__summary-key', keyLabel(key)));
+    } else {
+      summary.append(word('guitar-node__summary-quiet', moved ? t('guitar.summary_moved', 'Moved') : t('guitar.summary_asis', 'Chords as written')));
+    }
+    if (moved) summary.append(' ', word('guitar-node__badge', signed(shift)));
+  }
+
   function drawControls() {
     const C = chordsApi();
-    const panel = el('guitarNode');
-    if (!panel) return;
-    panel.hidden = false;
+    const box = el('guitarNode');
+    if (!box) return;
+    box.hidden = false;
     const key = displayKey();
-    const toggle = el('gnToggle');
-    toggle.textContent = t(s.show ? 'guitar.hide' : 'guitar.show', s.show ? 'Hide chords' : 'Show chords');
-    toggle.setAttribute('aria-pressed', String(s.show));
-    el('gnControls').hidden = !s.show;
+
+    // the button: its state, and the line beside it (what is shown, at a glance)
+    el('gnButton').dataset.chords = s.show ? 'on' : 'off';
+    drawSummary(key);
+
+    // the panel: the switch for the chords, and below it the key controls (dimmed and off while the chords are hidden)
+    el('gnToggle').setAttribute('aria-checked', String(s.show));
+    const controls = el('gnControls');
+    controls.classList.toggle('is-off', !s.show);
 
     const original = el('gnOriginal');
     original.textContent = s.key ? keyLabel(s.key) : t('guitar.key_unknown', 'not set');
@@ -129,9 +192,20 @@ const GuitarNode = (() => {
       }
       select.value = String((s.key.pc + s.shift + 12) % 12);
     }
-    el('gnDown').disabled = !s.key && s.shift <= -11;
-    el('gnUp').disabled = !s.key && s.shift >= 11;
-    el('gnReset').disabled = s.shift % 12 === 0;
+    select.disabled = !s.show;
+    el('gnDown').disabled = !s.show || (!s.key && s.shift <= -11);
+    el('gnUp').disabled = !s.show || (!s.key && s.shift >= 11);
+    el('gnReset').disabled = !s.show || s.shift % 12 === 0;
+
+    // the readout between − and +: the key being shown and how far it is from the original (or, without a key, the semitones)
+    const shift = s.key ? nearest(s.shift) : s.shift;
+    if (s.key) {
+      el('gnReadoutMain').textContent = keyLabel(key);
+      el('gnReadoutSub').textContent = s.shift % 12 === 0 ? t('guitar.readout_original', 'Original key') : t('guitar.readout_shift', '{shift} semitones', { shift: signed(shift) });
+    } else {
+      el('gnReadoutMain').textContent = signed(shift);
+      el('gnReadoutSub').textContent = t('guitar.readout_unit', 'semitones');
+    }
 
     // what is shown, in words (also read out by screen readers when it changes)
     let text;
@@ -149,9 +223,28 @@ const GuitarNode = (() => {
   }
 
   function wire() {
-    const panel = el('guitarNode');
-    if (!panel || panel.dataset.wired) return;
-    panel.dataset.wired = '1';
+    const box = el('guitarNode');
+    if (!box || box.dataset.wired) return;
+    box.dataset.wired = '1';
+    // The panel and its backdrop move to the top level of the page: the song's card has overflow hidden and a backdrop filter, which would
+    // clip a popover and make a fixed sheet position itself against the card instead of the screen.
+    document.body.append(el('gnBackdrop'), el('gnPanel'));
+    window.addEventListener('resize', placePanel);
+    window.addEventListener('scroll', placePanel, { passive: true });
+    // open and close: the button, the close button, a tap on the backdrop (phone), Escape, a click or the focus going elsewhere
+    el('gnButton').addEventListener('click', () => { if (panelOpen()) closePanel(); else openPanel(); });
+    el('gnClose').addEventListener('click', () => closePanel({ restoreFocus: true }));
+    el('gnBackdrop').addEventListener('click', () => closePanel());
+    const outside = (target) => !(target instanceof Element) || !target.closest('#gnPanel, #gnButton');
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !panelOpen()) return;
+      if (e.target === el('gnKey')) return;          // Escape belongs to the open key list first
+      e.preventDefault();
+      closePanel({ restoreFocus: true });
+    });
+    document.addEventListener('pointerdown', (e) => { if (panelOpen() && outside(e.target)) closePanel(); });
+    document.addEventListener('focusin', (e) => { if (panelOpen() && outside(e.target)) closePanel(); });
+    // the switch: show or hide the chords
     el('gnToggle').addEventListener('click', () => {
       if (!s) return;
       s.show = !s.show;
@@ -187,6 +280,7 @@ const GuitarNode = (() => {
   /** Back to a song without chords: hides the panel and restores the plain lyrics' look. */
   function unmount() {
     s = null;
+    closePanel();
     const panel = el('guitarNode');
     if (panel) panel.hidden = true;
     const box = el('songLyrics');
