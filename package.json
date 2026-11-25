@@ -41,10 +41,10 @@
     "changelog:check": "node scripts/changelog.mjs --check"
   },
   "dependencies": {
-    "@cloudflare/kv-asset-handler": "^0.5.1",
-    "hono": "^4.12.28"
+    "@cloudflare/kv-asset-handler": "^0.3.4",
+    "hono": "^4.13.19"
   },
   "devDependencies": {
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.166.0"
   }
 }
