@@ -12,6 +12,22 @@ export function slugify(text) {
     .replace(/^-|-$/g, '');
 }
 
+/**
+ * A slug typed or pasted by an admin. When it is a whole web address (https://maralyrics.com/artist/hc-teresa-ngiano) only its last part
+ * is the slug: slugify() alone would glue the address together ("httpsmaralyricscomartisthc-teresa-ngiano"), which is how three Mara Idol
+ * contestants got a slug like that. Anything else is slugified as before.
+ */
+export function slugFromInput(value) {
+  const text = String(value || '').trim();
+  if (/^https?:\/\//i.test(text)) {
+    try {
+      const parts = new URL(text).pathname.split('/').filter(Boolean);
+      if (parts.length) return slugify(decodeURIComponent(parts[parts.length - 1]));
+    } catch { /* not an address after all: slugify it as it is */ }
+  }
+  return slugify(text);
+}
+
 export function parsePagination(query, defaultLimit = 20, maxLimit = 100) {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const limit = Math.min(maxLimit, Math.max(1, parseInt(query.limit, 10) || defaultLimit));

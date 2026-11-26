@@ -212,5 +212,41 @@ console.log('\nBefore migration 0014 (no idol_seasons.photo_url)');
   check(od.status === 200 && od.json.title === 'Old Season' && od.json.photo_url === null, 'public season page still works (photo_url → null)');
 }
 
+// ─── A slug pasted as a whole address ─────────────────────────────────────────────────────────────
+// Three contestants once got "httpsmaralyricscomartisthc-teresa-ngiano" as their slug (and URL) because an address was pasted into the slug
+// box and slugify() glued it together. Only the last part of an address is a slug now, and migration 0022 repairs the old rows.
+{
+  const { slugFromInput } = await load('worker/lib/helpers.js');
+  check(slugFromInput('https://maralyrics.com/artist/hc-teresa-ngiano') === 'hc-teresa-ngiano', 'slugFromInput: the last part of a pasted address');
+  check(slugFromInput('https://maralyrics.com/artist/Fc%20Siteite/') === 'fc-siteite' && slugFromInput('http://x.test/a/b?x=1#y') === 'b', 'slugFromInput: trailing slash, an escaped space, a query and a fragment');
+  check(slugFromInput('My New Slug') === 'my-new-slug' && slugFromInput('  Rônah Chai  ') === 'ronah-chai' && slugFromInput('') === '', 'slugFromInput: anything else is slugified as before');
+  check(slugFromInput('https://') === 'https' && slugFromInput('https://maralyrics.com') === 'httpsmaralyricscom', 'slugFromInput: an address with no path is not turned into nothing');
+  const c = validateContestant({ name: 'HC Teresa Ngiano', slug: 'https://maralyrics.com/artist/hc-teresa-ngiano', season_id: 1 });
+  check(c.ok && c.values.slug === 'hc-teresa-ngiano', `a contestant saved with a pasted address gets the clean slug (${c.values && c.values.slug})`);
+  const s = validateSeason({ title: 'Season 9', slug: 'https://maralyrics.com/mara-idol/season-9', year: 2026 });
+  check(s.ok && s.values.slug === 'season-9', 'a season saved with a pasted address gets the clean slug');
+  check(validateContestant({ name: 'Plain Name', season_id: 1 }).values.slug === 'plain-name', 'no slug typed: made from the name, as before');
+
+  // the migration, on the real schema
+  const m = new DatabaseSync(':memory:');
+  m.exec(fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8'));
+  m.exec(`INSERT INTO idol_seasons (id, title, slug, year, status) VALUES (1, 'S7', 's7', 2024, 'published'), (2, 'S8', 's8', 2025, 'published')`);
+  m.exec(`INSERT INTO idol_contestants (id, season_id, name, slug) VALUES
+    (1, 1, 'HC Teresa Ngiano', 'httpsmaralyricscomartisthc-teresa-ngiano'),
+    (2, 1, 'FC Siteite', 'httpsmaralyricscomartistfc-siteite'),
+    (3, 1, 'Cy', 'httpsmaralyricscomcomposercy-composer'),
+    (4, 2, 'Taken', 'httpsmaralyricscomartisttaken'),
+    (5, 2, 'Already There', 'taken'),
+    (6, 1, 'Normal One', 'normal-one'),
+    (7, 1, 'Nothing After', 'httpsmaralyricscomartist')`);
+  m.exec(fs.readFileSync(path.join(ROOT, 'migrations/0022_fix_idol_slugs.sql'), 'utf8'));
+  const slugs = Object.fromEntries(m.prepare('SELECT id, slug FROM idol_contestants').all().map((r) => [r.id, r.slug]));
+  check(slugs[1] === 'hc-teresa-ngiano' && slugs[2] === 'fc-siteite' && slugs[3] === 'cy-composer', 'migration 0022: the artist and composer addresses are cut back to the slug');
+  check(slugs[4] === 'httpsmaralyricscomartisttaken' && slugs[5] === 'taken', 'migration 0022: a row whose clean slug is taken in its season is left alone (no clash)');
+  check(slugs[6] === 'normal-one' && slugs[7] === 'httpsmaralyricscomartist', 'migration 0022: normal slugs, and a bare address with nothing after it, are untouched');
+  m.exec(fs.readFileSync(path.join(ROOT, 'migrations/0022_fix_idol_slugs.sql'), 'utf8'));
+  check(JSON.stringify(m.prepare('SELECT slug FROM idol_contestants ORDER BY id').all().map((r) => r.slug)) === JSON.stringify(Object.values(slugs)), 'migration 0022: running it twice changes nothing');
+}
+
 console.log(`\n${failures ? '✗' : '✓'} ${passes} checks passed, ${failures} failed`);
 process.exit(failures ? 1 : 0);

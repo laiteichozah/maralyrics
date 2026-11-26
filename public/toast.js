@@ -128,7 +128,9 @@ const Toast = (() => {
       }
     });
 
-    window.addEventListener('offline', () => {
+    window.addEventListener('offline', async () => {
+      // The browser says it lost the network: believe it only when a real request fails too.
+      if (await reachable()) return;
       setBadge(true);
       wasOffline = true;
       const msg = typeof I18n !== 'undefined'
@@ -140,10 +142,26 @@ const Toast = (() => {
       );
     });
 
-    // Initial state
+    // Initial state. navigator.onLine is only a hint: headless browsers, page renderers and sandboxes report false although the page
+    // just came over the network. Saying "Offline" for those is wrong (a search or AI tool then shows a site that "is offline"), so
+    // the badge waits for a real request to fail.
     if (!navigator.onLine) {
-      setBadge(true);
+      reachable().then((up) => { if (!up) setBadge(true); else wasOffline = false; });
     }
+  }
+
+  /**
+   * Can the site's server be reached? Any answer at all (even an error page) proves a connection; only a request that fails does not.
+   * It is a HEAD request with no-cors: the service worker leaves non-GET requests alone, so it cannot answer for the network, and the
+   * answer needs no CORS permission to be counted. Gives up after `timeoutMs` (6 seconds unless asked).
+   */
+  function reachable(timeoutMs = 6000) {
+    const base = typeof CONFIG !== 'undefined' && CONFIG.API_BASE ? CONFIG.API_BASE : 'https://api.maralyrics.com/api/v1';
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : 0;
+    return fetch(base, { method: 'HEAD', mode: 'no-cors', cache: 'no-store', ...(controller ? { signal: controller.signal } : {}) })
+      .then(() => true, () => false)
+      .finally(() => clearTimeout(timer));
   }
 
   /** Toggle the header offline badge. */
@@ -153,5 +171,5 @@ const Toast = (() => {
   }
 
   // ─── Public API ──────────────────────────────────────
-  return { show, hide, initOffline, setBadge };
+  return { show, hide, initOffline, setBadge, reachable };
 })();

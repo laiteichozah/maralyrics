@@ -115,6 +115,9 @@ async function device(name, viewport = { width: 1100, height: 900 }) {
   });
   await ctx.route(/calendar-api|googlesyndication|challenges\.cloudflare|fonts\.g|accounts\.google/, (r) => r.abort());
   await ctx.route('https://api.maralyrics.com/**', async (route) => {
+    // setOffline() cuts the real network, but not an answer given here: a device that is really offline gets no answer at all,
+    // and the page's own "is the network really down?" request (Utils.settleOnline) must see that.
+    if (ctx.__offline) return route.abort('internetdisconnected');
     const req = route.request();
     if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors });
     const u = new URL(req.url());
@@ -198,10 +201,10 @@ try {
   ok(JSON.stringify((await P.evaluate(() => Favorites.getAll())).sort()) === '["bravo","delta"]' && (await P.evaluate(() => Pins.getAll())).length === 0, "A catches up: B's changes arrive (the un-favorited song loses its pin too)");
   ok((await P.evaluate(() => [...Downloads.slugs])).length === 0, "and B's removal of the download reaches A");
 
-  await B.ctx.setOffline(true);
+  B.ctx.__offline = true; await B.ctx.setOffline(true);
   await Q.evaluate(() => Favorites.toggle('charlie')); await sleep(1800);
   ok(!synced('favorite').includes('charlie') && await Q.evaluate(() => Object.keys(Sync.queue()).length) >= 1, 'a change made offline waits in the queue');
-  await B.ctx.setOffline(false);
+  B.ctx.__offline = false; await B.ctx.setOffline(false);
   await Q.evaluate(() => Sync.run({ force: true })); await sleep(1500);
   ok(synced('favorite').includes('charlie'), '…and is sent when the device is back online');
 

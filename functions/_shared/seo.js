@@ -106,6 +106,79 @@ export function songLinkList(songs, limit = 200) {
   return items ? `<ul class="seo-song-list">${items}</ul>` : '';
 }
 
+// ─── Crawlable index sections for the listing pages ──────────────────────────────────────────────
+// The home page, /articles and /artists-composers fill their lists with JavaScript after an API call, so a crawler or an AI
+// fetcher that does not run scripts (or whose script run has no network: the page then even says "Offline") sees only the
+// page's frame and no link to a song, an article or a person. These helpers write a plain list of links into the HTML, in a
+// collapsed <details> block above the footer: it is real, visible-on-demand content (not hidden text), costs no layout shift,
+// and stays out of the way of the cards the script draws.
+
+/** "Title — Artist" links to songs, A–Z, for the index block on the home page. */
+export function songIndexList(songs, limit = 1000) {
+  const items = (songs || []).slice(0, limit)
+    .filter((s) => s && s.slug && s.title)
+    .map((s) => `<li><a href="/song/${encodeURIComponent(s.slug)}">${escapeHtml(s.title)}</a>${s.artist_names ? ` <span class="seo-index__by">— ${escapeHtml(s.artist_names)}</span>` : ''}</li>`)
+    .join('');
+  return items ? `<ul class="seo-index__list">${items}</ul>` : '';
+}
+
+/** Links to artists or composers with how many songs each has. */
+export function peopleIndexList(people, type, limit = 1000) {
+  const items = (people || []).slice(0, limit)
+    .filter((p) => p && p.slug && p.name)
+    .map((p) => `<li><a href="/${type}/${encodeURIComponent(p.slug)}">${escapeHtml(p.name)}</a>${p.song_count ? ` <span class="seo-index__by">(${Number(p.song_count)} ${Number(p.song_count) === 1 ? 'song' : 'songs'})</span>` : ''}</li>`)
+    .join('');
+  return items ? `<ul class="seo-index__list">${items}</ul>` : '';
+}
+
+/** Links to articles, each with its one-line summary. */
+export function articleIndexList(articles, limit = 200) {
+  const items = (articles || []).slice(0, limit)
+    .filter((a) => a && a.slug && a.title)
+    .map((a) => `<li><a href="/article/${encodeURIComponent(a.slug)}">${escapeHtml(a.title)}</a>${a.summary ? ` <span class="seo-index__by">— ${escapeHtml(String(a.summary).replace(/\s+/g, ' ').slice(0, 160))}</span>` : ''}</li>`)
+    .join('');
+  return items ? `<ul class="seo-index__list">${items}</ul>` : '';
+}
+
+/**
+ * Puts an index block just above the page's footer. `blocks` is [{ heading, summary, list, open }]: each a heading, a
+ * collapsed (or open) <details> with the list. Returns the page unchanged when there is nothing to show or no footer.
+ */
+export function addIndexSection(html, { id, label, blocks }) {
+  const parts = (blocks || []).filter((b) => b && b.list)
+    .map((b, i) => `<details class="seo-index__block"${b.open ? ' open' : ''}><summary class="seo-index__summary"><h2 class="seo-index__heading">${escapeHtml(b.heading)}</h2><span class="seo-index__count">${escapeHtml(b.summary || '')}</span></summary>${b.list}</details>`)
+    .join('');
+  if (!parts || !html.includes('<footer class="footer">')) return html;
+  const section = `<nav class="container seo-index" id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}">${parts}</nav>\n\n  `;
+  return html.replace('<footer class="footer">', () => `${section}<footer class="footer">`);
+}
+
+/** Headers for a page built from the database that sits in the edge cache for 5 minutes: browsers ask again every time (so a new deploy shows
+    at once), the edge answers without the database. */
+export const LIST_PAGE_HEADERS = {
+  'Content-Type': 'text/html; charset=UTF-8',
+  'Cache-Control': 'public, max-age=0, s-maxage=300, must-revalidate',
+};
+
+/**
+ * Edge cache for a page that is built from the database on every request. The home page is the busiest page of the site and its
+ * index block reads every song; a copy is kept for 5 minutes in Cloudflare's cache (the Cache API; it does nothing where it does not
+ * exist, such as in tests), keyed by the path alone. Only an OK page is kept. `build()` sets the headers (LIST_PAGE_HEADERS).
+ */
+export async function withEdgeCache(context, build) {
+  const cache = typeof caches !== 'undefined' && caches.default ? caches.default : null;
+  const url = new URL(context.request.url);
+  const key = new Request(`${url.origin}${url.pathname}`, { method: 'GET' });
+  if (cache && context.request.method === 'GET') {
+    try { const hit = await cache.match(key); if (hit) return hit; } catch { /* no cache: build it */ }
+  }
+  const res = await build();
+  if (cache && context.request.method === 'GET' && res.status === 200 && typeof context.waitUntil === 'function') {
+    context.waitUntil(cache.put(key, res.clone()).catch(() => {}));
+  }
+  return res;
+}
+
 /** Lyrics as stored may contain literal "\\n" sequences — same normalisation as app.js. */
 export function cleanLyrics(text = '') {
   return String(text).replace(/\\n/g, '\n');
