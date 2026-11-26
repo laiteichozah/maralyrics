@@ -86,9 +86,25 @@ const Utils = {
     return d.toLocaleDateString(Utils.locale(), { month: 'short', day: 'numeric', year: 'numeric' });
   },
 
-  /** Check if device is online. */
+  /**
+   * Is the device online? `navigator.onLine` is only a hint: headless browsers, page renderers, remote-browser tools and some sandboxes
+   * report `false` although the page just came over the network. Everything that trusted it then took the "offline" path — an empty
+   * song list, "not available offline" instead of the lyrics — so a `false` is believed only after a real request has failed
+   * (see settleOnline), and a real request that succeeded overrules it.
+   */
+  _netProven: false,
   isOnline() {
-    return navigator.onLine;
+    return navigator.onLine || Utils._netProven;
+  },
+
+  /**
+   * Settle the "online?" question once, before the page loads its data. Costs nothing when the browser says it is online; when it
+   * says it is not, one small request decides (an offline device fails at once, so a real offline visit is not delayed).
+   */
+  async settleOnline() {
+    if (navigator.onLine) { Utils._netProven = false; return true; }
+    Utils._netProven = typeof Toast !== 'undefined' && typeof Toast.reachable === 'function' ? await Toast.reachable(3000) : false;
+    return Utils._netProven;
   },
 
   /** Today's date as YYYY-MM-DD in the visitor's local timezone (not UTC —
@@ -1748,8 +1764,7 @@ const HomePage = {
       } else {
         data = Cache.getCachedSongList(this.currentPage, this.currentCategory, this.currentSort);
         if (!data) {
-          UI.showEmptyState(true);
-          this.songGrid.innerHTML = '';
+          this.showServerRenderedSongs();
           return;
         }
         UI.setOfflineMode(true);
@@ -1778,10 +1793,43 @@ const HomePage = {
         this.paginationEl.innerHTML = UI.createPagination(cached.page, cached.totalPages);
         UI.setOfflineMode(true);
       } else {
-        this.songGrid.innerHTML = '';
-        UI.showEmptyState(true);
+        this.showServerRenderedSongs();
       }
     }
+  },
+
+  /** Song service out of reach and nothing stored: the page's own HTML still carries the A–Z list (written by the server for
+   *  search engines), so show its first page as cards rather than an empty "no songs yet". Not for a category or page 2+. */
+  showServerRenderedSongs() {
+    const fromPage = this.currentCategory || this.currentPage > 1 ? [] : this.serverRenderedSongs();
+    if (!fromPage.length) {
+      this.songGrid.innerHTML = '';
+      UI.showEmptyState(true);
+      return;
+    }
+    this.songGrid.innerHTML = fromPage.map((s, i) => UI.createSongCard(s, i)).join('');
+    this.paginationEl.innerHTML = '';
+    UI.showEmptyState(false);
+    UI.setOfflineMode(true);
+  },
+
+  /** The first page of songs, read from the A–Z index the server put into this page's HTML (title, artists, slug — no views). */
+  serverRenderedSongs() {
+    const links = document.querySelectorAll('.seo-index__list a[href^="/song/"]');
+    const songs = [];
+    for (const a of links) {
+      let slug = '';
+      try { slug = decodeURIComponent(a.getAttribute('href').slice('/song/'.length)); } catch { continue; }
+      const by = a.parentElement && a.parentElement.querySelector('.seo-index__by');
+      songs.push({
+        slug,
+        title: a.textContent.trim(),
+        artist_name: by ? by.textContent.replace(/^\s*—\s*/, '').trim() : '',
+        views: 0,
+      });
+      if (songs.length >= CONFIG.ITEMS_PER_PAGE) break;
+    }
+    return songs;
   },
 
   // ─── Load Favorites (client-side, bypasses server pagination) ────────
@@ -2146,7 +2194,7 @@ const SongPage = {
       } else {
         song = await Downloads.get(slug);
         if (!song) {
-          this.showError();
+          this.keepServerContentOrShowError();
           return;
         }
         UI.setOfflineMode(true);
@@ -2157,8 +2205,20 @@ const SongPage = {
       this.countView(slug);
     } catch (err) {
       console.warn('Failed to load song:', err);
-      this.showError();
+      // "API 404" means the song really is gone; anything else is the song service being out of reach.
+      if (/^API 404/.test(String(err && err.message))) this.showError();
+      else this.keepServerContentOrShowError();
     }
+  },
+
+  /** The page's own server already wrote the song into the HTML (title, credits, lyrics): that is real content, so when the
+   *  song service can't be reached, keep it on screen instead of replacing it with "song not found". */
+  keepServerContentOrShowError() {
+    const detail = document.getElementById('songDetail');
+    const lyrics = document.getElementById('songLyrics');
+    const hasContent = detail && lyrics && getComputedStyle(detail).display !== 'none' && lyrics.textContent.trim().length > 0;
+    if (!hasContent) { this.showError(); return; }
+    UI.setOfflineMode(true);
   },
 
   renderSong(song) {
@@ -2311,6 +2371,10 @@ const SongPage = {
 
   /** Update page title, meta tags, and JSON-LD. */
   updateMeta(song) {
+    // A page the server rendered already has its title, description, canonical address and structured data written for this exact song
+    // (a song that shares its title with another carries its artist in the title): leave them as they are.
+    const rendered = document.getElementById('jsonLd');
+    if (rendered && rendered.textContent.includes('@graph')) return;
     const artistDisplay = Utils.joinNames(song.artists, song.artist_name || song.artist || I18n.t('common.unknown'));
     const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
     const desc = `Read the full lyrics of ${song.title}, a Mara song by ${artistDisplay}. Discover Mara music on MaraLyrics.`;
@@ -5405,6 +5469,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.warn('I18n.init failed:', err);
   }
+
+  // Is the network really down? (navigator.onLine alone is wrong in headless browsers and page renderers.)
+  await Utils.settleOnline();
+  window.addEventListener('offline', () => { Utils._netProven = false; Utils.settleOnline(); });
+  window.addEventListener('online', () => { Utils._netProven = false; });
 
   initAppPromotion();
   initHymnalPromotion();

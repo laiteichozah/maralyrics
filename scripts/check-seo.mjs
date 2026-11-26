@@ -137,7 +137,12 @@ run(`INSERT INTO copyright_owners (id, name, slug, organization, email) VALUES (
 run(`INSERT INTO songs (id, title, slug, category, lyrics, status, copyright_owner_id, updated_at) VALUES
   (1, 'Song <One> & Co', 'song-one', 'Gospel', 'Line one\\nLine two $& <script>x</script>', 'published', 1, '2026-09-01 10:00:00'),
   (2, 'Draft Song', 'draft-song', 'Love', 'secret', 'pending', 1, '2026-09-02 10:00:00')`);
-run(`INSERT INTO song_artists (song_id, artist_id, position) VALUES (1, 1, 0), (2, 2, 0)`);
+run(`INSERT INTO artists (id, name, slug) VALUES (3, 'Bea Artist', 'bea-artist')`);
+run(`INSERT INTO songs (id, title, slug, category, lyrics, status, updated_at) VALUES
+  (3, 'Shared Title', 'shared-a', 'Love', 'Words of A', 'published', '2026-09-03 10:00:00'),
+  (4, 'shared title', 'shared-b', 'Love', 'Words of B', 'published', '2026-09-04 10:00:00'),
+  (5, 'Lonely Words', 'lonely-words', 'Love', 'A song with no composer', 'published', '2026-09-05 10:00:00')`);
+run(`INSERT INTO song_artists (song_id, artist_id, position) VALUES (1, 1, 0), (2, 2, 0), (3, 1, 0), (4, 3, 0), (5, 1, 0)`);
 run(`INSERT INTO song_composers (song_id, composer_id, position) VALUES (1, 1, 0)`);
 run(`INSERT INTO person_badges (artist_id, period, period_value, title) VALUES (1, 'lifetime', '', NULL), (1, 'month', '2026-10', NULL), (1, 'year', '2025', 'Voice <of> Mara')`);
 run(`INSERT INTO articles (id, title, slug, author_name, summary, content, status, published_at, created_at, updated_at) VALUES
@@ -193,7 +198,8 @@ for (const c of cases) {
   check(crumbs && crumbs.itemListElement.every((i, idx) => i.position === idx + 1 && i.name), `${name}: malformed BreadcrumbList`);
   if (c.image) check(page.html.includes(`property="og:image" id="ogImage" content="${c.image}"`), `${name}: og:image should use the entity image`);
   else check(page.html.includes(`id="ogImage" content="${ORIGIN}/og-image.png"`), `${name}: og:image should fall back to the brand image`);
-  check(!/\$&|\$1/.test(page.html.replace('Line two $&amp;', '')), `${name}: replacement-pattern corruption`);
+  // the test song's lyrics contain a literal "$&" on purpose: once HTML-escaped in the page, once as is inside the JSON-LD lyrics text
+  check(!/\$&|\$1/.test(page.html.replace('Line two $&amp;', '').replace('Line two $& \\u003cscript', '')), `${name}: replacement-pattern corruption`);
 
   for (const bad of [c.missing, c.bare]) {
     const nf = await get(mod, bad);
@@ -273,6 +279,71 @@ for (const c of cases) {
   check(/id="profileBadges" hidden/.test(none.html) && !nodes(jsonLd(none.html)).some((n) => n.award), 'composer without badges: container stays hidden and no `award` is invented');
 }
 
+// ─── Structured data: the lyrics, and a title of its own for every song ──────────────────────────────
+{
+  const song = await load('song/[[catchall]].js');
+  const one = await get(song, '/song/song-one');
+  const comp = nodes(jsonLd(one.html)).find((n) => n['@type'] === 'MusicRecording').recordingOf;
+  check(comp && comp['@type'] === 'MusicComposition' && comp.composer[0].name === 'Cy Composer', 'song JSON-LD: the MusicComposition names its composer');
+  check(comp.lyrics && comp.lyrics['@type'] === 'CreativeWork' && comp.lyrics.url === `${ORIGIN}/song/song-one` && comp.lyrics.inLanguage === 'mrh', 'song JSON-LD: lyrics is a CreativeWork whose URL is the song page');
+  check(comp.lyrics.text === 'Line one\nLine two $& <script>x</script>', `song JSON-LD: the lyrics text is the lyrics, exactly (${JSON.stringify(comp.lyrics.text)})`);
+  check(!/<script>x/.test(one.html.match(/<script type="application\/ld\+json" id="jsonLd">[\s\S]*?<\/script>/)[0].replace(/<\/script>$/, '')), 'song JSON-LD: "<" is escaped inside the script block');
+  const lonely = await get(song, '/song/lonely-words');
+  const lc = nodes(jsonLd(lonely.html)).find((n) => n['@type'] === 'MusicRecording').recordingOf;
+  check(lc && lc.lyrics && lc.lyrics.text === 'A song with no composer' && !('composer' in lc), 'song JSON-LD: a song with no composer still carries its lyrics, and no composer is invented');
+
+  const titleOf = (r) => (r.html.match(/<title id="pageTitle">([^<]*)<\/title>/) || [])[1];
+  const a1 = await get(song, '/song/shared-a');
+  const b1 = await get(song, '/song/shared-b');
+  check(titleOf(a1) === 'Shared Title (Ann Artist) Lyrics – Mara Song | MaraLyrics' && titleOf(b1) === 'shared title (Bea Artist) Lyrics – Mara Song | MaraLyrics', `songs that share a title carry their artist in the <title> (${titleOf(a1)} | ${titleOf(b1)})`);
+  check(titleOf(a1) !== titleOf(b1) && a1.html.includes('property="og:title" id="ogTitle" content="Shared Title (Ann Artist) Lyrics') && a1.html.includes('name="twitter:title" id="twTitle" content="Shared Title (Ann Artist) Lyrics'), 'the two titles differ, in og:title and twitter:title too');
+  check(titleOf(one) === 'Song &lt;One&gt; &amp; Co Lyrics – Mara Song | MaraLyrics' && titleOf(lonely) === 'Lonely Words Lyrics – Mara Song | MaraLyrics', 'a song with a title of its own keeps the plain title');
+  const allTitles = [];
+  for (const slug of ['song-one', 'shared-a', 'shared-b', 'lonely-words']) allTitles.push(titleOf(await get(song, `/song/${slug}`)));
+  check(new Set(allTitles).size === allTitles.length, 'no two song pages have the same <title>');
+  check(/<meta name="description" id="metaDesc" content="Read the full lyrics of Shared Title, a Mara song by Ann Artist\./.test(a1.html), 'the description still reads "full lyrics of <title>, a Mara song by <artist>"');
+}
+
+// ─── Listing pages: real links for a crawler that does not run scripts ───────────────────────────────
+{
+  const noJs = (html) => html.replace(/<script[\s\S]*?<\/script>/g, '');
+  const home = await get(await load('index.js'), '/');
+  const links = [...noJs(home.html).matchAll(/<li><a href="\/song\/([^"]+)">/g)].map((m) => m[1]);
+  check(home.status === 200 && JSON.stringify(links) === JSON.stringify(['lonely-words', 'shared-a', 'shared-b', 'song-one']), `home: an A–Z index links every published song and nothing else (${links.join(', ')})`);
+  check(!home.html.includes('draft-song') && !home.html.includes('secret'), 'home: a pending song is not linked');
+  check(home.html.includes('<nav class="container seo-index" id="songIndex" aria-label="All song lyrics">') && home.html.indexOf('id="songIndex"') < home.html.indexOf('<footer class="footer">') && home.html.indexOf('id="songIndex"') > home.html.indexOf('id="songGrid"'), 'home: the index sits between the song area and the footer');
+  check(/<details class="seo-index__block"><summary class="seo-index__summary"><h2 class="seo-index__heading">All song lyrics, A–Z<\/h2><span class="seo-index__count">4 songs<\/span>/.test(home.html), 'home: collapsed, with a heading and the number of songs');
+  check(home.html.includes('<a href="/song/song-one">Song &lt;One&gt; &amp; Co</a> <span class="seo-index__by">— Ann Artist</span>') && home.html.includes('<span class="seo-index__by">— Bea Artist</span>'), 'home: titles are escaped and the artists named');
+  check(home.html.includes('<div id="songGrid" class="song-grid"></div>') && home.html.includes('<h1 class="hero__title"') && home.html.includes('<link rel="canonical" href="https://maralyrics.com/" />'), 'home: the page itself (hero, empty song grid for the script, canonical) is untouched');
+  check(home.headers.get('Cache-Control') === 'public, max-age=0, s-maxage=300, must-revalidate' && /text\/html/.test(home.headers.get('Content-Type')), 'home: browsers ask again every time, the edge keeps it 5 minutes');
+  check(!/name="robots"/.test(home.html), 'home: indexable');
+  run(`UPDATE songs SET status = 'published' WHERE id = 2`);
+  const withTwo = await get(await load('index.js'), '/');
+  check(withTwo.html.includes('href="/song/draft-song"') && withTwo.html.includes('5 songs'), 'home: a song that is published later appears at once (no stale copy without the edge cache)');
+  run(`UPDATE songs SET status = 'pending' WHERE id = 2`);
+
+  const plain = fs.readFileSync(path.join(PUBLIC, 'index.html'), 'utf8');
+  const origError = console.error; console.error = () => {};
+  for (const [name, mod, file, route] of [['home', 'index.js', 'index.html', '/'], ['articles', 'articles.js', 'articles.html', '/articles'], ['artists-composers', 'artists-composers.js', 'artists-composers.html', '/artists-composers']]) {
+    const down = await (await load(mod)).onRequest({ request: new Request(`${ORIGIN}${route}`), env: { DB: { prepare() { throw new Error('D1 is down'); } }, ASSETS } });
+    const downHtml = await down.text();
+    check(down.status === 200 && !downHtml.includes('seo-index') && downHtml === fs.readFileSync(path.join(PUBLIC, file), 'utf8'), `${name}: a database failure serves the page as it is (200, no index), never an error`);
+    const post = await (await load(mod)).onRequest({ request: new Request(`${ORIGIN}${route}`, { method: 'POST' }), env: { DB: { prepare() { throw new Error('must not be read'); } }, ASSETS } });
+    check(post.status === 200 && !(await post.text()).includes('seo-index'), `${name}: other methods are left to the static page (the database is not read)`);
+  }
+  console.error = origError;
+  check(plain.includes('<footer class="footer">'), 'index.html has the footer the index is placed above');
+
+  const articles = await get(await load('articles.js'), '/articles');
+  check(articles.status === 200 && articles.html.includes('<a href="/article/hello-article">Hello Article</a> <span class="seo-index__by">— A summary.</span>') && !articles.html.includes('unpublished') && /<details class="seo-index__block" open>/.test(articles.html), 'articles: published articles are linked with their summary, open; drafts are not');
+  check(articles.html.includes('<link rel="canonical" href="https://maralyrics.com/articles" />') && articles.html.indexOf('id="articleIndex"') < articles.html.indexOf('<footer class="footer">'), 'articles: canonical kept, index above the footer');
+
+  const people = await get(await load('artists-composers.js'), '/artists-composers');
+  check(people.status === 200 && people.html.includes('<a href="/artist/ann-artist">Ann Artist</a> <span class="seo-index__by">(3 songs)</span>') && people.html.includes('<a href="/artist/bea-artist">Bea Artist</a> <span class="seo-index__by">(1 song)</span>') && people.html.includes('<a href="/composer/cy-composer">Cy Composer</a>'), 'artists-composers: artists and composers are linked with their song counts');
+  check(!people.html.includes('no-songs') && !people.html.includes('idle-composer'), 'artists-composers: a person with no published song is not linked (the sitemap leaves them out too)');
+  check(people.html.includes('Mara artists</h2>') && people.html.includes('Mara composers</h2>') && people.html.includes('<link rel="canonical" href="https://maralyrics.com/artists-composers" />'), 'artists-composers: both headings, canonical kept');
+}
+
 // Unpublished/draft content must be invisible.
 check((await get(await load('song/[[catchall]].js'), '/song/draft-song')).status === 404, 'song: pending song must 404');
 check((await get(await load('article/[[catchall]].js'), '/article/unpublished')).status === 404, 'article: draft must 404');
@@ -289,7 +360,7 @@ check(new Set(locs).size === locs.length, 'sitemap: duplicate URLs');
 check(locs.every((l) => l.startsWith(`${ORIGIN}/`) && !/[?#\s]/.test(l)), 'sitemap: every <loc> must be an absolute https URL without query/fragment');
 check((xml.match(/<url>/g) || []).length === locs.length, 'sitemap: <url>/<loc> count mismatch');
 check([...xml.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)].every((m) => /^\d{4}-\d{2}-\d{2}$/.test(m[1])), 'sitemap: bad <lastmod> format');
-for (const want of ['/mara-idol', '/mara-idol/season-1', '/mara-idol/season-1/win-ner', '/mara-idol/season-1/plain-entry', '/', '/about', '/articles', '/artists-composers', '/song/song-one', '/artist/ann-artist', '/composer/cy-composer', '/copyright-owner/owner-one', '/article/hello-article']) {
+for (const want of ['/song/shared-a', '/song/shared-b', '/song/lonely-words', '/artist/bea-artist', '/mara-idol', '/mara-idol/season-1', '/mara-idol/season-1/win-ner', '/mara-idol/season-1/plain-entry', '/', '/about', '/articles', '/artists-composers', '/song/song-one', '/artist/ann-artist', '/composer/cy-composer', '/copyright-owner/owner-one', '/article/hello-article']) {
   check(locs.includes(`${ORIGIN}${want === '/' ? '/' : want}`), `sitemap: missing ${want}`);
 }
 for (const unwanted of ['/downloads', '/report', '/admin', '/song/draft-song', '/artist/no-songs', '/composer/idle-composer', '/copyright-owner/empty-owner', '/article/unpublished', '/mara-idol/secret-draft', '/mara-idol/secret-draft/hidden-idol']) {

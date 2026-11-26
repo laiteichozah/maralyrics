@@ -2,7 +2,7 @@
  * Mara Idol: validation and shared constants for seasons (editions) and contestants.
  * Used by the admin routes (write) and the public routes (read).
  */
-import { slugify } from './helpers.js';
+import { slugify, slugFromInput } from './helpers.js';
 
 export const IDOL_RESULTS = ['winner', 'runner_up', 'second_runner_up', 'finalist', 'semi_finalist', 'contestant'];
 export const SEASON_STATUSES = ['draft', 'published'];
@@ -71,7 +71,7 @@ export function validateSeason(data = {}) {
   if (!title) return { ok: false, error: 'title is required' };
   if (title.length > 150) return { ok: false, error: 'title is too long (max 150 characters)' };
 
-  const slug = str(data.slug) ? slugify(data.slug) : slugify(title);
+  const slug = str(data.slug) ? slugFromInput(data.slug) : slugify(title);
   if (!slug) return { ok: false, error: 'slug could not be generated from the title — enter one using letters or numbers' };
 
   const year = Number(data.year);
@@ -112,7 +112,7 @@ export function validateContestant(data = {}) {
   if (!name) return { ok: false, error: 'name is required' };
   if (name.length > 150) return { ok: false, error: 'name is too long (max 150 characters)' };
 
-  const slug = str(data.slug) ? slugify(data.slug) : slugify(name);
+  const slug = str(data.slug) ? slugFromInput(data.slug) : slugify(name);
   if (!slug) return { ok: false, error: 'slug could not be generated from the name — enter one using letters or numbers' };
 
   const season = Number(data.season_id);

@@ -6,8 +6,10 @@ import {
 // Title/description are kept byte-identical to ProfilePage/SongPage.updateMeta in public/app.js
 // (crawlers see this server version first; a different client-side wording would look inconsistent).
 function buildSongSeo(song) {
-  const title = `${song.title} Lyrics – Mara Song | MaraLyrics`;
   const artistNames = song.artists.map((a) => a.name).join(', ') || 'Unknown Artist';
+  // Two songs can share a title: the later ones carry who made them, so that no two pages have the same <title>.
+  const credit = song.artists.map((a) => a.name).join(', ') || song.composers.map((c) => c.name).join(', ');
+  const title = `${song.title}${song.sharesTitle && credit ? ` (${credit})` : ''} Lyrics – Mara Song | MaraLyrics`;
   const description = `Read the full lyrics of ${song.title}, a Mara song by ${artistNames}. Discover Mara music on MaraLyrics.`;
   const url = `${SITE_ORIGIN}/song/${encodeURIComponent(song.slug)}`;
 
@@ -20,9 +22,15 @@ function buildSongSeo(song) {
     url,
     inLanguage: 'mrh',
     ...(song.artists.length ? { byArtist: song.artists.map((a) => person('MusicGroup', a)) } : {}),
-    ...(song.composers.length
-      ? { recordingOf: { '@type': 'MusicComposition', name: song.title, composer: song.composers.map((c) => person('Person', c)) } }
-      : {}),
+    // The composition always carries the lyrics (the words, as written on this page, and the page's address as their URL).
+    recordingOf: {
+      '@type': 'MusicComposition',
+      '@id': `${url}#composition`,
+      name: song.title,
+      inLanguage: 'mrh',
+      ...(song.composers.length ? { composer: song.composers.map((c) => person('Person', c)) } : {}),
+      lyrics: { '@type': 'CreativeWork', '@id': `${url}#lyrics`, name: `${song.title} (lyrics)`, url, inLanguage: 'mrh', text: cleanLyrics(song.lyrics) },
+    },
     ...(song.category ? { genre: song.category } : {}),
     ...(toIso(song.updated_at) ? { dateModified: toIso(song.updated_at) } : {}),
     publisher: { '@type': 'Organization', name: 'MaraLyrics', url: SITE_ORIGIN },
@@ -51,7 +59,13 @@ async function fetchSong(db, slug) {
     db.prepare(`SELECT a.name AS name, a.slug AS slug FROM song_artists sa JOIN artists a ON a.id = sa.artist_id WHERE sa.song_id = ? ORDER BY sa.position`).bind(song.id).all(),
     db.prepare(`SELECT c.name AS name, c.slug AS slug FROM song_composers sc JOIN composers c ON c.id = sc.composer_id WHERE sc.song_id = ? ORDER BY sc.position`).bind(song.id).all(),
   ]);
-  return { ...song, artists: artists.results || [], composers: composers.results || [] };
+  // Does another published song have this title? (Best effort: a failure here only means the plain title is used.)
+  let sharesTitle = false;
+  try {
+    const other = await db.prepare(`SELECT COUNT(*) AS n FROM songs WHERE status = 'published' AND id != ? AND LOWER(title) = LOWER(?)`).bind(song.id, song.title).first();
+    sharesTitle = !!(other && Number(other.n) > 0);
+  } catch { /* plain title */ }
+  return { ...song, artists: artists.results || [], composers: composers.results || [], sharesTitle };
 }
 
 // Real content for crawlers that don't execute JS; app.js re-renders the same containers.
